@@ -5,6 +5,7 @@ import { ratingStats, dossiersWithProblems, RATING_REASON_LABELS } from '../util
 import { pendingInvoices, pendingInvoicesStats, groupPendingByDossier } from '../utils/pendingInvoices';
 import { getCategorieMeta } from '../utils/stub';
 import ClickableDiv from '../components/ui/ClickableDiv.tsx';
+import EmptyState from '../components/ui/EmptyState.tsx';
 
 interface DashProps { [key: string]: any; }
 
@@ -33,14 +34,18 @@ function Dash(p: DashProps) {
 
   if (dos.length === 0) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", padding: 24, textAlign: "center" }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>{"📦"}</div>
-        <div style={{ fontSize: 22, fontWeight: 800, color: "var(--text-primary)", marginBottom: 8 }}>{"Bienvenue sur Sapurai"}</div>
-        <div style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 28, maxWidth: 380, lineHeight: 1.6 }}>{"Creez votre premier dossier de transit pour commencer le suivi de vos conteneurs, depenses et franchises."}</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 320 }}>
-          {canEdit ? <button onClick={function () { setMl({ t: "ndos" }); }} style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", border: "none", borderRadius: 12, padding: "14px 24px", fontSize: 15, fontWeight: 700, cursor: "pointer", minHeight: 52 }}>{"+ Creer un dossier"}</button> : null}
-          {canEdit ? <button onClick={function () { setMl({ t: "import" }); }} style={{ background: "var(--bg-primary)", color: "var(--btn-primary-bg)", border: "2px solid var(--border)", borderRadius: 12, padding: "14px 24px", fontSize: 14, fontWeight: 600, cursor: "pointer", minHeight: 52 }}>{"📂 Importer depuis Excel"}</button> : null}
-        </div>
+      <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <EmptyState
+          icon="📦"
+          title="Bienvenue sur Sapurai"
+          description="Créez votre premier dossier de transit pour commencer le suivi de vos conteneurs, dépenses et franchises."
+          action={canEdit ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, width: 320, maxWidth: "100%" }}>
+              <button onClick={function () { setMl({ t: "ndos" }); }} style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", border: "none", borderRadius: 10, padding: "12px 24px", fontSize: 14, fontWeight: 600, cursor: "pointer", minHeight: 48 }}>{"+ Créer un dossier"}</button>
+              <button onClick={function () { setMl({ t: "import" }); }} style={{ background: "transparent", color: "var(--text-primary)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 24px", fontSize: 13, fontWeight: 600, cursor: "pointer", minHeight: 48 }}>{"📂 Importer depuis Excel"}</button>
+            </div>
+          ) : null}
+        />
       </div>
     );
   }

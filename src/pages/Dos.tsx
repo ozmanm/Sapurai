@@ -3,6 +3,7 @@ import { fd, fm, tcSum } from '../utils/format.js';
 import { DBG, DC, DL } from '../constants/statuts.js';
 import { exportDossiers } from '../utils/export.js';
 import Pagination from '../components/ui/Pagination.tsx';
+import EmptyState from '../components/ui/EmptyState.tsx';
 import ClickableDiv from '../components/ui/ClickableDiv.tsx';
 
 interface DosProps { [key: string]: any; }
@@ -410,13 +411,21 @@ function Dos(p: DosProps) {
 
           {totalPages > 1 ? <Pagination page={safePage} setPage={setDosPage} totalPages={totalPages} total={filt.length} /> : null}
 
-          {filt.length === 0 ? <div style={{ background: "var(--bg-primary)", borderRadius: 12, padding: 50, textAlign: "center", marginTop: 10 }}>
-            <div style={{ color: "var(--text-muted)", marginBottom: 12 }}>{"Aucun dossier"}</div>
-            {canEdit ? <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-              <button onClick={function () { setMl({ t: "ndos" }); }} style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", border: "none", borderRadius: 8, padding: "10px 16px", fontWeight: 600, cursor: "pointer", minHeight: 44, fontSize: 14 }}>{"+ Creer"}</button>
-              <button onClick={function () { setMl({ t: "import" }); }} style={{ background: "transparent", color: "var(--btn-primary-bg)", border: "2px solid var(--btn-primary-bg)", borderRadius: 8, padding: "10px 16px", fontWeight: 600, cursor: "pointer", minHeight: 44, fontSize: 14 }}>{"\uD83D\uDCC1 Importer Excel"}</button>
-            </div> : null}
-          </div> : null}
+          {filt.length === 0 ? (
+            <div style={{ marginTop: 10 }}>
+              <EmptyState
+                icon="\uD83D\uDCCB"
+                title={qr || filtCl || filtCp ? "Aucun r\u00E9sultat" : (dosFilter === "cloture" ? "Aucun dossier cl\u00F4tur\u00E9" : dosFilter === "archive" ? "Aucun dossier archiv\u00E9" : "Aucun dossier")}
+                description={qr || filtCl || filtCp ? "Modifiez vos filtres pour voir plus de r\u00E9sultats." : (dosFilter === "actif" ? "Tous vos dossiers actifs appara\u00EEtront ici." : "Cr\u00E9ez votre premier dossier pour d\u00E9marrer le suivi.")}
+                action={canEdit && !qr && !filtCl && !filtCp && dosFilter !== "cloture" && dosFilter !== "archive" ? (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={function () { setMl({ t: "ndos" }); }} style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", border: "none", borderRadius: 8, padding: "10px 16px", fontWeight: 600, cursor: "pointer", minHeight: 44, fontSize: 14 }}>{"+ Cr\u00E9er"}</button>
+                    <button onClick={function () { setMl({ t: "import" }); }} style={{ background: "transparent", color: "var(--text-primary)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 16px", fontWeight: 600, cursor: "pointer", minHeight: 44, fontSize: 14 }}>{"\uD83D\uDCC1 Importer Excel"}</button>
+                  </div>
+                ) : null}
+              />
+            </div>
+          ) : null}
         </div>;
       })()}
     </div>

@@ -36,6 +36,7 @@ import useChauffeurActions from './useChauffeurActions.js';
 import useDepenseActions from './useDepenseActions.js';
 import useDPWorldSync from './useDPWorldSync.js';
 import useCMASync from './useCMASync';
+import useCarrierSync from './useCarrierSync';
 import useImportActions from './useImportActions.js';
 import type { Dossier, Conteneur, Depense, Chauffeur } from '../types.js';
 
@@ -97,6 +98,7 @@ export default function useAppLogic({ db, sv, ml, setMl, sendNotif }: UseAppLogi
   var depenseActions = useDepenseActions({ db, sv, wLog, nf, setMl, dos, dep });
   var dpworldSync = useDPWorldSync({ db, sv, wLog, nf, setMl, dos, tcs });
   var cmaSync = useCMASync({ db, sv, wLog, nf, setMl, dos, tcs });
+  var carrierSync = useCarrierSync({ db, sv, wLog, nf, setMl, dos, tcs });
   var importActions = useImportActions({ db, sv, nf, dos, tcs, chs, dep, logs });
 
   // API publique (forme identique au legacy, sauf toggleDepSt nouvelle signature)
@@ -171,6 +173,9 @@ export default function useAppLogic({ db, sv, ml, setMl, sendNotif }: UseAppLogi
 
     // CMA-CGM (sync uniquement par dossier — pas de Sync All a cause du quota 20/h)
     syncCMA: cmaSync.syncCMA,
+
+    // Carrier generique (scraping multi-armateurs : CMA, Maersk, MSC, Hapag, ONE, Grimaldi)
+    syncCarrier: carrierSync.syncCarrier,
 
     // Import
     bulkImport: importActions.bulkImport,

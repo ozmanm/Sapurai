@@ -1,0 +1,7 @@
+name = "carrier-proxy"
+main = "worker.js"
+compatibility_date = "2026-04-01"
+
+# Pas de secret requis : le scraping utilise les pages tracking publiques.
+# Si un armateur passe en SPA pure (rendue cote JS) le scraper retournera
+# arrivalDate = null avec une note explicite. C'est par design.

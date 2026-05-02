@@ -256,7 +256,7 @@ export default function App(props: AppProps) {
         addDep={L.addDep} editDep={L.editDep}
         dispatch={L.dispatch} advance={L.advance} updateTcDate={L.updateTcDate} deleteTc={L.deleteTc} editTcInfo={L.editTcInfo} updateGarantie={L.updateGarantie} addTcPayment={L.addTcPayment}
         deleteDos={L.deleteDos} closeDos={L.closeDos} archiveDos={L.archiveDos} setDosSt={L.setDosSt}
-        toggleDepSt={toggleDepSt} patchDos={L.patchDos} syncDPWorld={L.syncDPWorld} syncCMA={L.syncCMA} humanPhrase={L.humanPhrase} bulkImport={L.bulkImport}
+        toggleDepSt={toggleDepSt} patchDos={L.patchDos} syncDPWorld={L.syncDPWorld} syncCMA={L.syncCMA} syncCarrier={L.syncCarrier} humanPhrase={L.humanPhrase} bulkImport={L.bulkImport}
         urgences={L.urgences} alertes={L.alertes}
         advPending={advPending} setAdvPending={setAdvPending}
         shareTracking={props.shareTracking} shareClientTracking={props.shareClientTracking} companyId={props.companyId}

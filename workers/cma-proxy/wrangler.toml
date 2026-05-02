@@ -1,0 +1,11 @@
+name = "cma-proxy"
+main = "worker.js"
+compatibility_date = "2026-04-01"
+
+# Pas de variables publiques ici. Les secrets (CMA_API_KEY) sont configures via :
+#   wrangler secret put CMA_API_KEY
+# OU via le dashboard Cloudflare > Workers > cma-proxy > Settings > Variables
+#
+# Optionnel :
+#   wrangler secret put CMA_API_BASE
+# si l'URL de base CMA differe du defaut https://apis.cma-cgm.com

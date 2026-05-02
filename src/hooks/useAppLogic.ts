@@ -35,6 +35,7 @@ import useConteneurActions from './useConteneurActions.js';
 import useChauffeurActions from './useChauffeurActions.js';
 import useDepenseActions from './useDepenseActions.js';
 import useDPWorldSync from './useDPWorldSync.js';
+import useCMASync from './useCMASync';
 import useImportActions from './useImportActions.js';
 import type { Dossier, Conteneur, Depense, Chauffeur } from '../types.js';
 
@@ -95,6 +96,7 @@ export default function useAppLogic({ db, sv, ml, setMl, sendNotif }: UseAppLogi
   var chauffeurActions = useChauffeurActions({ db, sv, nf, setMl, chs });
   var depenseActions = useDepenseActions({ db, sv, wLog, nf, setMl, dos, dep });
   var dpworldSync = useDPWorldSync({ db, sv, wLog, nf, setMl, dos, tcs });
+  var cmaSync = useCMASync({ db, sv, wLog, nf, setMl, dos, tcs });
   var importActions = useImportActions({ db, sv, nf, dos, tcs, chs, dep, logs });
 
   // API publique (forme identique au legacy, sauf toggleDepSt nouvelle signature)
@@ -165,6 +167,9 @@ export default function useAppLogic({ db, sv, ml, setMl, sendNotif }: UseAppLogi
     // DPWorld
     syncDPWorld: dpworldSync.syncDPWorld,
     syncAllDPWorld: dpworldSync.syncAllDPWorld,
+
+    // CMA-CGM (sync uniquement par dossier — pas de Sync All a cause du quota 20/h)
+    syncCMA: cmaSync.syncCMA,
 
     // Import
     bulkImport: importActions.bulkImport,

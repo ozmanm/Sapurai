@@ -8,14 +8,17 @@ export function today(): string {
 }
 
 /**
- * Calcule le nombre de jours ecoules entre deux dates ISO.
+ * Calcule le nombre de jours INCLUSIF entre deux dates ISO.
  * Si dateFin est absente, utilise aujourd'hui.
+ *
+ * Convention metier transit Senegal/Mali : le jour de mise a dispo (debut)
+ * est INCLUS dans le decompte. Du 01/03 au 24/03 = 24 jours (et non 23).
  */
 export function joursDiff(dateDebut: string | null | undefined, dateFin?: string | null): number {
   if (!dateDebut) return 0;
   var a = new Date(dateDebut); a.setHours(0, 0, 0, 0);
   var b = dateFin ? new Date(dateFin) : new Date(); b.setHours(0, 0, 0, 0);
-  return Math.floor((b.getTime() - a.getTime()) / 864e5);
+  return Math.floor((b.getTime() - a.getTime()) / 864e5) + 1;
 }
 
 // -------------------------------------------------------------------
@@ -53,6 +56,11 @@ export function calcAlertesFranchise(tcs: Conteneur[], dos: Dossier[], cfg: Conf
 
     var dateFinPort = tc.st === "PORT" ? null : tc.dsp;
     var joursDepuisDecharge = joursDiff(d.da, dateFinPort);
+    // Surestaries depuis date fin validite BAD si BAD obtenu, sinon depuis da.
+    // Si BAD pas encore expire (joursSur < 0), clamp a 0.
+    var startSur = (d.bs === "OBTENU" && d.bv) ? d.bv : d.da;
+    var joursSur = joursDiff(startSur, dateFinPort);
+    if (joursSur < 0) joursSur = 0;
 
     // 1. MAGASINAGE — DP World
     if (tc.st === "PORT") {
@@ -78,9 +86,9 @@ export function calcAlertesFranchise(tcs: Conteneur[], dos: Dossier[], cfg: Conf
       }
     }
 
-    // 2. SURESTARIES — Compagnie maritime
+    // 2. SURESTARIES — Compagnie maritime (depuis bv si BAD obtenu, sinon da)
     if (tc.st === "PORT") {
-      var resteSur = fp - joursDepuisDecharge;
+      var resteSur = fp - joursSur;
       var colSur = resteSur > 3 ? "green" : resteSur > 1 ? "orange" : resteSur > 0 ? "red" : "black";
 
       if (resteSur <= 5) {

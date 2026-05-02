@@ -33,15 +33,21 @@ function DetView(p: DetViewProps) {
   var phrase = p.humanPhrase(d, mt);
   var frData = mt.map(function (tc) {
     var jp = 0, rp = 0, jt = 0, rt = 0;
-    if (d.da) {
-      var a = new Date(d.da); a.setHours(0,0,0,0);
+    // Bug 1a : surestaries depuis bv (date fin validite BAD) si BAD obtenu, sinon da.
+    // Bug 1b : calcul jours INCLUSIF (jour de chargement compte) -> +1 sur le diff.
+    var startSur = (d.bs === "OBTENU" && d.bv) ? d.bv : d.da;
+    if (startSur) {
+      var a = new Date(startSur); a.setHours(0,0,0,0);
       var b = tc.dsp ? new Date(tc.dsp) : new Date(); b.setHours(0,0,0,0);
-      jp = Math.floor((b.getTime() - a.getTime()) / 864e5); rp = (p.cfg.fp || 10) - jp;
+      jp = Math.floor((b.getTime() - a.getTime()) / 864e5) + 1;  // inclusif
+      if (jp < 0) jp = 0;  // BAD pas encore expire
+      rp = (p.cfg.fp || 10) - jp;
     }
     if (tc.dsp && tc.st !== "PORT" && tc.st !== "ATTENDU") {
       var c2 = new Date(tc.dsp); c2.setHours(0,0,0,0);
       var d2 = tc.dr ? new Date(tc.dr) : new Date(); d2.setHours(0,0,0,0);
-      jt = Math.floor((d2.getTime() - c2.getTime()) / 864e5); rt = (p.cfg.ft || 23) - jt;
+      jt = Math.floor((d2.getTime() - c2.getTime()) / 864e5) + 1;  // inclusif
+      rt = (p.cfg.ft || 23) - jt;
     }
     return { tc: tc, jp: jp, rp: rp, jt: jt, rt: rt };
   });

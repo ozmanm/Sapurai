@@ -15,21 +15,28 @@ describe('today', function () {
 });
 
 describe('joursDiff', function () {
-  it('retourne 0 pour le meme jour', function () {
-    expect(joursDiff('2026-03-01', '2026-03-01')).toBe(0);
+  // Convention metier transit Senegal/Mali : decompte INCLUSIF
+  // (le jour de mise a dispo / chargement compte). Du 01 au 24 = 24 jours.
+  it('retourne 1 pour le meme jour (jour inclus)', function () {
+    expect(joursDiff('2026-03-01', '2026-03-01')).toBe(1);
   });
 
-  it('retourne le nombre de jours positif', function () {
-    expect(joursDiff('2026-03-01', '2026-03-11')).toBe(10);
+  it('retourne le nombre de jours INCLUSIF (du 01 au 11 = 11 jours)', function () {
+    expect(joursDiff('2026-03-01', '2026-03-11')).toBe(11);
   });
 
-  it('retourne un nombre negatif pour les dates futures', function () {
-    expect(joursDiff('2026-03-11', '2026-03-01')).toBe(-10);
+  it('retourne un nombre negatif pour les dates futures (toujours +1)', function () {
+    // 2026-03-11 -> 2026-03-01 : diff brut -10, +1 = -9
+    expect(joursDiff('2026-03-11', '2026-03-01')).toBe(-9);
   });
 
   it('retourne 0 pour une date de debut nulle', function () {
     expect(joursDiff(null, '2026-03-01')).toBe(0);
     expect(joursDiff('', '2026-03-01')).toBe(0);
+  });
+
+  it('exemple metier : du 01 au 24 = 24 jours (franchise 23j -> 1j detention)', function () {
+    expect(joursDiff('2026-03-01', '2026-03-24')).toBe(24);
   });
 });
 

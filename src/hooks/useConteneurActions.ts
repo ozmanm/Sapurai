@@ -126,6 +126,25 @@ export default function useConteneurActions(p: ConteneurActionsDeps) {
     sv(Object.assign({}, db, { tcs: tcs.map(function (c) { return c.id === tid ? Object.assign({}, c, fields) : c; }) }));
   }
 
+  // Bug 2 fix — modifier les infos identite d'un TC (n, ty, po) sans toucher
+  // a l'historique transit (st, dsp, dtk, dak, dab, dr, ch, cm, etc.).
+  // Utile pour corriger des erreurs d'import Excel sur des TC deja dispatches.
+  function editTcInfo(tid: string, fields: { n?: string; ty?: string; po?: number }): void {
+    var tc = tcs.find(function (c) { return c.id === tid; });
+    if (!tc) return;
+    var clean: Record<string, unknown> = {};
+    if (fields.n !== undefined) clean.n = String(fields.n).toUpperCase().trim();
+    if (fields.ty !== undefined) clean.ty = String(fields.ty);
+    if (fields.po !== undefined) clean.po = parseFloat(String(fields.po)) || 0;
+    sv(wLog(
+      Object.assign({}, db, { tcs: tcs.map(function (c) { return c.id === tid ? Object.assign({}, c, clean) : c; }) }),
+      tc.did,
+      "MODIF_TC",
+      "Modif identite TC " + (tc.n || "?") + " -> " + (clean.n || tc.n || "?")
+    ));
+    nf("Conteneur modifie");
+  }
+
   // ===== Helpers / derived (pures) =====
 
   function humanPhrase(d: any, dtcs: any[]): string {
@@ -169,14 +188,26 @@ export default function useConteneurActions(p: ConteneurActionsDeps) {
       var jra = Math.ceil((arr.getTime() - now.getTime()) / 864e5);
       return { rp: null, rt: null, col: jra > 5 ? "green" : jra > 2 ? "orange" : "red", val: jra, lbl: "Arrive" };
     }
-    var a = new Date(d.da); a.setHours(0, 0, 0, 0);
+    // Surestaries port (Bug 1a) :
+    //  - Sans BAD obtenu : decompte depuis date arrivee (da)
+    //  - Avec BAD obtenu + date validite (bv) : decompte depuis bv (date fin de
+    //    validite du BAD = debut des surestaries cote compagnie)
+    //
+    // Bug 1b : calcul jours INCLUSIF (le jour de chargement / d'arrivee compte).
+    //   Du 01/03 au 24/03 = 24 jours (et non 23). Donc +1 sur le diff.
+    var startSur = (d.bs === "OBTENU" && d.bv) ? new Date(d.bv) : new Date(d.da);
+    startSur.setHours(0, 0, 0, 0);
     var b = tc.dsp ? new Date(tc.dsp) : new Date(); b.setHours(0, 0, 0, 0);
-    var rp = (cfg as any).fp - Math.floor((b.getTime() - a.getTime()) / 864e5);
+    var joursPort = Math.floor((b.getTime() - startSur.getTime()) / 864e5) + 1; // +1 pour inclusif
+    if (joursPort < 0) joursPort = 0;  // BAD pas encore expire => pas de surestaries
+    var rp = (cfg as any).fp - joursPort;
+
     var rt: number | null = null;
     if (tc.dsp && tc.st !== "PORT") {
       var c2 = new Date(tc.dsp); c2.setHours(0, 0, 0, 0);
       var d2 = tc.dr ? new Date(tc.dr) : new Date(); d2.setHours(0, 0, 0, 0);
-      rt = (cfg as any).ft - Math.floor((d2.getTime() - c2.getTime()) / 864e5);
+      var joursDet = Math.floor((d2.getTime() - c2.getTime()) / 864e5) + 1; // +1 pour inclusif
+      rt = (cfg as any).ft - joursDet;
     }
     var isPort = tc.st === "PORT";
     var val = isPort ? rp : (rt !== null ? rt : rp);
@@ -185,5 +216,5 @@ export default function useConteneurActions(p: ConteneurActionsDeps) {
     return { rp: rp, rt: rt, col: col, val: val, lbl: lbl };
   }
 
-  return { dispatch, addTcPayment, advance, updateTcDate, patchTc, deleteTc, humanPhrase, tcFranchise };
+  return { dispatch, addTcPayment, advance, updateTcDate, patchTc, deleteTc, editTcInfo, humanPhrase, tcFranchise };
 }

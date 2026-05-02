@@ -221,7 +221,7 @@ export default function App(props: AppProps) {
               tcs={L.tcs} dos={L.dos} canEdit={canEdit}
               qr={qr} setQr={setQr} openTc={openTc} setOpenTc={setOpenTc}
               setMl={setMl} setAdvPending={setAdvPending}
-              updateTcDate={L.updateTcDate} tcFranchise={L.tcFranchise} deleteTc={L.deleteTc}
+              updateTcDate={L.updateTcDate} tcFranchise={L.tcFranchise} deleteTc={L.deleteTc} editTcInfo={L.editTcInfo}
             />
           ) : null}
           {vw === "dep" ? (
@@ -254,7 +254,7 @@ export default function App(props: AppProps) {
         addDos={L.addDos} editDos={L.editDos}
         addCh={L.addCh} editCh={L.editCh}
         addDep={L.addDep} editDep={L.editDep}
-        dispatch={L.dispatch} advance={L.advance} updateTcDate={L.updateTcDate} deleteTc={L.deleteTc} updateGarantie={L.updateGarantie} addTcPayment={L.addTcPayment}
+        dispatch={L.dispatch} advance={L.advance} updateTcDate={L.updateTcDate} deleteTc={L.deleteTc} editTcInfo={L.editTcInfo} updateGarantie={L.updateGarantie} addTcPayment={L.addTcPayment}
         deleteDos={L.deleteDos} closeDos={L.closeDos} archiveDos={L.archiveDos} setDosSt={L.setDosSt}
         toggleDepSt={toggleDepSt} patchDos={L.patchDos} syncDPWorld={L.syncDPWorld} syncCMA={L.syncCMA} humanPhrase={L.humanPhrase} bulkImport={L.bulkImport}
         urgences={L.urgences} alertes={L.alertes}

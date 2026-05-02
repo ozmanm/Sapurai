@@ -366,15 +366,32 @@ function DetView(p: DetViewProps) {
             {stps.map(function (s, i) {
               var isCur = s.k === tc.st;
               var col = s.done ? (isCur ? SC[s.k] || "var(--text-primary)" : "var(--success)") : "var(--border)";
-              return <div key={s.k} style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0 }}>
-                <div style={{ textAlign: "center", minWidth: 48 }}>
-                  <div style={{ width: 16, height: 16, borderRadius: "50%", background: s.done ? col : "var(--bg-primary)", border: "2px solid " + col, margin: "0 auto 3px auto", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    {s.done && !isCur ? <span style={{ color: "white", fontSize: 8, fontWeight: 800 }}>{"\u2713"}</span> : null}
-                    {isCur ? <div style={{ width: 6, height: 6, borderRadius: "50%", background: "white" }}></div> : null}
-                  </div>
-                  <div style={{ fontSize: 9, fontWeight: isCur ? 800 : 500, color: isCur ? "var(--text-primary)" : s.done ? "var(--success)" : "var(--text-muted)" }}>{s.lbl}</div>
-                  {s.dt ? <div style={{ fontSize: 8, color: "var(--text-secondary)" }}>{fd(s.dt)}</div> : null}
+              // Bonus : etape suivante cliquable. Le clic avance le TC a cette etape.
+              //  - PORT depuis ATTENDU : advance direct (pose la date d'arrivee).
+              //  - DISPATCHE depuis PORT : ouvre la modale dispatch (chauffeur requis).
+              //  - Autres etapes apres DISPATCHE : advance direct.
+              var isNext = ce && i === stIdx + 1 && !s.done && !isCur;
+              var canClick = isNext && (s.k !== "DISPATCHE" || canDisp);  // dispatch needs BAE/Pregate
+              var onStepClick = canClick ? function () {
+                if (s.k === "DISPATCHE") {
+                  p.setMl({ t: "disp", tid: tc.id });
+                } else {
+                  p.setAdvPending({ tid: tc.id, ns: s.k, dt: today() });
+                }
+              } : null;
+              var stepInner = <div style={{ textAlign: "center" as const, minWidth: 48 }}>
+                <div style={{ width: 16, height: 16, borderRadius: "50%", background: s.done ? col : (canClick ? "var(--btn-primary-bg)" : "var(--bg-primary)"), border: "2px solid " + (canClick ? "var(--btn-primary-bg)" : col), margin: "0 auto 3px auto", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {s.done && !isCur ? <span style={{ color: "white", fontSize: 8, fontWeight: 800 }}>{"\u2713"}</span> : null}
+                  {isCur ? <div style={{ width: 6, height: 6, borderRadius: "50%", background: "white" }}></div> : null}
+                  {canClick ? <span style={{ color: "var(--btn-primary-text)", fontSize: 10, fontWeight: 800, lineHeight: 1 }}>{"+"}</span> : null}
                 </div>
+                <div style={{ fontSize: 9, fontWeight: isCur ? 800 : canClick ? 700 : 500, color: isCur ? "var(--text-primary)" : s.done ? "var(--success)" : canClick ? "var(--btn-primary-bg)" : "var(--text-muted)" }}>{s.lbl}</div>
+                {s.dt ? <div style={{ fontSize: 8, color: "var(--text-secondary)" }}>{fd(s.dt)}</div> : null}
+              </div>;
+              return <div key={s.k} style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0 }}>
+                {canClick ? (
+                  <button onClick={onStepClick || undefined} title={"Avancer le TC vers " + s.lbl} style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", flex: 1, minWidth: 0 }}>{stepInner}</button>
+                ) : stepInner}
                 {i < stps.length - 1 ? <div style={{ flex: 1, height: 2, background: stps[i + 1].done ? "var(--success)" : "var(--border)", marginTop: -12, minWidth: 4 }}></div> : null}
               </div>;
             })}
@@ -401,9 +418,25 @@ function DetView(p: DetViewProps) {
             );
           })()}
           {ce ? <input value={incEdits.hasOwnProperty(tc.id) ? incEdits[tc.id] : (tc.inc || "")} onChange={function (e) { var v = e.target.value; var r = Object.assign({}, incEdits); r[tc.id] = v; setIncEdits(r); }} onBlur={function () { if (incEdits.hasOwnProperty(tc.id)) { p.updateTcDate(tc.id, "inc", incEdits[tc.id]); var r = Object.assign({}, incEdits); delete r[tc.id]; setIncEdits(r); } }} placeholder={"Incident / note sur ce TC..."} style={{ width: "100%", padding: "4px 8px", border: "1px solid " + (tc.inc ? "var(--danger-border)" : "var(--border)"), borderRadius: 6, fontSize: 10, background: tc.inc ? "var(--danger-bg)" : "var(--bg-tertiary)", marginTop: 6, boxSizing: "border-box" }} /> : tc.inc ? <div style={{ marginTop: 6, fontSize: 10, color: "var(--danger)", background: "var(--danger-bg)", padding: "4px 8px", borderRadius: 6 }}>{tc.inc}</div> : null}
-          {ce && p.deleteTc && tc.st !== "TRANSIT" && tc.st !== "KATI" && tc.st !== "BAMAKO" && tc.st !== "RETURNED" ? (
-            <div style={{ marginTop: 6, textAlign: "right" }}>
-              <button onClick={function () { if (confirm("Supprimer le conteneur " + (tc.n || "?") + " du dossier ? Les depenses liees seront aussi supprimees.")) p.deleteTc(tc.id); }} style={{ background: "var(--danger-bg)", color: "var(--danger)", border: "1px solid var(--danger-border)", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{"Supprimer ce TC"}</button>
+          {ce ? (
+            <div style={{ marginTop: 6, display: "flex", gap: 6, justifyContent: "flex-end", flexWrap: "wrap" }}>
+              {/* Bug 2 fix — modifier identite TC (n, ty, po) meme si dispatched.
+                  Permet de corriger les erreurs d'import Excel sans toucher
+                  a l'historique transit. */}
+              {p.editTcInfo ? (
+                <button onClick={function () {
+                  var newN = window.prompt("Numéro TC :", tc.n || "");
+                  if (newN === null) return;
+                  var newTy = window.prompt("Type (20GP / 40GP / 40HC / 45HC / 20RF / 40RF) :", tc.ty || "20GP");
+                  if (newTy === null) return;
+                  var newPoStr = window.prompt("Poids (kg) :", String(tc.po || 0));
+                  if (newPoStr === null) return;
+                  p.editTcInfo(tc.id, { n: newN, ty: newTy, po: parseFloat(newPoStr) || 0 });
+                }} style={{ background: "var(--info-bg)", color: "var(--info-text)", border: "1px solid var(--info-border)", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{"✏️ Modifier infos"}</button>
+              ) : null}
+              {p.deleteTc && tc.st !== "TRANSIT" && tc.st !== "KATI" && tc.st !== "BAMAKO" && tc.st !== "RETURNED" ? (
+                <button onClick={function () { if (confirm("Supprimer le conteneur " + (tc.n || "?") + " du dossier ? Les depenses liees seront aussi supprimees.")) p.deleteTc(tc.id); }} style={{ background: "var(--danger-bg)", color: "var(--danger)", border: "1px solid var(--danger-border)", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{"Supprimer ce TC"}</button>
+              ) : null}
             </div>
           ) : null}
         </div>;

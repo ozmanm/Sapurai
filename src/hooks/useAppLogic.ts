@@ -149,6 +149,7 @@ export default function useAppLogic({ db, sv, ml, setMl, sendNotif }: UseAppLogi
     updateTcDate: conteneurActions.updateTcDate,
     patchTc: conteneurActions.patchTc,
     deleteTc: conteneurActions.deleteTc,
+    editTcInfo: conteneurActions.editTcInfo,
     humanPhrase: conteneurActions.humanPhrase,
     tcFranchise: conteneurActions.tcFranchise,
 

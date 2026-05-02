@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { fd, fm } from '../utils/format.js';
 import { DTL } from '../constants/depenses.js';
 import { IS } from '../constants/styles.js';
-import { exportDepenses } from '../utils/export.js';
-import { pdfDepenses } from '../utils/pdf.js';
+import { exportDepenses, exportFinancierClient } from '../utils/export.js';
+import { pdfDepenses, pdfClient } from '../utils/pdf.js';
 import usePagination from '../hooks/usePagination.js';
 import Pagination from '../components/ui/Pagination.tsx';
 import EmptyState from '../components/ui/EmptyState.tsx';
@@ -76,8 +76,9 @@ function Dep(p: DepProps) {
           { key: "TOUTES", label: "Toutes", count: filtered.length, color: "var(--text-primary)" },
           { key: "EN_ATT", label: "En attente", count: fatt, color: "var(--info-text)" },
           { key: "A_PAYER", label: "A payer", count: fimp, color: "var(--warning)" },
-          { key: "PAYEES", label: "Payees", count: fpaye, color: "var(--success)" }
-        ].map(function (t) {
+          { key: "PAYEES", label: "Payees", count: fpaye, color: "var(--success)" },
+          { key: "BY_CLIENT", label: "Par client", count: 0, color: "var(--text-primary)", noCount: true },
+        ].map(function (t: any) {
           var active = tab === t.key;
           return <button key={t.key} onClick={function () { setTab(t.key); }} style={{
             background: active ? "var(--btn-primary-bg)" : "var(--bg-primary)",
@@ -86,7 +87,7 @@ function Dep(p: DepProps) {
             borderRadius: 8, padding: "8px 16px", fontWeight: 700,
             cursor: "pointer", fontSize: 13, minHeight: 44
           }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: active ? "var(--btn-primary-text)" : t.color }}>{String(t.count)}</div>
+            {!t.noCount ? <div style={{ fontSize: 18, fontWeight: 800, color: active ? "var(--btn-primary-text)" : t.color }}>{String(t.count)}</div> : null}
             <div style={{ fontSize: 11 }}>{t.label}</div>
           </button>;
         })}
@@ -97,6 +98,88 @@ function Dep(p: DepProps) {
         <div style={{ background: "var(--bg-primary)", borderRadius: 10, padding: 12, border: "1px solid var(--border)", textAlign: "center" }}><div style={{ fontSize: 10, color: "var(--warning-text)", fontWeight: 600 }}>{"TAXES"}</div><div style={{ fontSize: 14, fontWeight: 800, color: "var(--warning)" }}>{fm(ftax)}</div></div>
         <div style={{ background: "var(--bg-primary)", borderRadius: 10, padding: 12, border: "1px solid var(--border)", textAlign: "center" }}><div style={{ fontSize: 10, color: "var(--success-text)", fontWeight: 600 }}>{"PAYE"}</div><div style={{ fontSize: 14, fontWeight: 800, color: "var(--success-text)" }}>{String(fpaye) + "/" + String(fpaye + fimp)}</div></div>
       </div>
+      {/* Onglet "Par client" : suivi financier groupe (ex-Dash) */}
+      {tab === "BY_CLIENT" ? (function () {
+        var tcs = p.tcs || [];
+        var byClient: Record<string, any> = {};
+        dos.forEach(function (d: any) {
+          if (d.st === "ARCHIVE") return;
+          var cl = d.cl || "Sans client";
+          if (!byClient[cl]) byClient[cl] = { cl: cl, nDos: 0, tot: 0, pay: 0, rv: 0, ids: [] };
+          byClient[cl].nDos++;
+          byClient[cl].rv += (d.rv || 0);
+          byClient[cl].ids.push(d.id);
+        });
+        dep.forEach(function (f: any) {
+          var d = dos.find(function (x: any) { return x.id === f.did; });
+          if (!d || d.st === "ARCHIVE") return;
+          var cl = d.cl || "Sans client";
+          if (!byClient[cl]) return;
+          byClient[cl].tot += (f.mt || 0);
+          if (f.s === "PAYE") byClient[cl].pay += (f.mt || 0);
+        });
+        var rows = Object.keys(byClient).map(function (k) { return byClient[k]; });
+        rows.sort(function (a: any, b: any) { return (b.tot - b.pay) - (a.tot - a.pay); });
+        return (
+          <div style={{ background: "var(--bg-primary)", borderRadius: 12, border: "1px solid var(--border)", padding: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text-primary)" }}>{"Suivi financier par client (" + String(rows.length) + ")"}</div>
+              <button onClick={function () { exportFinancierClient(dos, dep, companyName); }} style={{ background: "var(--bg-tertiary)", border: "1px solid var(--border)", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", color: "var(--text-tertiary)" }}>{"↓ Excel"}</button>
+            </div>
+            {rows.length === 0 ? <EmptyState variant="compact" icon="📊" title="Aucune donnée" description="Le suivi financier apparaîtra ici dès que vous aurez des dépenses." /> : (
+              <div>
+                {rows.map(function (r: any) {
+                  var imp = r.tot - r.pay;
+                  var pct = r.tot > 0 ? Math.round(r.pay / r.tot * 100) : 0;
+                  var col = pct === 100 ? "var(--success)" : pct >= 50 ? "var(--warning)" : "var(--danger)";
+                  return (
+                    <div key={r.cl} style={{ padding: "10px 0", borderBottom: "1px solid var(--border-light)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div>
+                          <span style={{ fontWeight: 700, fontSize: 13, color: "var(--text-primary)" }}>{r.cl}</span>
+                          <span style={{ fontSize: 11, color: "var(--text-secondary)", marginLeft: 6 }}>{String(r.nDos) + " dossier" + (r.nDos > 1 ? "s" : "")}</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: col, fontFamily: "var(--font-mono)" }}>{String(pct) + "%"}</span>
+                          <span onClick={function (e) { e.stopPropagation(); pdfClient(r.cl, dos, tcs, dep, companyName); }} style={{ fontSize: 11, cursor: "pointer", color: "var(--text-secondary)", padding: "2px 6px", borderRadius: 4, border: "1px solid var(--border)" }} title={"PDF " + r.cl}>{"📄"}</span>
+                          {(function () {
+                            if (imp <= 0) return null;
+                            var clientDos = dos.filter(function (dd: any) { return (dd.cl || "Sans client") === r.cl && dd.st !== "ARCHIVE"; });
+                            var tel = "";
+                            clientDos.forEach(function (dd: any) { if (dd.ct && !tel) tel = dd.ct; });
+                            if (!tel) return null;
+                            var details: string[] = [];
+                            clientDos.forEach(function (dd: any) {
+                              var ddep = dep.filter(function (f: any) { return f.did === dd.id; });
+                              var dImp = ddep.reduce(function (s: number, f: any) { return s + (f.s !== "PAYE" ? (f.mt || 0) : 0); }, 0);
+                              if (dImp > 0) details.push("- " + (dd.bl || "?") + " : " + fm(dImp));
+                            });
+                            var shown = details.slice(0, 10);
+                            if (details.length > 10) shown.push("... et " + String(details.length - 10) + " autre(s)");
+                            var msg = "Bonjour " + r.cl + ",\n\nVous avez " + String(details.length) + " facture(s) en attente de reglement pour un montant total de " + fm(imp) + ".\n\nDetail :\n" + shown.join("\n") + "\n\nCordialement,\n" + companyName;
+                            var href = "https://wa.me/" + tel.replace(/[^0-9+]/g, "") + "?text=" + encodeURIComponent(msg);
+                            // eslint-disable-next-line no-restricted-syntax -- WhatsApp brand green (couleur officielle)
+                            return <a href={href} target="_blank" rel="noopener noreferrer" onClick={function (e) { e.stopPropagation(); }} style={{ fontSize: 11, cursor: "pointer", color: "#25d366", padding: "2px 6px", borderRadius: 4, border: "1px solid #25d366", textDecoration: "none", fontWeight: 700 }} title={"Relancer " + r.cl}>{"📱"}</a>;
+                          })()}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginTop: 4, fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums" as const }}>
+                        <span style={{ color: "var(--text-secondary)" }}>{"Total: " + fm(r.tot)}</span>
+                        <span style={{ color: "var(--success)", fontWeight: 600 }}>{"Payé: " + fm(r.pay)}</span>
+                        {imp > 0 ? <span style={{ color: "var(--danger)", fontWeight: 700 }}>{"Dû: " + fm(imp)}</span> : <span style={{ color: "var(--success)" }}>{"✓"}</span>}
+                        {r.rv > 0 ? <span style={{ color: (r.rv - r.tot) >= 0 ? "var(--success)" : "var(--danger)", fontWeight: 600 }}>{"Marge: " + fm(r.rv - r.tot)}</span> : null}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 5 }}>
+                        <div style={{ flex: 1, height: 4, background: "var(--border)", borderRadius: 2 }}><div style={{ width: pct + "%", height: 4, background: col, borderRadius: 2 }}></div></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })() : (
       <div style={{ background: "var(--bg-primary)", borderRadius: 12, border: "1px solid var(--border)", overflow: "hidden" }}>
         <div className="lt-hide-mobile" style={{ display: "grid", gridTemplateColumns: "2fr 2fr 1fr 1fr 1fr 90px", background: "var(--bg-tertiary)", borderBottom: "1px solid var(--border)" }}>
           {["TYPE", "DOSSIER", "HT", "TAXES", "TTC", "STATUT"].map(function (h) { return <div key={h} style={{ padding: "10px 12px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", letterSpacing: 0.5, textTransform: "uppercase" }}>{h}</div>; })}
@@ -178,7 +261,8 @@ function Dep(p: DepProps) {
           <span style={{ fontWeight: 700, color: "var(--text-primary)" }}>{"Total TTC: " + fm(ftot)}</span>
         </div>
       </div>
-      {pg.totalPages > 1 ? <Pagination page={pg.page} setPage={pg.setPage} totalPages={pg.totalPages} total={pg.total} /> : null}
+      )}
+      {tab !== "BY_CLIENT" && pg.totalPages > 1 ? <Pagination page={pg.page} setPage={pg.setPage} totalPages={pg.totalPages} total={pg.total} /> : null}
     </div>
   );
 }

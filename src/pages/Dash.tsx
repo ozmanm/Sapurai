@@ -123,18 +123,7 @@ function Dash(p: DashProps) {
             </div>
           </ClickableDiv>
         ) : null}
-        {/* Compteur dossiers archives */}
-        {(function () {
-          var nArc = dos.filter(function (d: any) { return d.st === "ARCHIVE"; }).length;
-          if (nArc === 0) return null;
-          return (
-            <div style={{ background: "var(--bg-primary)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 14px" }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: 0.5 }}>{"Archiv\u00e9s"}</div>
-              <div style={{ fontSize: 28, fontWeight: 600, color: "var(--text-primary)", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em" }}>{String(nArc)}</div>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{"dossiers archiv\u00e9s"}</div>
-            </div>
-          );
-        })()}
+        {/* Compteur Archives retire \u2014 peu actionable au quotidien (consultable depuis Dossiers > onglet Archives) */}
         {/* KPI Satisfaction client — visible si au moins 1 rating */}
         {(function () {
           var st = ratingStats(dos);
@@ -150,20 +139,9 @@ function Dash(p: DashProps) {
         })()}
       </div>
 
-      {/* URGENCES \u2014 Sprint A.1 refonte handoff : bandeau orange + grille 3 colonnes par categorie */}
+      {/* URGENCES \u2014 bandeau retire (redondant avec la notif topbar) ; on garde uniquement la grille par categorie */}
       {urgences.length > 0 ? (
         <div style={{ marginBottom: 18 }}>
-          {/* Bandeau total urgences (orange fonc\u00e9 alert) avec CTA noir handoff */}
-          <div role="alert" style={{ background: "var(--danger-bg)", border: "1px solid var(--danger-border)", borderLeft: "3px solid var(--danger)", borderRadius: "var(--radius-lg, 12px)", padding: "14px 18px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--danger)", letterSpacing: "-0.01em" }}>{String(urgences.length) + " urgence" + (urgences.length > 1 ? "s" : "") + " \u00e0 traiter"}</div>
-              <div style={{ fontSize: 12, color: "var(--danger-text)", marginTop: 3 }}>{critCount > 0 ? String(critCount) + " critique" + (critCount > 1 ? "s" : "") + " \u00b7 surestaries d\u00e9pass\u00e9es, documents expir\u00e9s, cautions en retard" : "Magasinage, d\u00e9tentions, BAD \u00e0 demander, TC immobiles"}</div>
-            </div>
-            <ClickableDiv onClick={function () {
-              var crit = urgences.find(function (u) { return u.level === "critical"; }) || urgences[0];
-              if (crit && crit.did) setMl({ t: "det", did: crit.did });
-            }} label="Traiter la premiere urgence" style={{ background: "var(--text-primary)", color: "var(--bg-primary)", padding: "8px 16px", borderRadius: "var(--radius, 8px)", fontSize: 13, fontWeight: 600, flexShrink: 0, fontFamily: "var(--font-sans)" }}>{"Traiter \u2192"}</ClickableDiv>
-          </div>
           {/* Grille urgences group\u00e9es : 3 colonnes desktop, responsive */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 12 }}>
             {urgGrouped.map(function (g) {
@@ -296,82 +274,7 @@ function Dash(p: DashProps) {
           {p.syncAllDPWorld ? <button onClick={function () { p.syncAllDPWorld(); }} style={{ marginTop: 6, width: "100%", background: "var(--bg-tertiary)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", color: "var(--text-tertiary)" }}>{"\uD83D\uDD04 Sync DPWorld (tous)"}</button> : null}
         </div>
 
-        {/* Suivi financier par client */}
-        <div style={{ background: "var(--bg-primary)", borderRadius: 12, padding: 14, border: "1px solid var(--border)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-            <div style={{ fontWeight: 800, fontSize: 12, color: "var(--text-secondary)", letterSpacing: 0.5, textTransform: "uppercase" }}>{"Suivi financier par client"}</div>
-            <button onClick={function () { exportFinancierClient(dos, dep, companyName); }} style={{ background: "var(--bg-tertiary)", border: "1px solid var(--border)", borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", color: "var(--text-tertiary)" }}>{"\u2193 Excel"}</button>
-          </div>
-          {(function () {
-            var byClient = {};
-            dos.forEach(function (d) {
-              if (d.st === "ARCHIVE") return;
-              var cl = d.cl || "Sans client";
-              if (!byClient[cl]) byClient[cl] = { cl: cl, nDos: 0, tot: 0, pay: 0, rv: 0, ids: [] };
-              byClient[cl].nDos++;
-              byClient[cl].rv += (d.rv || 0);
-              byClient[cl].ids.push(d.id);
-            });
-            dep.forEach(function (f) {
-              var d = dos.find(function (x) { return x.id === f.did; });
-              if (!d || d.st === "ARCHIVE") return;
-              var cl = d.cl || "Sans client";
-              if (!byClient[cl]) return;
-              byClient[cl].tot += (f.mt || 0);
-              if (f.s === "PAYE") byClient[cl].pay += (f.mt || 0);
-            });
-            var rows = Object.keys(byClient).map(function (k) { return byClient[k]; });
-            rows.sort(function (a, b) { return (b.tot - b.pay) - (a.tot - a.pay); });
-            if (rows.length === 0) return <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>{"Aucune donnee"}</div>;
-            return <div style={{ maxHeight: 280, overflowY: "auto" }}>
-              {rows.map(function (r) {
-                var imp = r.tot - r.pay;
-                var pct = r.tot > 0 ? Math.round(r.pay / r.tot * 100) : 0;
-                var col = pct === 100 ? "var(--success)" : pct >= 50 ? "var(--warning)" : "var(--danger)";
-                return <div key={r.cl} onClick={function () { if (setVw) setVw("dos"); if (p.setFilter) p.setFilter(r.cl); }} style={{ padding: "8px 0", borderBottom: "1px solid var(--border-light)", cursor: "pointer" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div>
-                      <span style={{ fontWeight: 700, fontSize: 13, color: "var(--text-primary)" }}>{r.cl}</span>
-                      <span style={{ fontSize: 11, color: "var(--text-secondary)", marginLeft: 6 }}>{String(r.nDos) + " dossier" + (r.nDos > 1 ? "s" : "")}</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: col }}>{String(pct) + "%"}</span>
-                      <span onClick={function (e) { e.stopPropagation(); pdfClient(r.cl, dos, tcs, dep, companyName); }} style={{ fontSize: 10, cursor: "pointer", color: "var(--text-secondary)", padding: "1px 4px", borderRadius: 4, border: "1px solid var(--border)" }} title={"PDF " + r.cl}>{"\uD83D\uDCC4"}</span>
-                      {(function () {
-                        if (imp <= 0) return null;
-                        var clientDos = dos.filter(function (dd) { return (dd.cl || "Sans client") === r.cl && dd.st !== "ARCHIVE"; });
-                        var tel = "";
-                        clientDos.forEach(function (dd) { if (dd.ct && !tel) tel = dd.ct; });
-                        if (!tel) return null;
-                        var details = [];
-                        clientDos.forEach(function (dd) {
-                          var ddep = dep.filter(function (f) { return f.did === dd.id; });
-                          var dImp = ddep.reduce(function (s, f) { return s + (f.s !== "PAYE" ? (f.mt || 0) : 0); }, 0);
-                          if (dImp > 0) details.push("- " + (dd.bl || "?") + " : " + fm(dImp));
-                        });
-                        var shown = details.slice(0, 10);
-                        if (details.length > 10) shown.push("... et " + String(details.length - 10) + " autre(s)");
-                        var msg = "Bonjour " + r.cl + ",\n\nVous avez " + String(details.length) + " facture(s) en attente de reglement pour un montant total de " + fm(imp) + ".\n\nDetail :\n" + shown.join("\n") + "\n\nCordialement,\n" + companyName;
-                        var href = "https://wa.me/" + tel.replace(/[^0-9+]/g, "") + "?text=" + encodeURIComponent(msg);
-                        // eslint-disable-next-line no-restricted-syntax -- WhatsApp brand green (couleur officielle)
-                        return <a href={href} target="_blank" rel="noopener noreferrer" onClick={function (e) { e.stopPropagation(); }} style={{ fontSize: 10, cursor: "pointer", color: "#25d366", padding: "1px 4px", borderRadius: 4, border: "1px solid #25d366", textDecoration: "none", fontWeight: 700 }} title={"Relancer " + r.cl}>{"\uD83D\uDCF1"}</a>;
-                      })()}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginTop: 3 }}>
-                    <span style={{ color: "var(--text-secondary)" }}>{"Total: " + fm(r.tot)}</span>
-                    <span style={{ color: "var(--success)", fontWeight: 600 }}>{"Paye: " + fm(r.pay)}</span>
-                    {imp > 0 ? <span style={{ color: "var(--danger)", fontWeight: 700 }}>{"Du: " + fm(imp)}</span> : <span style={{ color: "var(--success)" }}>{"\u2713"}</span>}
-                    {r.rv > 0 ? <span style={{ color: (r.rv - r.tot) >= 0 ? "var(--success)" : "var(--danger)", fontWeight: 600 }}>{"Marge: " + fm(r.rv - r.tot)}</span> : null}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-                    <div style={{ flex: 1, height: 4, background: "var(--border)", borderRadius: 2 }}><div style={{ width: pct + "%", height: 4, background: col, borderRadius: 2 }}></div></div>
-                  </div>
-                </div>;
-              })}
-            </div>;
-          })()}
-        </div>
+        {/* Suivi financier par client : deplace dans la page Depenses (onglet "Par client") */}
       </div>
     </div>
   );

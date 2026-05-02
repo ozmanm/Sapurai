@@ -1,0 +1,307 @@
+/* ═══════════════════════════════════════════════════════
+   Sapurai — Design Tokens (Light / Dark)
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+  color-scheme: light;
+
+  /* ── Typo (Sprint 1 refonte design) ── */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* ── Neutrals (refonte : softer + plus contrastes) ── */
+  --bg-body: #f7f7f5;
+  --bg-primary: #ffffff;
+  --bg-secondary: #fafaf9;
+  --bg-tertiary: #fafaf9;
+  --bg-hover: #f5f5f4;
+
+  --text-primary: #0a0a09;     /* presque noir, meilleur contraste */
+  --text-secondary: #404040;
+  --text-tertiary: #525252;
+  --text-muted: #737373;
+  --text-input: #404040;
+
+  --border: #e5e5e3;
+  --border-light: #f5f5f4;
+
+  --shadow: rgba(0,0,0,0.08);
+  --shadow-lg: rgba(0,0,0,0.12);
+  --overlay: rgba(10,10,9,0.55);
+
+  /* ── Semantic: Success (vert plus dense) ── */
+  --success: #166534;
+  --success-bg: #dcfce7;
+  --success-light: #dcfce7;
+  --success-text: #166534;
+  --success-border: #bbf7d0;
+
+  /* ── Semantic: Danger / Alert (orange foncé = surestaries, urgences) ── */
+  --danger: #9a3412;
+  --danger-bg: #ffedd5;
+  --danger-light: #fff7ed;
+  --danger-text: #9a3412;
+  --danger-border: #fed7aa;
+
+  /* ── Semantic: Warning (jaune-brun, magasinage / detention) ── */
+  --warning: #854d0e;
+  --warning-bg: #fef9c3;
+  --warning-light: #fde68a;
+  --warning-text: #854d0e;
+  --warning-border: #fde68a;
+
+  /* ── Semantic: Info ── */
+  --info: #1e40af;
+  --info-bg: #dbeafe;
+  --info-text: #1e40af;
+  --info-border: #bfdbfe;
+
+  /* ── Semantic: Purple ── */
+  --purple: #7c3aed;
+  --purple-bg: #f3e8ff;
+  --purple-text: #5b21b6;
+  --purple-border: #ddd6fe;
+
+  /* ── Buttons ── */
+  --btn-primary-bg: #0a0a09;
+  --btn-primary-text: #ffffff;
+  --btn-ghost-text: #404040;
+  --btn-ghost-border: #e5e5e3;
+  --btn-link: #1e40af;
+
+  /* ── Radius (refonte) ── */
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+
+  /* ── Status: Conteneurs ── */
+  --sc-attendu: #64748b;
+  --sb-attendu: #f1f5f9;
+  --sc-port: #3730a3;
+  --sb-port: #e0e7ff;
+  --sc-dispatche: #5b21b6;
+  --sb-dispatche: #ede9fe;
+  --sc-transit: #92400e;
+  --sb-transit: #fef3c7;
+  --sc-kati: #9a3412;
+  --sb-kati: #ffedd5;
+  --sc-bamako: #1c1917;
+  --sb-bamako: #f5f5f4;
+  --sc-returned: #166534;
+  --sb-returned: #dcfce7;
+
+  /* ── Status: Dossiers ── */
+  --dc-initialise: #3730a3;
+  --dbg-initialise: #e0e7ff;
+  --dc-securise: #1c1917;
+  --dbg-securise: #f5f5f4;
+  --dc-en_transit: #92400e;
+  --dbg-en_transit: #fef3c7;
+  --dc-cloture: #166534;
+  --dbg-cloture: #dcfce7;
+  --dc-archive: #78716c;
+  --dbg-archive: #f5f5f4;
+
+  /* ── Alertes franchise ── */
+  --acol-green: #059669;
+  --abg-green: #dcfce7;
+  --acol-orange: #d97706;
+  --abg-orange: #fef3c7;
+  --acol-red: #dc2626;
+  --abg-red: #fee2e2;
+  --acol-black: #1e1b4b;
+  --abg-black: #e0e7ff;
+
+  /* ── Palette charts (10 couleurs distinctes pour graphs Stats.tsx) ── */
+  --chart-1: #0369a1;
+  --chart-2: #059669;
+  --chart-3: #7c3aed;
+  --chart-4: #d97706;
+  --chart-5: #dc2626;
+  --chart-6: #0891b2;
+  --chart-7: #c026d3;
+  --chart-8: #4f46e5;
+  --chart-9: #ea580c;
+  --chart-10: #65a30d;
+}
+
+/* ═══════════════════════════════════════════════════════
+   DARK MODE
+   ═══════════════════════════════════════════════════════ */
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* ── Neutrals (refonte : palette plus profonde, surfaces #161615) ── */
+  --bg-body: #0a0a0a;
+  --bg-primary: #161615;
+  --bg-secondary: #1c1c1b;
+  --bg-tertiary: #1c1c1b;
+  --bg-hover: #2a2a28;
+
+  --text-primary: #fafaf9;
+  --text-secondary: #d4d4d1;
+  --text-tertiary: #a3a3a3;
+  --text-muted: #737373;
+  --text-input: #fafaf9;
+
+  --border: #2a2a28;
+  --border-light: #1c1c1b;
+
+  --shadow: rgba(0,0,0,0.4);
+  --shadow-lg: rgba(0,0,0,0.5);
+  --overlay: rgba(0,0,0,0.65);
+
+  /* ── Semantic: Success ── */
+  --success: #4ade80;
+  --success-bg: #052e16;
+  --success-light: #14532d;
+  --success-text: #86efac;
+  --success-border: #166534;
+
+  /* ── Semantic: Danger / Alert (orange chaud) ── */
+  --danger: #fb923c;
+  --danger-bg: #451a03;
+  --danger-light: #1c0d04;
+  --danger-text: #fdba74;
+  --danger-border: #7c2d12;
+
+  /* ── Semantic: Warning (jaune chaud) ── */
+  --warning: #facc15;
+  --warning-bg: #422006;
+  --warning-light: #78350f;
+  --warning-text: #fde68a;
+  --warning-border: #854d0e;
+
+  /* ── Semantic: Info ── */
+  --info: #60a5fa;
+  --info-bg: #0c1e3d;
+  --info-text: #93c5fd;
+  --info-border: #1e40af;
+
+  /* ── Semantic: Purple ── */
+  --purple: #c4b5fd;         /* ~5:1 vs purple-bg (was #a78bfa @ 2.89:1 — critique) */
+  --purple-bg: #2e1065;
+  --purple-text: #ddd6fe;    /* ~6.3:1 vs purple-bg (was #c4b5fd @ 4.37:1 — fails AA) */
+  --purple-border: #5b21b6;
+
+  /* ── Buttons (refonte : accent inversé blanc) ── */
+  --btn-primary-bg: #fafaf9;
+  --btn-primary-text: #0a0a09;
+  --btn-ghost-text: #a3a3a3;
+  --btn-ghost-border: #2a2a28;
+  --btn-link: #60a5fa;
+
+  /* ── Status: Conteneurs ── */
+  --sc-attendu: #94a3b8;
+  --sb-attendu: #1e293b;
+  --sc-port: #818cf8;
+  --sb-port: #1e1b4b;
+  --sc-dispatche: #a78bfa;
+  --sb-dispatche: #2e1065;
+  --sc-transit: #fbbf24;
+  --sb-transit: #451a03;
+  --sc-kati: #fb923c;
+  --sb-kati: #431407;
+  --sc-bamako: #d6d3d1;
+  --sb-bamako: #292524;
+  --sc-returned: #86efac;
+  --sb-returned: #052e16;
+
+  /* ── Status: Dossiers ── */
+  --dc-initialise: #818cf8;
+  --dbg-initialise: #1e1b4b;
+  --dc-securise: #d6d3d1;
+  --dbg-securise: #292524;
+  --dc-en_transit: #fbbf24;
+  --dbg-en_transit: #451a03;
+  --dc-cloture: #86efac;
+  --dbg-cloture: #052e16;
+  --dc-archive: #a8a29e;
+  --dbg-archive: #292524;
+
+  /* ── Alertes franchise ── */
+  --acol-green: #34d399;
+  --abg-green: #052e16;
+  --acol-orange: #fbbf24;
+  --abg-orange: #451a03;
+  --acol-red: #f87171;
+  --abg-red: #450a0a;
+  --acol-black: #818cf8;
+  --abg-black: #1e1b4b;
+
+  /* ── Palette charts dark (versions plus claires pour contraste sur fond sombre) ── */
+  --chart-1: #38bdf8;
+  --chart-2: #34d399;
+  --chart-3: #a78bfa;
+  --chart-4: #fbbf24;
+  --chart-5: #f87171;
+  --chart-6: #22d3ee;
+  --chart-7: #e879f9;
+  --chart-8: #818cf8;
+  --chart-9: #fb923c;
+  --chart-10: #a3e635;
+}
+
+/* ── Apply body background ── */
+html { background: var(--bg-body); }
+body { background: var(--bg-body); color: var(--text-primary); }
+
+/* ═══════════════════════════════════════════════════════
+   ACCESSIBILITY — Focus visible (WCAG 2.4.7)
+   ═══════════════════════════════════════════════════════
+   De nombreux inputs ont `outline: "none"` dans leur style inline.
+   Cette regle restaure un indicateur de focus visible en s'appuyant
+   sur :focus-visible (ne s'affiche qu'au keyboard, pas au clic souris).
+*/
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible,
+[role="button"]:focus-visible,
+[role="menuitem"]:focus-visible {
+  outline: 2px solid var(--info);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   ACCESSIBILITY — prefers-reduced-motion (WCAG 2.3.3)
+   ═══════════════════════════════════════════════════════
+   Utilisateurs sensibles aux animations : desactive les transitions.
+*/
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   ACCESSIBILITY — Skip link (WCAG 2.4.1)
+   ═══════════════════════════════════════════════════════
+   Lien "Aller au contenu principal" qui n'apparait qu'au focus.
+   Permet aux utilisateurs keyboard de sauter la sidebar.
+*/
+.lt-skip-link {
+  position: absolute;
+  top: -100px;
+  left: 0;
+  background: var(--info);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 0 0 8px 0;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+  z-index: 100000;
+}
+.lt-skip-link:focus-visible {
+  top: 0;
+  outline: 2px solid var(--text-primary);
+  outline-offset: -2px;
+}

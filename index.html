@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1c1917" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <!-- Sprint 1 refonte design : Inter (UI) + JetBrains Mono (BL/TC/montants) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <title>Sapurai — Gestion de transit import Dakar (Senegal, Mali, hinterland)</title>
+    <meta name="description" content="Sapurai est l'app metier pour les transitaires operant depuis Dakar : livraison interieur Senegal (Touba, Thies, Kaolack...) et hinterland (Mali, Burkina). Sync DPWorld, alertes surestaries, tracking WhatsApp." />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Sapurai — Transit Dakar vers Senegal et hinterland" />
+    <meta property="og:description" content="L'app metier pour les transitaires de Dakar. Sync DPWorld, alertes surestaries, tracking client WhatsApp. Essai 30 jours gratuit." />
+    <meta property="og:image" content="/og-tracking.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Sapurai — Transit Dakar" />
+    <meta name="twitter:description" content="App metier pour transitaires Dakar : interieur Senegal + hinterland. Sync DPWorld, alertes, tracking WhatsApp." />
+    <meta name="twitter:image" content="/og-tracking.png" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>(function(){var t=localStorage.getItem("lt-theme");if(!t)t=matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light";document.documentElement.setAttribute("data-theme",t)})()</script>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js');
+        });
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,140 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Super-admin helper
+    function isSuperAdmin() {
+      return request.auth != null && request.auth.uid == 'T9IfzQNpaCTnl0D3qOKC1D7MmCs2';
+    }
+
+    // User profile - each user can read/write their own, super-admin can read all
+    match /users/{userId} {
+      allow read: if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Global config (Gemini key, etc.) - super-admin only
+    match /config/{docId} {
+      allow read, write: if isSuperAdmin();
+    }
+
+    // Companies - any authenticated user can CREATE (new company setup)
+    // Members can READ, admin/editor/agent can UPDATE, admin/editor can DELETE, super-admin has full access
+    // Note: agent peut update pour cycler ses taches (markTaskDone), uploader des
+    // documents et modifier l'etat de SES dossiers assignes. La granularite par
+    // champ est appliquee cote client (canEdit, AgentView).
+    match /companies/{companyId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null &&
+        (isSuperAdmin() ||
+        exists(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid)));
+      allow update: if isSuperAdmin() ||
+        (request.auth != null &&
+        exists(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid)).data.role in ['admin', 'editor', 'agent']);
+      allow delete: if isSuperAdmin() ||
+        (request.auth != null &&
+        exists(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid)).data.role in ['admin', 'editor']);
+    }
+
+    // Company members
+    // - You can always CREATE your own member doc (joining)
+    // - Members can READ all members, super-admin can read/write all
+    // - Admin can UPDATE/DELETE members
+    match /companies/{companyId}/members/{memberId} {
+      allow read: if isSuperAdmin() ||
+        (request.auth != null &&
+        exists(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid)));
+      allow create: if request.auth != null && request.auth.uid == memberId;
+      allow update, delete: if isSuperAdmin() ||
+        (request.auth != null &&
+        exists(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid)).data.role == 'admin');
+    }
+
+    // Notifications - super-admin full access, membres peuvent lire/update, admin/editor peuvent creer
+    match /companies/{companyId}/notifications/{notifId} {
+      allow read, write: if isSuperAdmin();
+      allow read: if request.auth != null &&
+        exists(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid));
+      allow create: if request.auth != null &&
+        exists(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid)).data.role in ['admin', 'editor'];
+      allow update: if request.auth != null &&
+        exists(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid));
+    }
+
+    // Legacy invites subcollection
+    // Read open (needed for join flow), create/delete restricted to company admin
+    match /companies/{companyId}/invites/{inviteId} {
+      allow read: if request.auth != null;
+      allow create, delete: if request.auth != null &&
+        exists(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Top-level invites for joining
+    // Read: any authenticated user (needed to validate code during join)
+    // Create: must include companyId, createdBy, assignedEmail (invitation nominative)
+    //   Champs optionnels : taches (array), responsabilites (string)
+    // Update: only to write own UID in usedBy (before consuming)
+    // Delete: only if usedBy == own UID (invite consumed by this user)
+    match /invites/{code} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.companyId is string
+        && request.resource.data.createdBy is string
+        && request.resource.data.assignedEmail is string;
+      allow update: if request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedBy'])
+        && request.resource.data.usedBy == request.auth.uid;
+      allow delete: if request.auth != null
+        && resource.data.usedBy == request.auth.uid;
+    }
+
+    // Tracking - public read, write restricted to company owner via companyId field
+    // trackingId is an unpredictable UUID (see src/useData.ts shareTracking / shareClientTracking)
+    // Update public non-auth UNIQUEMENT pour ajouter un rating (1 fois, validation stricte).
+    match /tracking/{trackingId} {
+      allow read: if true;
+
+      // Ecriture complete proprietaire
+      allow write: if request.auth != null
+        && request.resource.data.companyId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId;
+
+      // Update public pour rating (OR avec write ci-dessus ; une fois seulement, champs restreints)
+      // Le client DOIT envoyer serverTimestamp() pour ratingAt (et non un ISO string)
+      allow update: if resource != null
+        && resource.data.rating == null
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['rating', 'ratingComment', 'ratingReasons', 'ratingAt'])
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasAll(['rating', 'ratingAt'])
+        && request.resource.data.rating in [1, 2, 3]
+        && request.resource.data.ratingAt == request.time
+        && (!('ratingComment' in request.resource.data.keys())
+            || (request.resource.data.ratingComment is string
+                && request.resource.data.ratingComment.size() <= 200))
+        && (!('ratingReasons' in request.resource.data.keys())
+            || (request.resource.data.ratingReasons is list
+                && request.resource.data.ratingReasons.size() <= 5));
+    }
+
+    // Files (base64 storage - isolated by company)
+    // New files: key = lt-file-{companyId}-{uuid} → only same company can read/write/delete
+    // Legacy files: key = lt-file-{uuid} (no companyId) → readable/deletable by any auth user
+    match /files/{fileId} {
+      allow read: if request.auth != null
+        && (isSuperAdmin()
+          || fileId.matches('lt-file-' + get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId + '-.*')
+          || !fileId.matches('lt-file-[^-]+-[^-]+-.*'));
+      allow create, update: if request.auth != null
+        && fileId.matches('lt-file-' + get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId + '-.*');
+      allow delete: if request.auth != null
+        && (isSuperAdmin()
+          || fileId.matches('lt-file-' + get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId + '-.*')
+          || !fileId.matches('lt-file-[^-]+-[^-]+-.*'));
+    }
+  }
+}

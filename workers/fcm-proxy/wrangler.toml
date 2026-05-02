@@ -1,0 +1,11 @@
+name = "fcm-proxy"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+# Secrets a configurer (pas en clair ici) :
+#   wrangler secret put FCM_SERVICE_ACCOUNT_JSON   <- colle le JSON service account Firebase
+#   wrangler secret put FCM_PROJECT_ID             <- "sapurai-84984"
+#
+# Deploy :
+#   cd workers/fcm-proxy
+#   npx wrangler deploy

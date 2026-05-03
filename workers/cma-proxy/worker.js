@@ -17,13 +17,65 @@
  *  POST { bl } / { container }    => Idem en POST si tu preferes
  */
 
-var DEFAULT_API_BASE = 'https://apis.cma-cgm.com';
+var DEFAULT_API_BASE = 'https://apis.cma-cgm.net';
+var DEFAULT_TOKEN_URL = 'https://auth.cma-cgm.com/as/token.oauth2';
 var CACHE_TTL_MS = 60 * 60 * 1000;  // 1h cache
 var RATE_LIMIT_MS = 3 * 60 * 1000;   // 3min entre 2 appels meme cle
 
 // Cache en memoire (perdu au redeploy, mais ca convient pour 20/h quota)
 var responseCache = new Map();
 var lastFetchTimestamp = new Map();
+
+// Cache token OAuth2 (renouvele avant expiration)
+var tokenCache = { token: null, expiresAt: 0 };
+
+/**
+ * Obtient un access_token OAuth2 (clientCredentials flow).
+ * Cache memoire + buffer 60s avant expiration pour eviter race condition.
+ */
+async function getAccessToken(env) {
+  // Token encore valide ? (avec buffer 60s)
+  if (tokenCache.token && tokenCache.expiresAt > Date.now() + 60000) {
+    return { ok: true, token: tokenCache.token };
+  }
+  if (!env.CMA_CLIENT_ID || !env.CMA_CLIENT_SECRET) {
+    return { ok: false, error: 'CMA_CLIENT_ID ou CMA_CLIENT_SECRET non configures' };
+  }
+  var tokenUrl = env.CMA_TOKEN_URL || DEFAULT_TOKEN_URL;
+  var scope = env.CMA_SCOPE || '';  // optionnel : scope specifique a l'API
+  var body = new URLSearchParams();
+  body.set('grant_type', 'client_credentials');
+  body.set('client_id', env.CMA_CLIENT_ID);
+  body.set('client_secret', env.CMA_CLIENT_SECRET);
+  if (scope) body.set('scope', scope);
+
+  try {
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () { ctrl.abort(); }, 10000);
+    var res = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+      body: body.toString(),
+      signal: ctrl.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) {
+      var errBody = await res.text();
+      return { ok: false, error: 'Auth CMA HTTP ' + res.status, detail: errBody.slice(0, 300) };
+    }
+    var json = await res.json();
+    if (!json.access_token) {
+      return { ok: false, error: 'access_token absent de la reponse auth' };
+    }
+    tokenCache.token = json.access_token;
+    var expiresIn = (typeof json.expires_in === 'number' ? json.expires_in : 3600) * 1000;
+    tokenCache.expiresAt = Date.now() + expiresIn;
+    return { ok: true, token: json.access_token };
+  } catch (e) {
+    var msg = (e && e.name === 'AbortError') ? 'Timeout 10s sur auth CMA' : 'Reseau auth : ' + (e && e.message ? e.message : 'inconnu');
+    return { ok: false, error: msg };
+  }
+}
 
 function corsHeaders(origin) {
   // Whitelist des origins autorises a appeler le Worker
@@ -57,24 +109,21 @@ async function fetchCMATrackAndTrace(env, query) {
     return { ok: false, error: 'CMA_API_KEY non configure dans le Worker' };
   }
 
-  // Construction URL Track & Trace v1
-  // Endpoint reel : https://apis.cma-cgm.com/operation/trackandtrace/v1/...
-  // La doc officielle peut differer (parametres, sous-endpoints).
-  // On essaie le format le plus standard.
-  var endpoint = apiBase + '/operation/trackandtrace/v1';
-  var params = new URLSearchParams();
-  if (query.bl) params.set('shippingBl', query.bl);
-  if (query.container) params.set('containerId', query.container);
-  var url = endpoint + (params.toString() ? '?' + params.toString() : '');
+  // CMA Track & Trace v2.2.0 (DCSA standard) :
+  //   - Auth Public (API Key) : events publics (date arrivee, vessel, equipment)
+  //   - Endpoint : GET /events/{trackingReference} ou GET /events?...
+  // Le BL est la "trackingReference" pour notre cas d'usage.
+  var ref = query.bl || query.container;
+  var endpoint = apiBase + '/operation/trackandtrace/v1/events/' + encodeURIComponent(ref);
 
   try {
-    // Timeout 15s pour eviter Worker subrequest failure (Cloudflare error 1042)
     var ctrl = new AbortController();
     var timer = setTimeout(function () { ctrl.abort(); }, 15000);
-    var res = await fetch(url, {
+    var res = await fetch(endpoint, {
       method: 'GET',
       headers: {
-        'apikey': apiKey,
+        // Doc CMA : ApiKeyAuth (apiKey) Name: keyId, In: header
+        'keyId': apiKey,
         'Accept': 'application/json',
       },
       signal: ctrl.signal,
@@ -86,7 +135,7 @@ async function fetchCMATrackAndTrace(env, query) {
         ok: false,
         error: 'CMA API HTTP ' + res.status,
         detail: body.slice(0, 500),
-        url: url,
+        url: endpoint,
       };
     }
     // Parsing robuste : si l'API renvoie autre chose que du JSON, on retourne
@@ -105,7 +154,7 @@ async function fetchCMATrackAndTrace(env, query) {
   } catch (e) {
     // AbortError, DNS failure, etc. — toujours renvoyer du JSON valide
     var msg = (e && e.name === 'AbortError') ? 'Timeout 15s sur API CMA' : 'Reseau : ' + (e && e.message ? e.message : 'inconnu');
-    return { ok: false, error: msg, url: url };
+    return { ok: false, error: msg, url: endpoint };
   }
 }
 

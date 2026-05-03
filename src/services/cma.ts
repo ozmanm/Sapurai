@@ -159,19 +159,181 @@ function eventToStatus(eventType: string): string | null {
   return null;
 }
 
+/**
+ * Format DCSA v2.2.0 (CMA Track & Trace v1) :
+ * data: [
+ *   {
+ *     eventType: "EQUIPMENT" | "TRANSPORT" | "SHIPMENT",
+ *     eventClassifierCode: "ACT" (actual) | "EST" (estimated) | "PLN" (planned),
+ *     eventDateTime: "2026-02-16T11:10:00+08:00",
+ *     equipmentReference: "TGHU1234567",        // n° TC (events EQUIPMENT)
+ *     ISOEquipmentCode?: "22G1" | "45G1" | ...,  // type TC ISO (22G1=20GP, 45G1=40HC)
+ *     carrierSpecificData: {
+ *       internalEventCode: "IDF" | "POD" | ...,
+ *       internalEventLabel: "Discharged" | "Loaded on" | "Empty returned" | ...
+ *     },
+ *     transportCall: {
+ *       UNLocationCode: "CNNBO" | "SNDKR" | ...,  // port (SNDKR = Dakar)
+ *       transportationPhase: "Import" | "Transhipment" | "Export"
+ *     }
+ *   }
+ * ]
+ */
+
+// ISO container code -> type Sapurai
+var ISO_TO_TYPE: Record<string, string> = {
+  "22G1": "20GP", "22G0": "20GP",
+  "42G1": "40GP", "42G0": "40GP",
+  "45G1": "40HC", "45G0": "40HC",
+  "L5G1": "45HC",
+  "22R1": "20RF", "42R1": "40RF", "45R1": "40HCRF",
+};
+
+function isoToType(iso: string | undefined): string {
+  if (!iso) return "20GP";
+  return ISO_TO_TYPE[iso] || iso;
+}
+
+function extractDCSAEvents(raw: any): any[] {
+  if (Array.isArray(raw)) return raw;
+  if (raw && Array.isArray(raw.data)) return raw.data;
+  if (raw && Array.isArray(raw.events)) return raw.events;
+  return [];
+}
+
+/**
+ * Mapping format DCSA v2.2.0.
+ * - Parcourt les events EQUIPMENT pour extraire la liste des TC uniques (ISO -> type).
+ * - Date arrivee = dernier event "Discharged" en transportationPhase "Import"
+ *   (= decharge a destination). Si pas trouve, prend le dernier "Discharged" tout court.
+ * - Pour chaque TC du dossier : si event Discharged Import -> st = PORT.
+ */
+function mapDCSAEvents(events: any[], dosTcs: any[], dos: any): CMAPatches {
+  var dosPatches: Record<string, any> = {};
+  var tcUpdates: TcUpdate[] = [];
+  var changes: string[] = [];
+
+  // Index par n° TC (equipmentReference)
+  var byTc: Record<string, any[]> = {};
+  events.forEach(function (e: any) {
+    var ref = String(e.equipmentReference || '').toUpperCase();
+    if (ref) {
+      if (!byTc[ref]) byTc[ref] = [];
+      byTc[ref].push(e);
+    }
+  });
+
+  // Helper : detecte si un event est "Discharged" (debarqement)
+  function isDischarged(e: any): boolean {
+    var lbl = String(e.carrierSpecificData?.internalEventLabel || '').toLowerCase();
+    var code = String(e.carrierSpecificData?.internalEventCode || '').toUpperCase();
+    return lbl.indexOf('discharg') >= 0 || code === 'IDF' || code === 'DIS' || code === 'POD';
+  }
+
+  function isImportPhase(e: any): boolean {
+    var phase = String(e.transportCall?.transportationPhase || '').toLowerCase();
+    return phase === 'import';
+  }
+
+  function isLoaded(e: any): boolean {
+    var lbl = String(e.carrierSpecificData?.internalEventLabel || '').toLowerCase();
+    return lbl.indexOf('load') >= 0;
+  }
+
+  function isEmptyReturn(e: any): boolean {
+    var lbl = String(e.carrierSpecificData?.internalEventLabel || '').toLowerCase();
+    return lbl.indexOf('empty') >= 0 && (lbl.indexOf('return') >= 0 || lbl.indexOf('back') >= 0);
+  }
+
+  function isGateOut(e: any): boolean {
+    var lbl = String(e.carrierSpecificData?.internalEventLabel || '').toLowerCase();
+    var code = String(e.carrierSpecificData?.internalEventCode || '').toUpperCase();
+    return lbl.indexOf('gate out') >= 0 || lbl.indexOf('pick') >= 0 || code === 'OUT' || code === 'GTOUT';
+  }
+
+  // 1. Date arrivee : Discharged en phase Import (= a destination)
+  if (!dos.da) {
+    var dischargeImports = events.filter(function (e: any) { return isDischarged(e) && isImportPhase(e); });
+    if (dischargeImports.length === 0) {
+      // Fallback : dernier Discharged tout court (peut etre transhipment)
+      dischargeImports = events.filter(isDischarged);
+    }
+    if (dischargeImports.length > 0) {
+      // Tri par eventDateTime decroissant -> premier = le plus recent
+      dischargeImports.sort(function (a: any, b: any) {
+        return (a.eventDateTime || '') < (b.eventDateTime || '') ? 1 : -1;
+      });
+      var dt = String(dischargeImports[0].eventDateTime || '').split('T')[0];
+      if (dt) {
+        dosPatches.da = dt;
+        changes.push('Date arrivee ' + dt + ' (CMA)');
+      }
+    }
+  }
+
+  // 2. TCs : matcher avec ceux du dossier + ajouter ceux qu'on ne connait pas
+  Object.keys(byTc).forEach(function (tcRef) {
+    var tcEvents = byTc[tcRef];
+    var match = dosTcs.find(function (tc: any) {
+      return String(tc.n || '').toUpperCase().replace(/[\s\-]/g, '') === tcRef.replace(/[\s\-]/g, '');
+    });
+    if (!match) return;  // TC absent du dossier : on signale via newTcs cote service
+
+    // Determiner le statut le plus avance + dates
+    var sortedEvts = tcEvents.slice().sort(function (a: any, b: any) {
+      return (a.eventDateTime || '') < (b.eventDateTime || '') ? -1 : 1;
+    });
+
+    var update: TcUpdate = { id: match.id };
+    sortedEvts.forEach(function (e: any) {
+      var dt = String(e.eventDateTime || '').split('T')[0];
+      if (isDischarged(e) && isImportPhase(e) && match.st === 'ATTENDU') {
+        update.st = 'PORT';
+      }
+      if (isGateOut(e) && (match.st === 'PORT' || match.st === 'ATTENDU')) {
+        update.st = 'DISPATCHE';
+        if (dt && !match.dsp) update.dsp = dt;
+      }
+      if (isEmptyReturn(e)) {
+        update.st = 'RETURNED';
+        if (dt && !match.dr) update.dr = dt;
+      }
+    });
+
+    if (update.st) {
+      tcUpdates.push(update);
+      changes.push((match.n || '?') + ' -> ' + update.st + ' (CMA)');
+    }
+  });
+
+  var summary = changes.length > 0
+    ? changes.length + ' maj CMA : ' + changes.slice(0, 3).join(', ') + (changes.length > 3 ? '...' : '')
+    : 'Aucune nouveaute CMA';
+
+  return { dosPatches: dosPatches, tcUpdates: tcUpdates, summary: summary, changes: changes };
+}
+
 export function mapCMAToPatches(cmaRaw: any, dosTcs: any[], dos: any): CMAPatches {
   var dosPatches: Record<string, any> = {};
   var tcUpdates: TcUpdate[] = [];
   var changes: string[] = [];
 
+  // Detection format : DCSA v2.2.0 (events array) ou ancien format (containers)
+  var events = extractDCSAEvents(cmaRaw);
+  if (events.length > 0 && events[0].eventType !== undefined) {
+    // === Format DCSA v2.2.0 ===
+    return mapDCSAEvents(events, dosTcs, dos);
+  }
+
+  // Fallback : ancien format (containers/events imbriques) — garde pour compat
   var cmaContainers = extractContainersFromCMA(cmaRaw);
 
   // 1. Date arrivee (da) : prendre le premier evenement DISCHARGE le plus tot
   if (!dos.da) {
     var earliestDischarge: string | null = null;
     cmaContainers.forEach(function (c: any) {
-      var events = normalizeEvents(c);
-      events.forEach(function (e) {
+      var oldEvents = normalizeEvents(c);
+      oldEvents.forEach(function (e) {
         if (e.type && (e.type.indexOf('DISCHARGE') >= 0 || e.type.indexOf('DEBARQ') >= 0) && e.date) {
           var d = e.date.split('T')[0];
           if (!earliestDischarge || d < earliestDischarge) earliestDischarge = d;

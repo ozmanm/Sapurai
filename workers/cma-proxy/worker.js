@@ -68,13 +68,18 @@ async function fetchCMATrackAndTrace(env, query) {
   var url = endpoint + (params.toString() ? '?' + params.toString() : '');
 
   try {
+    // Timeout 15s pour eviter Worker subrequest failure (Cloudflare error 1042)
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () { ctrl.abort(); }, 15000);
     var res = await fetch(url, {
       method: 'GET',
       headers: {
         'apikey': apiKey,
         'Accept': 'application/json',
       },
+      signal: ctrl.signal,
     });
+    clearTimeout(timer);
     if (!res.ok) {
       var body = await res.text();
       return {
@@ -84,10 +89,23 @@ async function fetchCMATrackAndTrace(env, query) {
         url: url,
       };
     }
+    // Parsing robuste : si l'API renvoie autre chose que du JSON, on retourne
+    // un message clair plutot que de crash le Worker (Cloudflare error 1042).
+    var contentType = (res.headers.get('content-type') || '').toLowerCase();
+    if (contentType.indexOf('application/json') < 0) {
+      var raw = await res.text();
+      return {
+        ok: false,
+        error: 'CMA API a retourne du non-JSON (' + contentType + ')',
+        detail: raw.slice(0, 300),
+      };
+    }
     var data = await res.json();
     return { ok: true, data: data, fetchedAt: Date.now() };
   } catch (e) {
-    return { ok: false, error: 'Reseau : ' + (e.message || 'inconnu'), url: url };
+    // AbortError, DNS failure, etc. — toujours renvoyer du JSON valide
+    var msg = (e && e.name === 'AbortError') ? 'Timeout 15s sur API CMA' : 'Reseau : ' + (e && e.message ? e.message : 'inconnu');
+    return { ok: false, error: msg, url: url };
   }
 }
 

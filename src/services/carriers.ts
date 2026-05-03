@@ -84,7 +84,28 @@ export async function fetchCarrier(bl: string, cp?: string): Promise<CarrierResp
     }
     var res = await fetch(url, { signal: ctrl.signal });
     clearTimeout(timer);
-    var json = await res.json();
+    // Parsing robuste : verifier qu'on recoit bien du JSON. Si le Worker
+    // crash (Cloudflare error 1042 etc.), il retourne une page HTML qui
+    // ferait planter res.json(). On renvoie alors un message metier clair.
+    var contentType = (res.headers.get('content-type') || '').toLowerCase();
+    var bodyText = await res.text();
+    var json: any;
+    if (contentType.indexOf('application/json') < 0 || !bodyText.trim().startsWith('{')) {
+      return {
+        ok: false,
+        carrier: carrier,
+        error: 'Service de tracking ' + (CARRIER_LABELS[carrier] || carrier) + ' temporairement indisponible. Reessayez plus tard ou utilisez Sync DPWorld.',
+      };
+    }
+    try {
+      json = JSON.parse(bodyText);
+    } catch (_e) {
+      return {
+        ok: false,
+        carrier: carrier,
+        error: 'Reponse invalide du service ' + (CARRIER_LABELS[carrier] || carrier) + '. Reessayez plus tard.',
+      };
+    }
 
     // Normalisation : extraire la date d'arrivee selon la source
     if (carrier === 'cma' && json.ok && json.data) {

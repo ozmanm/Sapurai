@@ -126,6 +126,9 @@ export interface Dossier {
   frRt?: number;      // franchise retour vide (jours), defaut auto selon destination
   besc?: boolean;     // BESC attendu (defaut true si IMPORT, false sinon)
   ror?: boolean;      // Vehicule en RoRo (sur navire, pas de retour vide)
+
+  // Sync intelligent armateur (Q2 — eviter sync continu)
+  lastCarrierSync?: string;  // Timestamp ISO du dernier sync armateur reussi
 }
 
 /**

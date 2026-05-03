@@ -46,6 +46,9 @@ export default function useCarrierSync(p: CarrierSyncDeps) {
         nf(patches.summary || 'Aucune nouveaute');
         return;
       }
+      // Toujours mettre a jour lastCarrierSync, meme si rien n'a change
+      // (permet de tracer le dernier appel et eviter les doublons cote auto-sync)
+      patches.dosPatches.lastCarrierSync = new Date().toISOString();
       var patchedDos = Object.assign({}, d, patches.dosPatches) as Dossier;
       var newDosList = dos.map(function (x) { return x.id === dosId ? patchedDos : x; });
 

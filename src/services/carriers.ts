@@ -88,7 +88,6 @@ export async function fetchCarrier(bl: string, cp?: string): Promise<CarrierResp
 
     // Normalisation : extraire la date d'arrivee selon la source
     if (carrier === 'cma' && json.ok && json.data) {
-      // cma-proxy retourne data brute CMA — on extrait la date
       var raw = json.data;
       var arrivalDate = extractCMAArrivalDate(raw);
       return {
@@ -99,7 +98,18 @@ export async function fetchCarrier(bl: string, cp?: string): Promise<CarrierResp
         cached: !!json.cached,
       };
     }
-    // carrier-proxy retourne deja un format normalise
+
+    // Realite 2026 : seul CMA expose une vraie API publique. Les autres armateurs
+    // sont soit en SPA pure (Hapag, ONE) soit en anti-bot strict (MSC, Maersk,
+    // Grimaldi). On retourne un message clair plutot qu'une erreur reseau brute.
+    if (carrier !== 'cma' && (!json.ok || (json.ok && json.arrivalDate === null))) {
+      return {
+        ok: false,
+        carrier: carrier,
+        error: 'Synchronisation auto indisponible pour ' + (CARRIER_LABELS[carrier] || carrier) + '. Utilisez Sync DPWorld pour les statuts BAD/BAE/Pregate. Le suivi armateur officiel sera disponible avec l\'abonnement premium.',
+      };
+    }
+
     return json as CarrierResponse;
   } catch (e: any) {
     clearTimeout(timer);

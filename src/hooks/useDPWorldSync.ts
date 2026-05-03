@@ -45,6 +45,16 @@ export default function useDPWorldSync(p: DPWorldSyncDeps) {
   async function syncDPWorld(dosId: string): Promise<void> {
     var d = dos.find(function (x) { return x.id === dosId; });
     if (!d || !d.bl) { nf("Pas de BL pour ce dossier", "error"); return; }
+    // Q1 : skip sync si tous les TC sont deja sortis du port (DPWorld n'a plus
+    // d'info utile une fois le TC charge). Economise les appels API et la
+    // latence utilisateur.
+    var dosTcsCheck = tcs.filter(function (t) { return t.did === dosId; });
+    if (dosTcsCheck.length > 0 && dosTcsCheck.every(function (t) {
+      return t.st === "DISPATCHE" || t.st === "TRANSIT" || t.st === "KATI" || t.st === "BAMAKO" || t.st === "RETURNED";
+    })) {
+      nf("TC deja sortis du port — sync DPWorld inutile", "ok");
+      return;
+    }
     try {
       nf("Sync DPWorld...");
       var result = await fetchDPWorld(d.bl);
@@ -81,7 +91,17 @@ export default function useDPWorldSync(p: DPWorldSyncDeps) {
   }
 
   async function syncAllDPWorld(): Promise<void> {
-    var actifs = dos.filter(function (d) { return d.bl && d.st !== "CLOTURE" && d.st !== "ARCHIVE"; });
+    // Q1 : exclut aussi les dossiers dont tous les TC sont deja sortis du port
+    var actifs = dos.filter(function (d) {
+      if (!d.bl || d.st === "CLOTURE" || d.st === "ARCHIVE") return false;
+      var dtcs = tcs.filter(function (t) { return t.did === d.id; });
+      if (dtcs.length === 0) return true;  // pas de TC encore : on tente quand meme
+      // Skip si tous les TC ont quitte le port
+      var allOut = dtcs.every(function (t) {
+        return t.st === "DISPATCHE" || t.st === "TRANSIT" || t.st === "KATI" || t.st === "BAMAKO" || t.st === "RETURNED";
+      });
+      return !allOut;
+    });
     if (actifs.length === 0) { nf("Aucun dossier actif avec BL", "error"); return; }
     nf("Sync DPWorld: " + actifs.length + " dossier(s)...");
     var allDosPatches: Record<string, Record<string, any>> = {};

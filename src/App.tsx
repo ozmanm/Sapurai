@@ -93,6 +93,44 @@ export default function App(props: AppProps) {
     return function () { clearInterval(id); };
   }, []);
 
+  // Q2 — Auto-sync CMA intelligent : scanner les dossiers CMA actifs et lancer
+  // sync sur ceux qui matchent (J-5 a J+1 OU jamais sync) sans sync recent (>24h).
+  // Economise drastiquement le quota CMA strict (20/h) tout en garantissant une
+  // mise a jour avant l'arrivee du TC.
+  //
+  // Dep sur L.dos.length : se re-execute si un nouveau dossier est cree (cas
+  // "creation dossier CMA -> sync auto immediat pour recuperer ETA").
+  useEffect(function () {
+    if (!L.syncCarrier) return;
+    var todayMs = Date.now();
+    var dayMs = 86400000;
+    var dosToSync = (L.dos || []).filter(function (d: any) {
+      if (!d.bl) return false;
+      if (d.st === "CLOTURE" || d.st === "ARCHIVE") return false;
+      if (!d.cp || d.cp.toUpperCase().indexOf("CMA") < 0) return false;
+      // Pas de sync recent (< 24h)
+      if (d.lastCarrierSync) {
+        var lastMs = new Date(d.lastCarrierSync).getTime();
+        if (!isNaN(lastMs) && (todayMs - lastMs) < dayMs) return false;
+      }
+      // Jamais sync : declencher (cas creation dossier ou import Excel)
+      if (!d.lastCarrierSync) return true;
+      // Sinon : seulement si J-5 a J+1
+      if (!d.da) return false;
+      var arrivalMs = new Date(d.da).getTime();
+      if (isNaN(arrivalMs)) return false;
+      var diffJours = Math.floor((arrivalMs - todayMs) / dayMs);
+      return diffJours >= -1 && diffJours <= 5;
+    });
+    // Sequencer les sync pour eviter de saturer le quota CMA (20/h)
+    // Espace de 5s entre chaque appel = max 12/min, bien sous le quota
+    dosToSync.forEach(function (d: any, i: number) {
+      setTimeout(function () {
+        if (L.syncCarrier) L.syncCarrier(d.id);
+      }, i * 5000);
+    });
+  }, [L.dos.length]);
+
   if (role === "agent") {
     var agentName = props.agentName || "";
     var agentDos = agentName

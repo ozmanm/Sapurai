@@ -93,7 +93,7 @@ export default function useAppLogic({ db, sv, ml, setMl, sendNotif }: UseAppLogi
   // Compose les 8 hooks specialises
   var metrics = useAppMetrics(dos, tcs, dep, cfg);
   var dossierActions = useDossierActions({ db, sv, wLog, nf, setMl, sendNotif, dos, tcs, dep, ml });
-  var conteneurActions = useConteneurActions({ db, sv, wLog, nf, setMl, dos, tcs, dep, cfg });
+  var conteneurActions = useConteneurActions({ db, sv, wLog, nf, setMl, dos, tcs, dep, chs, cfg });
   var chauffeurActions = useChauffeurActions({ db, sv, nf, setMl, chs });
   var depenseActions = useDepenseActions({ db, sv, wLog, nf, setMl, dos, dep });
   var dpworldSync = useDPWorldSync({ db, sv, wLog, nf, setMl, dos, tcs });

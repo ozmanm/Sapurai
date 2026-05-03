@@ -22,9 +22,6 @@ function Dash(p: DashProps) {
   var nTrans = p.nTrans;
   var urgences = p.urgences;
   var urgGrouped = p.urgGrouped;
-  var critCount = p.critCount;
-  var sysStatus = p.sysStatus;
-  var sysBg = p.sysBg;
   var cautionsEnCours = p.cautionsEnCours || 0;
   var nSurestaries = p.nSurestaries || 0;
   var canEdit = p.canEdit;
@@ -269,8 +266,8 @@ function Dash(p: DashProps) {
             {canEdit ? <ClickableDiv onClick={function () { setMl({ t: "nch" }); }} label="Nouveau chauffeur" style={{ background: "var(--bg-tertiary)", borderRadius: 10, padding: 12, textAlign: "center" }}><div style={{ fontSize: 22 }}>{"\uD83D\uDE9B"}</div><div style={{ fontWeight: 700, fontSize: 11 }}>{"Chauffeur"}</div></ClickableDiv> : null}
             {canEdit ? <ClickableDiv onClick={function () { setMl({ t: "ndep" }); }} label="Nouvelle depense" style={{ background: "var(--bg-tertiary)", borderRadius: 10, padding: 12, textAlign: "center" }}><div style={{ fontSize: 22 }}>{"\uD83D\uDCB0"}</div><div style={{ fontWeight: 700, fontSize: 11 }}>{"Dépense"}</div></ClickableDiv> : null}
           </div>
-          <div style={{ marginTop: 10, background: sysBg, color: "white", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 700, textAlign: "center" }}>{sysStatus === "NORMAL" ? "\u2705 Tout OK" : "\u26A0\uFE0F " + String(critCount > 0 ? critCount + " critique(s)" : urgences.length + " point(s)") + " en cours"}</div>
-          <button onClick={function () { pdfBilan({ dos: dos, tcs: tcs, dep: dep, urgences: urgences, alertes: p.alertes || [], companyName: p.companyName || "SAPURAI" }); }} style={{ marginTop: 8, width: "100%", background: "var(--bg-tertiary)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", color: "var(--text-tertiary)" }}>{"\uD83D\uDCC4 Telecharger bilan PDF"}</button>
+          {/* Banner urgences retire : info deja visible via le badge "X urgence(s)" en haut a droite */}
+          <button onClick={function () { pdfBilan({ dos: dos, tcs: tcs, dep: dep, urgences: urgences, alertes: p.alertes || [], companyName: p.companyName || "SAPURAI" }); }} style={{ marginTop: 10, width: "100%", background: "var(--bg-tertiary)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", color: "var(--text-tertiary)" }}>{"\uD83D\uDCC4 Telecharger bilan PDF"}</button>
           {p.syncAllDPWorld ? <button onClick={function () { p.syncAllDPWorld(); }} style={{ marginTop: 6, width: "100%", background: "var(--bg-tertiary)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", color: "var(--text-tertiary)" }}>{"\uD83D\uDD04 Sync DPWorld (tous)"}</button> : null}
         </div>
 

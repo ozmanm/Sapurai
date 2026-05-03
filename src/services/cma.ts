@@ -251,22 +251,26 @@ function mapDCSAEvents(events: any[], dosTcs: any[], dos: any): CMAPatches {
     return lbl.indexOf('gate out') >= 0 || lbl.indexOf('pick') >= 0 || code === 'OUT' || code === 'GTOUT';
   }
 
-  // 1. Date arrivee : Discharged en phase Import (= a destination)
+  // 1. Date arrivee : priorite ACT Import > EST/PLN Import > tout Import > tout Discharged
+  // L'ETA (estime) est conserve pour anticiper meme si le TC n'est pas encore arrive.
   if (!dos.da) {
-    var dischargeImports = events.filter(function (e: any) { return isDischarged(e) && isImportPhase(e); });
-    if (dischargeImports.length === 0) {
-      // Fallback : dernier Discharged tout court (peut etre transhipment)
-      dischargeImports = events.filter(isDischarged);
+    function classifier(e: any): string {
+      return String(e.eventClassifierCode || '').toUpperCase();
     }
-    if (dischargeImports.length > 0) {
-      // Tri par eventDateTime decroissant -> premier = le plus recent
-      dischargeImports.sort(function (a: any, b: any) {
+    var actImport = events.filter(function (e: any) { return isDischarged(e) && isImportPhase(e) && classifier(e) === 'ACT'; });
+    var estImport = events.filter(function (e: any) { return isDischarged(e) && isImportPhase(e) && (classifier(e) === 'EST' || classifier(e) === 'PLN'); });
+    var anyImport = events.filter(function (e: any) { return isDischarged(e) && isImportPhase(e); });
+    var anyDisch = events.filter(isDischarged);
+    var pool = actImport.length > 0 ? actImport : estImport.length > 0 ? estImport : anyImport.length > 0 ? anyImport : anyDisch;
+    if (pool.length > 0) {
+      pool.sort(function (a: any, b: any) {
         return (a.eventDateTime || '') < (b.eventDateTime || '') ? 1 : -1;
       });
-      var dt = String(dischargeImports[0].eventDateTime || '').split('T')[0];
+      var dt = String(pool[0].eventDateTime || '').split('T')[0];
       if (dt) {
+        var isEta = pool === estImport;  // marquer comme ETA si event estime
         dosPatches.da = dt;
-        changes.push('Date arrivee ' + dt + ' (CMA)');
+        changes.push((isEta ? 'ETA' : 'Date arrivee') + ' ' + dt + ' (CMA)');
       }
     }
   }

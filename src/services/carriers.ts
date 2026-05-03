@@ -149,27 +149,47 @@ function extractDCSAEvents(raw: any): any[] {
   return [];
 }
 
+/**
+ * Extrait la date d'arrivee (Discharged en Import) avec priorite :
+ *  1. Event ACT (actual) en phase Import      -> date reelle d'arrivee
+ *  2. Event EST/PLN (estimated/planned) Import -> ETA (date prevue)
+ *  3. Fallback : tout Discharged ACT/EST/PLN
+ *
+ * Ainsi, meme si le TC n'est pas encore arrive (que des events EST disponibles),
+ * on remonte l'ETA pour permettre au transitaire d'anticiper.
+ */
 function extractCMAArrivalDate(raw: any): string | null {
   var events = extractDCSAEvents(raw);
-  // Discharged events en transportationPhase Import = arrivee a destination
-  var discharged = events.filter(function (e: any) {
+
+  function isDischarged(e: any): boolean {
     var lbl = String((e.carrierSpecificData && e.carrierSpecificData.internalEventLabel) || '').toLowerCase();
-    var phase = String((e.transportCall && e.transportCall.transportationPhase) || '').toLowerCase();
-    return lbl.indexOf('discharg') >= 0 && phase === 'import';
-  });
-  // Fallback : tous les Discharged si pas de phase Import
-  if (discharged.length === 0) {
-    discharged = events.filter(function (e: any) {
-      var lbl = String((e.carrierSpecificData && e.carrierSpecificData.internalEventLabel) || '').toLowerCase();
-      return lbl.indexOf('discharg') >= 0;
-    });
+    var code = String((e.carrierSpecificData && e.carrierSpecificData.internalEventCode) || '').toUpperCase();
+    return lbl.indexOf('discharg') >= 0 || code === 'IDF' || code === 'POD';
   }
-  if (discharged.length === 0) return null;
+  function isImport(e: any): boolean {
+    return String((e.transportCall && e.transportCall.transportationPhase) || '').toLowerCase() === 'import';
+  }
+  function classifier(e: any): string {
+    return String(e.eventClassifierCode || '').toUpperCase();
+  }
+
+  // Priorites par categorie
+  var actImport = events.filter(function (e: any) { return isDischarged(e) && isImport(e) && classifier(e) === 'ACT'; });
+  var estImport = events.filter(function (e: any) { return isDischarged(e) && isImport(e) && (classifier(e) === 'EST' || classifier(e) === 'PLN'); });
+  var anyImport = events.filter(function (e: any) { return isDischarged(e) && isImport(e); });
+  var anyDisch = events.filter(isDischarged);
+
+  var pool = actImport.length > 0 ? actImport
+    : estImport.length > 0 ? estImport
+    : anyImport.length > 0 ? anyImport
+    : anyDisch;
+
+  if (pool.length === 0) return null;
   // Plus recent en premier
-  discharged.sort(function (a: any, b: any) {
+  pool.sort(function (a: any, b: any) {
     return (a.eventDateTime || '') < (b.eventDateTime || '') ? 1 : -1;
   });
-  var dt = String(discharged[0].eventDateTime || '').split('T')[0];
+  var dt = String(pool[0].eventDateTime || '').split('T')[0];
   return /^\d{4}-\d{2}-\d{2}$/.test(dt) ? dt : null;
 }
 

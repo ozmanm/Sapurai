@@ -5,7 +5,7 @@ import { SL } from '../constants/statuts.js';
 import { TPHASES } from '../constants/depenses.js';
 import { applyAutoStatus } from '../utils/dossierStatus';
 import { getFranchiseRetourVide } from '../utils/franchise';
-import type { Dossier, Conteneur, Depense, Config } from '../types.js';
+import type { Dossier, Conteneur, Depense, Config, Chauffeur } from '../types.js';
 
 /**
  * Actions sur les conteneurs (dispatch, advance, updateTcDate) + helpers derives
@@ -21,29 +21,55 @@ export interface ConteneurActionsDeps {
   dos: Dossier[];
   tcs: Conteneur[];
   dep: Depense[];
+  chs: Chauffeur[];
   cfg: Config;
 }
 
 export default function useConteneurActions(p: ConteneurActionsDeps) {
   var db = p.db, sv = p.sv, wLog = p.wLog, nf = p.nf, setMl = p.setMl;
-  var dos = p.dos, tcs = p.tcs, dep = p.dep, cfg = p.cfg;
+  var dos = p.dos, tcs = p.tcs, dep = p.dep, chs = p.chs, cfg = p.cfg;
 
-  function dispatch(tid: string, ch: any, avance: number, budget: number, dspDate?: string, prixConvenu?: number): void {
+  /**
+   * Dispatch d'un TC vers un chauffeur.
+   *
+   * Si `newChData` est fourni (mode "creation inline" depuis DispForm), le
+   * chauffeur est cree dans la meme transaction sv() que le dispatch — evite
+   * les races sur `db` capture en closure (deux sv() successifs ecraseraient
+   * la creation du ch).
+   */
+  function dispatch(tid: string, ch: any, avance: number, budget: number, dspDate?: string, prixConvenu?: number, newChData?: any): void {
     var tc = tcs.find(function (c) { return c.id === tid; });
     var d = tc ? dos.find(function (x) { return x.id === tc.did; }) : null;
     if (d && !d.pn && d.as2 !== "OBTENU") { nf("BAE ou Pregate requis avant dispatch!", "error"); return; }
-    var up: Record<string, any> = { st: "DISPATCHE", ch: ch.nm, cm: ch.cm, dsp: dspDate || today() };
+
+    // Creation inline du chauffeur si demandee
+    var actualCh = ch;
+    var newChs = chs;
+    if (newChData) {
+      var freshCh: Chauffeur = Object.assign({}, newChData, {
+        id: mid(),
+        pm: parseInt(newChData.pm) || 0,
+        tty: newChData.tty || ["20GP", "40GP", "40HC"],
+      });
+      newChs = chs.concat([freshCh]);
+      actualCh = freshCh;
+    }
+
+    var up: Record<string, any> = { st: "DISPATCHE", ch: actualCh.nm, cm: actualCh.cm, dsp: dspDate || today() };
     if (budget > 0) up.budget = budget;
     if (prixConvenu && prixConvenu > 0) up.pc = prixConvenu;
     var nc = tcs.map(function (c) { return c.id === tid ? Object.assign({}, c, up) : c; });
     var nd: Depense[] = dep;
     if (avance > 0) {
-      nd = dep.concat([{ id: mid(), did: tc ? tc.did : "", tp: "TRANSPORT", ht: avance, mt: avance, s: "ATT", ph: "AVANCE_DK", tcid: tid, ds: "Avance depart - " + (tc ? tc.n : "?") + " - " + ch.nm, dt: today() }]);
+      nd = dep.concat([{ id: mid(), did: tc ? tc.did : "", tp: "TRANSPORT", ht: avance, mt: avance, s: "ATT", ph: "AVANCE_DK", tcid: tid, ds: "Avance depart - " + (tc ? tc.n : "?") + " - " + actualCh.nm, dt: today() }]);
     }
     // Sprint B.1 : statut dossier auto selon l'etat des TC apres mise a jour
     var newDos = applyAutoStatus(dos, nc);
-    sv(wLog(Object.assign({}, db, { dos: newDos, tcs: nc, dep: nd }), tc ? tc.did : "", "DISPATCH", (tc ? tc.n : "?") + " -> " + ch.nm + " (" + ch.cm + ")"));
-    nf("Dispatche"); setMl(null);
+    var patch: any = { dos: newDos, tcs: nc, dep: nd };
+    if (newChData) patch.chs = newChs;
+    var detail = (tc ? tc.n : "?") + " -> " + actualCh.nm + " (" + actualCh.cm + ")" + (newChData ? " [nouveau ch]" : "");
+    sv(wLog(Object.assign({}, db, patch), tc ? tc.did : "", "DISPATCH", detail));
+    nf(newChData ? "Dispatche (chauffeur cree)" : "Dispatche"); setMl(null);
   }
 
   function addTcPayment(tcid: string, ph: string, mt: number, note?: string): void {

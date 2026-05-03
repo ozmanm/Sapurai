@@ -1,7 +1,15 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-04-29 (121 taches)
+> Derniere mise a jour : 2026-05-03 (122 taches)
+
+---
+
+## FAIT — Sprint 18 : ETA CMA + dispatch fluide + feature flag beta + UI Accueil
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 122 | **5 ameliorations UX + restriction beta** | `src/services/carriers.ts`, `src/services/cma.ts`, `src/components/conteneurs/DispForm.tsx`, `src/hooks/useConteneurActions.ts`, `src/hooks/useAppLogic.ts`, `src/App.tsx`, `src/pages/Dash.tsx`, `src/constants/featureFlags.ts` (CREE) | (1) **ETA depuis API CMA** : `extractCMAArrivalDate` (carriers.ts) et `mapDCSAEvents` (cma.ts) priorisent ACT Import > EST/PLN Import > any Import > any Discharged. Permet de remonter l'ETA quand le TC n'est pas encore arrive (events EST seuls), avec marqueur "ETA xxx (CMA)" vs "Date arrivee xxx (CMA)" dans le summary. (2) **Creation chauffeur inline dans Dispatch** : DispForm refondu avec toggle `select`/`new`. Mini-formulaire (Nom\*, Camion\*, Tel, Poids max optionnel, Tracteur) integre au modal Dispatch. Si `availChs.length === 0` : mode `new` impose direct (au lieu du warning + bouton qui fermait le modal). `useConteneurActions.dispatch` accepte un 7e param optionnel `newChData` qui ajoute le chauffeur a `chs` dans la meme transaction `sv()` (atomique, evite les races sur `db` capture en closure). (3) **Retrait blocage poids max** : suppression du filtre `if (cpm > 0 && po > 0 && po > cpm) return false;` dans `isAvailable`. Le recap rouge "⚠ SURCHARGE (dispatch possible mais a vos risques)" affiche l'alerte mais n'empeche plus le dispatch. Recap aussi affiche en mode `new` (a partir des champs saisis) et meme sans TC actifs (cas chauffeur seul + nouveau TC en surcharge). (4) **Feature flag beta** : nouveau `src/constants/featureFlags.ts` avec `BETA_COMPANIES = ['c_mocpodna9egt']` et helper `isBetaCompany(companyId)`. `App.tsx` : auto-sync CMA dans `useEffect` desactive si non-beta + prop `syncCarrier` passee a `undefined` aux non-beta (cache le bouton "Sync armateur" dans le menu DetView). Permet de stabiliser CMA chez le fondateur avant ouverture generale. (5) **Banner urgences redondant retire** : suppression du `<div>` "⚠️ X critique(s) en cours" dans Dash.tsx (Actions rapides) qui doublonnait avec le badge "X urgence(s)" en haut a droite. Variables `critCount`, `sysStatus`, `sysBg` retirees de la destructuration props. **Verifications** : 285 tests verts, build OK 15s, lint 0 erreur. |
 
 ---
 

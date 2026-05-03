@@ -8,6 +8,7 @@ import useAppLogic from './hooks/useAppLogic.js';
 import useAnalytics from './hooks/useAnalytics.js';
 import useTheme from './hooks/useTheme.js';
 import AgentView from './pages/AgentView.tsx';
+import { isBetaCompany } from './constants/featureFlags.js';
 
 const Dash  = lazy(() => import('./pages/Dash.tsx'));
 const Dos   = lazy(() => import('./pages/Dos.tsx'));
@@ -102,6 +103,8 @@ export default function App(props: AppProps) {
   // "creation dossier CMA -> sync auto immediat pour recuperer ETA").
   useEffect(function () {
     if (!L.syncCarrier) return;
+    // Feature flag : auto-sync CMA reserve aux compagnies beta-testeuses
+    if (!isBetaCompany(props.companyId)) return;
     var todayMs = Date.now();
     var dayMs = 86400000;
     var dosToSync = (L.dos || []).filter(function (d: any) {
@@ -294,7 +297,7 @@ export default function App(props: AppProps) {
         addDep={L.addDep} editDep={L.editDep}
         dispatch={L.dispatch} advance={L.advance} updateTcDate={L.updateTcDate} deleteTc={L.deleteTc} editTcInfo={L.editTcInfo} updateGarantie={L.updateGarantie} addTcPayment={L.addTcPayment}
         deleteDos={L.deleteDos} closeDos={L.closeDos} archiveDos={L.archiveDos} setDosSt={L.setDosSt}
-        toggleDepSt={toggleDepSt} patchDos={L.patchDos} syncDPWorld={L.syncDPWorld} syncCMA={L.syncCMA} syncCarrier={L.syncCarrier} humanPhrase={L.humanPhrase} bulkImport={L.bulkImport}
+        toggleDepSt={toggleDepSt} patchDos={L.patchDos} syncDPWorld={L.syncDPWorld} syncCMA={L.syncCMA} syncCarrier={isBetaCompany(props.companyId) ? L.syncCarrier : undefined} humanPhrase={L.humanPhrase} bulkImport={L.bulkImport}
         urgences={L.urgences} alertes={L.alertes}
         advPending={advPending} setAdvPending={setAdvPending}
         shareTracking={props.shareTracking} shareClientTracking={props.shareClientTracking} companyId={props.companyId}

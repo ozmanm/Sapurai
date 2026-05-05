@@ -223,11 +223,23 @@ function mapDCSAEvents(events: any[], dosTcs: any[], dos: any): CMAPatches {
     }
   });
 
-  // Helper : detecte si un event est "Discharged" (debarqement)
+  // Helper : detecte un event d'arrivee a destination, au sens large.
+  // Inclut TRANSPORT.ARRI (arrivee navire), EQUIPMENT.DISC (decharge TC), et
+  // les labels/codes internes CMA. Sur le portail CMA, "ARRIVEE DU NAVIRE" est
+  // un TRANSPORT.ARRI et non un EQUIPMENT.DISC : si on filtre uniquement sur
+  // "Discharged" on rate la date affichee comme ETA officielle.
   function isDischarged(e: any): boolean {
     var lbl = String(e.carrierSpecificData?.internalEventLabel || '').toLowerCase();
     var code = String(e.carrierSpecificData?.internalEventCode || '').toUpperCase();
-    return lbl.indexOf('discharg') >= 0 || code === 'IDF' || code === 'DIS' || code === 'POD';
+    var transportCode = String(e.transportEventTypeCode || '').toUpperCase();
+    var equipCode = String(e.equipmentEventTypeCode || '').toUpperCase();
+    if (transportCode === 'ARRI') return true;
+    if (equipCode === 'DISC' || equipCode === 'DCHA') return true;
+    if (lbl.indexOf('discharg') >= 0) return true;
+    if (lbl.indexOf('arriv') >= 0 && lbl.indexOf('depart') < 0) return true;
+    if (lbl.indexOf('debarqu') >= 0) return true;
+    if (code === 'IDF' || code === 'POD' || code === 'ARR' || code === 'ARRI' || code === 'DIS' || code === 'DISC') return true;
+    return false;
   }
 
   function isImportPhase(e: any): boolean {

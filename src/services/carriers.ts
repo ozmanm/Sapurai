@@ -161,11 +161,33 @@ function extractDCSAEvents(raw: any): any[] {
 function extractCMAArrivalDate(raw: any): string | null {
   var events = extractDCSAEvents(raw);
 
-  function isDischarged(e: any): boolean {
+  /**
+   * Detecte un event d'arrivee a destination, au sens large :
+   * - DCSA TRANSPORT event "ARRI" = arrivee du navire au port
+   * - DCSA EQUIPMENT event "DISC" = decharge du conteneur
+   * - CMA internal labels : "Vessel Arrival", "Containers Discharged", "Debarquement"
+   * - CMA internal codes : ARR, ARRI, DIS, DISC, IDF, POD
+   *
+   * Important : "Arrival" et "Discharged" sont 2 events DIFFERENTS dans le standard
+   * DCSA. Sur le portail CMA, "ARRIVEE DU NAVIRE" est un TRANSPORT.ARRI et non
+   * un EQUIPMENT.DISC. Si on filtre uniquement sur "Discharged", on rate la date
+   * que le portail CMA affiche comme ETA officielle.
+   */
+  function isArrivalEvent(e: any): boolean {
     var lbl = String((e.carrierSpecificData && e.carrierSpecificData.internalEventLabel) || '').toLowerCase();
     var code = String((e.carrierSpecificData && e.carrierSpecificData.internalEventCode) || '').toUpperCase();
-    return lbl.indexOf('discharg') >= 0 || code === 'IDF' || code === 'POD';
+    var transportCode = String(e.transportEventTypeCode || '').toUpperCase();
+    var equipCode = String(e.equipmentEventTypeCode || '').toUpperCase();
+    if (transportCode === 'ARRI') return true;
+    if (equipCode === 'DISC' || equipCode === 'DCHA') return true;
+    if (lbl.indexOf('discharg') >= 0) return true;
+    if (lbl.indexOf('arriv') >= 0 && lbl.indexOf('depart') < 0) return true;
+    if (lbl.indexOf('debarqu') >= 0) return true;
+    if (code === 'IDF' || code === 'POD' || code === 'ARR' || code === 'ARRI' || code === 'DIS' || code === 'DISC') return true;
+    return false;
   }
+  // Alias pour retro-compatibilite avec le reste de la fonction
+  var isDischarged = isArrivalEvent;
   function isImport(e: any): boolean {
     return String((e.transportCall && e.transportCall.transportationPhase) || '').toLowerCase() === 'import';
   }

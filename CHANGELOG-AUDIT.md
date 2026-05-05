@@ -1,7 +1,15 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-05-05 (126 taches)
+> Derniere mise a jour : 2026-05-05 (127 taches)
+
+---
+
+## FAIT — Sprint 23 : Fix detection events ARRI (arrivee navire) en plus de DISC
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 127 | **Bug : sync CMA recuperait la mauvaise date** | `src/services/carriers.ts`, `src/services/cma.ts` | **Probleme rapporte** : BL CMA SWA0447921, ETA portail CMA = 06/05/2026 (ARRIVEE DU NAVIRE a Dakar), Sapurai recuperait 06/04/2026 (mois faux). **Cause** : le filtre `isDischarged` ne detectait que les events EQUIPMENT.DISC (decharge conteneur). Or sur le portail CMA, "ARRIVEE DU NAVIRE" est un event TRANSPORT.ARRI different (arrivee navire vs decharge TC). Le code retombait sur le fallback "any Discharged" qui pouvait remonter un event d'autre port (ex: decharge a Lekki au depart) ou rater l'ETA. **Fix** : extension de `isDischarged` (renomme conceptuellement en "isArrivalEvent") dans carriers.ts (extractCMAArrivalDate) et cma.ts (mapDCSAEvents) pour inclure : (a) `transportEventTypeCode === 'ARRI'` (DCSA TRANSPORT arrival), (b) `equipmentEventTypeCode === 'DISC'/'DCHA'` (DCSA EQUIPMENT discharge), (c) labels `internalEventLabel` contenant "arriv" (Arrival/Arrivee) ou "debarqu" (Debarquement, FR), (d) codes `internalEventCode` ARR/ARRI/DIS/DISC en plus de IDF/POD. **Garde-fou** : exclusion des labels contenant "depart" pour ne pas confondre Arrival et Departure dans le label. **Resultat** : pour SWA0447921 (Shanghai -> Dakar via Lekki), le sync remonte maintenant l'event ARRI Dakar 06/05/2026 au lieu de la date la plus recente toutes phases confondues. **Tests** : 286/286 verts (les fixtures existantes restent compatibles, le filtre est juste plus inclusif). Build 9.6s, lint 0 erreur. |
 
 ---
 

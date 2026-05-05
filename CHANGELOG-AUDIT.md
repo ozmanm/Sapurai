@@ -1,7 +1,15 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-05-04 (123 taches)
+> Derniere mise a jour : 2026-05-05 (124 taches)
+
+---
+
+## FAIT — Sprint 20 : ETA on-demand + filtre Dakar + badge source + retrait Scan BL
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 124 | **4 ameliorations CMA + cleanup** | `src/components/dossiers/NDosForm.tsx`, `src/components/dossiers/DetView.tsx`, `src/services/carriers.ts`, `src/services/cma.ts`, `src/hooks/useDossierActions.ts`, `src/components/shared/AppModals.tsx`, `src/types.ts` | (1) **Bouton "📡 ETA CMA" dans NDosForm** : a cote du champ Date arrivee, bouton qui interroge l'API CMA-CGM a la demande via `fetchCarrier(bl, cp)`. Conditions : compagnie beta + cp contient "CMA" + bl >= 4 chars. Au succes : pose `da` + bascule `daSrcState='cma'` + pre-remplit la liste TC si elle est vide. Echec : toast clair. Avantage vs auto-sync : l'agent voit l'ETA *avant* de creer le dossier (pas de delay 5s magique). (2) **Filtre port destination Dakar (DKR)** : `extractCMAArrivalDate` (carriers.ts) et `mapDCSAEvents` (cma.ts) priorisent les events dont `transportCall.location.UNLocationCode === 'SNDKR'/'DKR'` ou `locationName` contient "dakar". Pool de priorite : ACT Dakar > EST Dakar > ACT Import > EST Import > tout Import > tout Discharged. Evite les rares BL multi-imports (cabotage Dakar->Banjul). (3) **Badge "📡 CMA" dans DetView** : nouveau champ `daSrc?: 'manual' \| 'cma'` sur Dossier (types.ts). Pose automatique : `mapCarrierToPatches` et `mapDCSAEvents` posent `daSrc='cma'`, NDosForm et useDossierActions (addDos, editDos, patchDos) posent `daSrc='manual'` si l'agent saisit/modifie sans flag explicite. DetView : badge "📡 CMA" gris sur le hero card a cote de la date d'arrivee (title=tooltip). (4) **Retrait du Scan BL** : pas de cle Gemini configuree pour l'instant. Suppression du bandeau vert "Gagnez du temps - Scanner BL", du bloc `<ScanBL>` inline, du modal `ml.t === "scan"`, des imports + state `showScan`, du prop `apiKey={cfg.geminiKey}`. Composant `src/ScanBL.tsx` conserve pour reactivation future. AppModals.js passe de 194 KB a 188 KB (-6 KB). **Verifications** : 285 tests verts, build 11.34s, lint 0 erreur. |
 
 ---
 

@@ -64,7 +64,10 @@ function DetView(p: DetViewProps) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <div style={{ fontSize: 22, fontWeight: 800 }}>{d.cl || "?"}</div>
-            <div style={{ fontSize: 13, opacity: 0.8 }}>{"BL: " + (d.bl || "") + (d.cp ? " | " + d.cp : "") + " | " + (mt.length > 0 ? tcSum(mt) : "0 TC") + " | " + fd(d.da)}</div>
+            <div style={{ fontSize: 13, opacity: 0.8 }}>
+              {"BL: " + (d.bl || "") + (d.cp ? " | " + d.cp : "") + " | " + (mt.length > 0 ? tcSum(mt) : "0 TC") + " | " + fd(d.da)}
+              {d.daSrc === "cma" ? <span title="Date d'arrivee renseignee automatiquement via l'API CMA-CGM" style={{ marginLeft: 6, background: "rgba(255,255,255,0.18)", padding: "1px 6px", borderRadius: 4, fontSize: 10, fontWeight: 700, letterSpacing: 0.3 }}>{"📡 CMA"}</span> : null}
+            </div>
             {d.cr ? <div style={{ fontSize: 12, opacity: 0.7 }}>{"Destination: " + d.cr}</div> : null}
             {d.ct ? <div style={{ fontSize: 12, opacity: 0.7 }}>{"Tel: " + d.ct}</div> : null}
             {d.gr ? <div style={{ fontSize: 12, opacity: 0.7 }}>{"Garantie: " + (d.gr === "PERMANENTE" ? "Permanente" : d.gr === "LOUEE" ? "Louée" : "Vente lettre")}</div> : null}

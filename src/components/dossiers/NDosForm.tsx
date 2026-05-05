@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { IS, LS } from '../../constants/styles.js';
 import { today } from '../../utils/date.js';
-import ScanBL from '../../ScanBL.tsx';
 import Btn from '../ui/Btn.tsx';
 import { validateAll, FieldError } from '../../utils/validate.js';
 import {
@@ -10,6 +9,8 @@ import {
   defaultFranchiseCompagnie,
   regionFromDestination,
 } from '../../utils/franchise';
+import { fetchCarrier } from '../../services/carriers';
+import { isBetaCompany } from '../../constants/featureFlags';
 
 interface NDosFormProps { [key: string]: any; }
 type FormErrors = Record<string, string>;
@@ -42,8 +43,10 @@ function NDosForm(p: NDosFormProps) {
   var [pf, sPf] = useState(i ? String(i.pf || "") : "");
   var [ce, sCe] = useState(i ? i.ce || "" : "");
   var [clDrop, setClDrop] = useState(false);
-  var [showScan, setShowScan] = useState(false);
   var [vErr, setVErr] = useState<FormErrors>({});
+  // Chantier 1 — bouton "Recuperer ETA via CMA" : appel API a la demande
+  var [etaLoading, setEtaLoading] = useState(false);
+  var [daSrcState, setDaSrcState] = useState<'manual' | 'cma' | undefined>(i && i.daSrc ? i.daSrc : undefined);
   var initTcs = sc && sc.tcs && sc.tcs.length > 0 ? sc.tcs : (p.initTcs || []).map(function (c) { return { n: c.n || "", ty: c.ty || "20GP", po: c.po || "" }; });
   var [tc, sTc] = useState(initTcs.length > 0 ? initTcs : [{ n: "", ty: "20GP", po: "" }]);
 
@@ -119,21 +122,6 @@ function NDosForm(p: NDosFormProps) {
 
   return (
     <div>
-      {!p.init && !showScan ? (
-        <div style={{ background: "var(--success-bg)", border: "2px dashed var(--success-border)", borderRadius: 10, padding: 14, marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--success-text)" }}>{"\uD83D\uDCF7 Gagnez du temps"}</div>
-            <div style={{ fontSize: 12, color: "var(--success-text)" }}>{"Scannez votre BL pour pre-remplir automatiquement"}</div>
-          </div>
-          <Btn variant="success" size="sm" onClick={function () { if (!p.apiKey) { p.nf("Configurez la clé Gemini dans Paramètres", "error"); return; } setShowScan(true); }}>{"\uD83D\uDCF7 Scanner BL"}</Btn>
-        </div>
-      ) : null}
-      {showScan ? (
-        <div style={{ marginBottom: 14 }}>
-          <ScanBL apiKey={p.apiKey} onResult={function (r) { sBl(r.bl || ""); sCl(r.cl || ""); sCp(r.cp || ""); if (r.cr) sCr(r.cr); if (r.da) sDa(r.da); if (r.ct) sCt(r.ct); if (r.tcs && r.tcs.length > 0) sTc(r.tcs); setShowScan(false); p.nf("BL scanne avec succes !"); }} />
-          <Btn variant="ghost" size="sm" onClick={function () { setShowScan(false); }} style={{ marginTop: 8 }}>{"Annuler le scan"}</Btn>
-        </div>
-      ) : null}
       <div className="lt-grid2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div style={{ marginBottom: 12 }}><label style={LS} htmlFor="ndos-bl">{"BL *"}</label><input id="ndos-bl" value={bl} onChange={function (e) { sBl(e.target.value.toUpperCase()); }} style={IS} maxLength={30} aria-invalid={!!vErr.bl} aria-describedby={vErr.bl ? "ndos-bl-err" : undefined} aria-required="true" /><FieldError msg={vErr.bl} id="ndos-bl-err" /></div>
         <div style={{ marginBottom: 12, position: "relative" }}>
@@ -146,7 +134,40 @@ function NDosForm(p: NDosFormProps) {
         </div>
         <div style={{ marginBottom: 12 }}><label style={LS}>{"Compagnie"}</label><input list="ndos-cp-list" value={cp} onChange={function (e) { sCp(e.target.value.toUpperCase()); }} placeholder="CMA CGM, MAERSK..." style={IS} maxLength={30} /><datalist id="ndos-cp-list">{refCompagnies.map(function (s) { return <option key={s} value={s} />; })}</datalist></div>
         <div style={{ marginBottom: 12 }}><label style={LS}>{"Destination"}</label><input list="ndos-cr-list" value={cr} onChange={function (e) { sCr(e.target.value); }} placeholder="Bamako, Conakry, Abidjan..." style={IS} maxLength={50} /><datalist id="ndos-cr-list">{refDestinations.map(function (s) { return <option key={s} value={s} />; })}</datalist></div>
-        <div style={{ marginBottom: 12 }}><label style={LS}>{"Date arrivee"}</label><input type="date" value={da} onChange={function (e) { sDa(e.target.value); }} style={IS} /></div>
+        <div style={{ marginBottom: 12 }}>
+          <label style={LS}>{"Date arrivee"}{daSrcState === "cma" ? <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, background: "var(--info-bg)", color: "var(--info-text)", padding: "1px 6px", borderRadius: 4 }}>{"📡 CMA"}</span> : null}</label>
+          <div style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
+            <input type="date" value={da} onChange={function (e) { sDa(e.target.value); setDaSrcState("manual"); }} style={Object.assign({}, IS, { flex: 1 })} />
+            {isBetaCompany(p.companyId) && cp.toUpperCase().indexOf("CMA") >= 0 && bl.trim().length >= 4 ? (
+              <button type="button" disabled={etaLoading} onClick={async function () {
+                setEtaLoading(true);
+                try {
+                  var resp = await fetchCarrier(bl.trim(), cp);
+                  if (!resp.ok) {
+                    p.nf("CMA : " + (resp.error || "echec"), "error");
+                  } else if (resp.arrivalDate) {
+                    sDa(resp.arrivalDate);
+                    setDaSrcState("cma");
+                    // Pre-remplir aussi les TC s'il y en a et que la liste actuelle est vide ou par defaut
+                    if (resp.containers && resp.containers.length > 0) {
+                      var current = tc.filter(function (t) { return t.n; });
+                      if (current.length === 0) {
+                        sTc(resp.containers.map(function (c: any) { return { n: c.n || "", ty: c.ty || "20GP", po: "" }; }));
+                      }
+                    }
+                    p.nf("CMA : ETA " + resp.arrivalDate + (resp.cached ? " (cache)" : ""), "ok");
+                  } else {
+                    p.nf("CMA : aucune date trouvee pour ce BL", "warning");
+                  }
+                } catch (e: any) {
+                  p.nf("Erreur CMA : " + (e.message || "reseau"), "error");
+                } finally {
+                  setEtaLoading(false);
+                }
+              }} style={{ background: etaLoading ? "var(--bg-secondary)" : "var(--btn-primary-bg)", color: etaLoading ? "var(--text-muted)" : "var(--btn-primary-text)", border: "none", borderRadius: 8, padding: "0 12px", fontSize: 11, fontWeight: 700, cursor: etaLoading ? "wait" : "pointer", whiteSpace: "nowrap" }} title="Interroger l'API CMA-CGM pour recuperer l'ETA">{etaLoading ? "..." : "📡 ETA CMA"}</button>
+            ) : null}
+          </div>
+        </div>
         <div style={{ marginBottom: 12 }}><label style={LS}>{"Contact / WhatsApp"}</label><input value={ct} onChange={function (e) { sCt(e.target.value); }} placeholder="77 xxx xx xx" style={IS} maxLength={20} /></div>
         <div style={{ marginBottom: 12 }}><label style={LS} htmlFor="ndos-ce">{"Email client"}</label><input id="ndos-ce" type="email" value={ce} onChange={function (e) { sCe(e.target.value); }} placeholder="client@example.com" style={IS} maxLength={60} aria-invalid={!!vErr.ce} aria-describedby={vErr.ce ? "ndos-ce-err" : undefined} /><FieldError msg={vErr.ce} id="ndos-ce-err" /></div>
         <div style={{ marginBottom: 12 }}><label style={LS}>{"Garantie"}</label><select value={gr} onChange={function (e) { sGr(e.target.value); if (e.target.value === "PERMANENTE") { sGarContact(""); sGarTel(""); sGarFrais(""); sGarCaution(""); sGarStatut(""); } }} style={IS}><option value="PERMANENTE">{"Permanente"}</option><option value="LOUEE">{"Louée"}</option><option value="VENDUE">{"Vente lettre"}</option></select></div>
@@ -270,6 +291,9 @@ function NDosForm(p: NDosFormProps) {
           // sinon number. Les defaults restent calcules dynamiquement cote getter.
           var out: Record<string, unknown> = {
             bl: bl.trim(), cl: cl.trim(), cp: cp.trim(), cr: cr.trim(), da: da, ct: ct.trim(), ce: ce.trim(),
+            // Source de la date arrivee : si l'agent a clique le bouton "ETA CMA", daSrcState='cma'.
+            // Sinon, par defaut 'manual' (modification de date a la main ou pas de modif).
+            daSrc: daSrcState || (i && i.daSrc) || (da ? 'manual' : undefined),
             gr: gr, gar_contact: garContact.trim(), gar_tel: garTel.trim(),
             gar_frais: parseFloat(garFrais) || 0,
             gar_frais_unit: parseFloat(garFraisUnit) || 0,

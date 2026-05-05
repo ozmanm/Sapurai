@@ -235,6 +235,16 @@ function mapDCSAEvents(events: any[], dosTcs: any[], dos: any): CMAPatches {
     return phase === 'import';
   }
 
+  // Filtre port destination Dakar (DKR) : evite les BL multi-imports rares
+  function isDakar(e: any): boolean {
+    var loc = e.transportCall?.location;
+    if (!loc) return false;
+    var unCode = String(loc.UNLocationCode || '').toUpperCase();
+    if (unCode === 'SNDKR' || unCode === 'DKR') return true;
+    var name = String(loc.locationName || '').toLowerCase();
+    return name.indexOf('dakar') >= 0;
+  }
+
   function isLoaded(e: any): boolean {
     var lbl = String(e.carrierSpecificData?.internalEventLabel || '').toLowerCase();
     return lbl.indexOf('load') >= 0;
@@ -257,19 +267,28 @@ function mapDCSAEvents(events: any[], dosTcs: any[], dos: any): CMAPatches {
     function classifier(e: any): string {
       return String(e.eventClassifierCode || '').toUpperCase();
     }
+    var actDakar = events.filter(function (e: any) { return isDischarged(e) && isImportPhase(e) && isDakar(e) && classifier(e) === 'ACT'; });
+    var estDakar = events.filter(function (e: any) { return isDischarged(e) && isImportPhase(e) && isDakar(e) && (classifier(e) === 'EST' || classifier(e) === 'PLN'); });
     var actImport = events.filter(function (e: any) { return isDischarged(e) && isImportPhase(e) && classifier(e) === 'ACT'; });
     var estImport = events.filter(function (e: any) { return isDischarged(e) && isImportPhase(e) && (classifier(e) === 'EST' || classifier(e) === 'PLN'); });
     var anyImport = events.filter(function (e: any) { return isDischarged(e) && isImportPhase(e); });
     var anyDisch = events.filter(isDischarged);
-    var pool = actImport.length > 0 ? actImport : estImport.length > 0 ? estImport : anyImport.length > 0 ? anyImport : anyDisch;
+    var pool = actDakar.length > 0 ? actDakar
+      : estDakar.length > 0 ? estDakar
+      : actImport.length > 0 ? actImport
+      : estImport.length > 0 ? estImport
+      : anyImport.length > 0 ? anyImport
+      : anyDisch;
     if (pool.length > 0) {
       pool.sort(function (a: any, b: any) {
         return (a.eventDateTime || '') < (b.eventDateTime || '') ? 1 : -1;
       });
       var dt = String(pool[0].eventDateTime || '').split('T')[0];
       if (dt) {
-        var isEta = pool === estImport;  // marquer comme ETA si event estime
+        // ETA si event estime (EST/PLN) Dakar ou Import. Source CMA notee dans le summary.
+        var isEta = pool === estDakar || pool === estImport;
         dosPatches.da = dt;
+        dosPatches.daSrc = 'cma';
         changes.push((isEta ? 'ETA' : 'Date arrivee') + ' ' + dt + ' (CMA)');
       }
     }

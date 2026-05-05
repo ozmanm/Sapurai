@@ -69,6 +69,7 @@ export interface Dossier {
 
   // Dates
   da?: string;        // Date arrivee (ISO)
+  daSrc?: 'manual' | 'cma';  // Source de la date arrivee : saisie manuelle ou auto-sync CMA
 
   // Statuts documentaires (OBTENU / EN_COURS / NON_DEMANDE / BLOQUE)
   bs?: string;        // BSC (Bordereau de Suivi Cargaison)

@@ -56,7 +56,10 @@ export default function useDossierActions(p: DossierActionsDeps) {
     var todayStr = today();
     var id = mid();
     var tokId = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
-    var nd = Object.assign({}, f, { id: id, st: "INITIALISE", tokId: tokId });
+    // Source de la date arrivee : 'manual' si saisie par l'agent. Si le bouton
+    // "Recuperer ETA via CMA" a deja pose daSrc='cma' dans f, on le respecte.
+    var daSrc = f.daSrc || (f.da ? 'manual' : undefined);
+    var nd = Object.assign({}, f, { id: id, st: "INITIALISE", tokId: tokId }, daSrc ? { daSrc: daSrc } : {});
     var tcSt = f.da && f.da > todayStr ? "ATTENDU" : "PORT";
     var existingNums: Record<string, boolean> = {};
     tcs.forEach(function (c) { if (c.n) existingNums[c.n.toUpperCase()] = true; });
@@ -76,7 +79,13 @@ export default function useDossierActions(p: DossierActionsDeps) {
 
     // Auto-stub Depenses si arrivee nouvellement renseignee (da absent → present)
     var oldDos = dos.find(function (d) { return d.id === id; });
-    var newDos = Object.assign({}, oldDos || {}, f);
+    // Si l'agent modifie da manuellement, on bascule la source en 'manual'
+    // (sauf si le bouton "Recuperer ETA via CMA" vient juste de poser daSrc='cma' dans f).
+    var fEff: any = Object.assign({}, f);
+    if (fEff.da !== undefined && fEff.daSrc === undefined) {
+      fEff.daSrc = (oldDos && oldDos.da === fEff.da) ? (oldDos.daSrc || 'manual') : 'manual';
+    }
+    var newDos = Object.assign({}, oldDos || {}, fEff);
     var newDosList = dos.map(function (d) { return d.id === id ? newDos : d; });
     var newDep = dep;
     if (isNewArrival(oldDos, newDos as Dossier)) {
@@ -128,8 +137,14 @@ export default function useDossierActions(p: DossierActionsDeps) {
 
   function patchDos(dosId: string, fields: Record<string, any>): void {
     var d = dos.find(function (x) { return x.id === dosId; });
-    var newDos = d ? Object.assign({}, d, fields) : null;
-    var newDosList = dos.map(function (x) { return x.id === dosId ? Object.assign({}, x, fields) : x; });
+    // Si l'appelant pose `da` sans specifier `daSrc`, c'est une edition manuelle
+    // (le sync CMA passe explicitement daSrc='cma' via mapCarrierToPatches).
+    var fieldsEff: Record<string, any> = Object.assign({}, fields);
+    if (fieldsEff.da !== undefined && fieldsEff.daSrc === undefined) {
+      fieldsEff.daSrc = 'manual';
+    }
+    var newDos = d ? Object.assign({}, d, fieldsEff) : null;
+    var newDosList = dos.map(function (x) { return x.id === dosId ? Object.assign({}, x, fieldsEff) : x; });
 
     // Auto-stub Depenses si patch pose une date arrivee sur un dossier qui n'en avait pas
     var newDep = dep;

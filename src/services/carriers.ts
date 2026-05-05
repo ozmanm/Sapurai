@@ -169,17 +169,34 @@ function extractCMAArrivalDate(raw: any): string | null {
   function isImport(e: any): boolean {
     return String((e.transportCall && e.transportCall.transportationPhase) || '').toLowerCase() === 'import';
   }
+  // Filtre port de destination Dakar (DKR) : prefere les events dont le port
+  // de declenchement est explicitement Dakar pour eviter de remonter une date
+  // d'arrivee d'un port intermediaire dans les rares BL multi-imports
+  // (cabotage Dakar->Banjul, etc.).
+  function isDakar(e: any): boolean {
+    var loc = e.transportCall && e.transportCall.location;
+    if (!loc) return false;
+    var unCode = String(loc.UNLocationCode || '').toUpperCase();
+    if (unCode === 'SNDKR' || unCode === 'DKR') return true;
+    var name = String(loc.locationName || '').toLowerCase();
+    return name.indexOf('dakar') >= 0;
+  }
   function classifier(e: any): string {
     return String(e.eventClassifierCode || '').toUpperCase();
   }
 
-  // Priorites par categorie
+  // Priorites par categorie : on cherche d'abord a Dakar (Import), puis tout Import,
+  // puis tout discharged. Au sein de chaque categorie : ACT > EST/PLN > autre.
+  var actDakar = events.filter(function (e: any) { return isDischarged(e) && isImport(e) && isDakar(e) && classifier(e) === 'ACT'; });
+  var estDakar = events.filter(function (e: any) { return isDischarged(e) && isImport(e) && isDakar(e) && (classifier(e) === 'EST' || classifier(e) === 'PLN'); });
   var actImport = events.filter(function (e: any) { return isDischarged(e) && isImport(e) && classifier(e) === 'ACT'; });
   var estImport = events.filter(function (e: any) { return isDischarged(e) && isImport(e) && (classifier(e) === 'EST' || classifier(e) === 'PLN'); });
   var anyImport = events.filter(function (e: any) { return isDischarged(e) && isImport(e); });
   var anyDisch = events.filter(isDischarged);
 
-  var pool = actImport.length > 0 ? actImport
+  var pool = actDakar.length > 0 ? actDakar
+    : estDakar.length > 0 ? estDakar
+    : actImport.length > 0 ? actImport
     : estImport.length > 0 ? estImport
     : anyImport.length > 0 ? anyImport
     : anyDisch;
@@ -228,6 +245,7 @@ export function mapCarrierToPatches(resp: CarrierResponse, dosTcs: any[], dos: a
 
   if (!dos.da && resp.arrivalDate) {
     dosPatches.da = resp.arrivalDate;
+    dosPatches.daSrc = 'cma';
     changes.push('Date arrivee ' + resp.arrivalDate);
   }
 

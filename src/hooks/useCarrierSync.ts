@@ -42,13 +42,17 @@ export default function useCarrierSync(p: CarrierSyncDeps) {
       }
       var dosTcs = tcs.filter(function (t) { return t.did === dosId; });
       var patches = mapCarrierToPatches(resp, dosTcs, d);
-      if (Object.keys(patches.dosPatches).length === 0 && patches.newTcs.length === 0) {
+      // Poser lastCarrierSync meme si rien n'a change pour eviter de re-bruler
+      // le quota CMA (20/h). On enregistre toujours l'horodatage de la sync reussie.
+      patches.dosPatches.lastCarrierSync = new Date().toISOString();
+      if (Object.keys(patches.dosPatches).length === 1 && patches.newTcs.length === 0) {
+        // Rien d'autre que lastCarrierSync : on persiste juste le tampon temporel
+        // sans creer un log SYNC_CARRIER bruyant, mais on notifie l'agent.
+        var newDosListLight = dos.map(function (x) { return x.id === dosId ? Object.assign({}, x, patches.dosPatches) : x; });
+        sv(Object.assign({}, db, { dos: newDosListLight }));
         nf(patches.summary || 'Aucune nouveaute');
         return;
       }
-      // Toujours mettre a jour lastCarrierSync, meme si rien n'a change
-      // (permet de tracer le dernier appel et eviter les doublons cote auto-sync)
-      patches.dosPatches.lastCarrierSync = new Date().toISOString();
       var patchedDos = Object.assign({}, d, patches.dosPatches) as Dossier;
       var newDosList = dos.map(function (x) { return x.id === dosId ? patchedDos : x; });
 

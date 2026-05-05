@@ -75,12 +75,26 @@ describe('mapCarrierToPatches', function () {
     expect(r.changes.length).toBe(1);
   });
 
-  it("n'ecrase pas dos.da deja renseignee", function () {
+  it("ecrase dos.da quand l'armateur renvoie une date differente (carrier fait foi)", function () {
     var dos = { id: 'd1', bl: 'CHN001', cl: 'X', cp: 'CMA', st: 'ACTIF', da: '2026-04-10' };
+    var resp: any = { ok: true, arrivalDate: '2026-04-15' };
+    var r = mapCarrierToPatches(resp, [], dos);
+    // Sprint 21 : l'armateur fait foi (cf DPWorld). On ecrase la date manuelle.
+    expect(r.dosPatches.da).toBe('2026-04-15');
+    expect(r.dosPatches.daSrc).toBe('cma');
+    expect(r.changes.length).toBe(1);
+    expect(r.changes[0]).toContain('2026-04-10');
+    expect(r.changes[0]).toContain('2026-04-15');
+  });
+
+  it("n'ecrase pas dos.da quand l'armateur renvoie la meme date (rien a logger)", function () {
+    var dos = { id: 'd1', bl: 'CHN001', cl: 'X', cp: 'CMA', st: 'ACTIF', da: '2026-04-15' };
     var resp: any = { ok: true, arrivalDate: '2026-04-15' };
     var r = mapCarrierToPatches(resp, [], dos);
     expect(r.dosPatches.da).toBeUndefined();
     expect(r.changes.length).toBe(0);
+    // Le summary indique tout de meme que l'ETA est confirmee
+    expect(r.summary).toContain('confirmee');
   });
 
   it('ajoute les TC manquants signales par le carrier', function () {

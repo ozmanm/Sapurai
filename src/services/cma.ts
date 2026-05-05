@@ -261,9 +261,11 @@ function mapDCSAEvents(events: any[], dosTcs: any[], dos: any): CMAPatches {
     return lbl.indexOf('gate out') >= 0 || lbl.indexOf('pick') >= 0 || code === 'OUT' || code === 'GTOUT';
   }
 
-  // 1. Date arrivee : priorite ACT Import > EST/PLN Import > tout Import > tout Discharged
+  // 1. Date arrivee : l'armateur fait foi (comme DPWorld). On prend TOUJOURS
+  // la date renvoyee par l'API, qu'elle soit deja posee ou non.
+  // Priorite ACT Dakar > EST Dakar > ACT Import > EST Import > tout Import > tout Discharged.
   // L'ETA (estime) est conserve pour anticiper meme si le TC n'est pas encore arrive.
-  if (!dos.da) {
+  {
     function classifier(e: any): string {
       return String(e.eventClassifierCode || '').toUpperCase();
     }
@@ -287,9 +289,16 @@ function mapDCSAEvents(events: any[], dosTcs: any[], dos: any): CMAPatches {
       if (dt) {
         // ETA si event estime (EST/PLN) Dakar ou Import. Source CMA notee dans le summary.
         var isEta = pool === estDakar || pool === estImport;
-        dosPatches.da = dt;
-        dosPatches.daSrc = 'cma';
-        changes.push((isEta ? 'ETA' : 'Date arrivee') + ' ' + dt + ' (CMA)');
+        if (!dos.da) {
+          dosPatches.da = dt;
+          dosPatches.daSrc = 'cma';
+          changes.push((isEta ? 'ETA' : 'Date arrivee') + ' ' + dt + ' (CMA)');
+        } else if (dos.da !== dt) {
+          dosPatches.da = dt;
+          dosPatches.daSrc = 'cma';
+          changes.push((isEta ? 'ETA maj ' : 'Date arrivee maj ') + dos.da + ' → ' + dt + ' (CMA)');
+        }
+        // Sinon (meme date) : rien a logger
       }
     }
   }

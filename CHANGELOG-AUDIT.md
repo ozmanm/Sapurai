@@ -1,7 +1,15 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-05-05 (124 taches)
+> Derniere mise a jour : 2026-05-05 (125 taches)
+
+---
+
+## FAIT — Sprint 21 : Fix sync armateur — l'armateur fait foi sur la date d'arrivee
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 125 | **Bug : sync armateur n'ecrasait pas la date deja saisie** | `src/services/carriers.ts`, `src/services/cma.ts`, `src/hooks/useCarrierSync.ts`, `src/services/__tests__/carriers.test.ts` | **Probleme rapporte par testeur** : BL CMA SWA0447921, ETA portail CMA = 06/05/2026, dossier Sapurai = 05/05/2026 (saisie manuelle). Clic "Sync armateur" -> aucune mise a jour. Cause : `mapCarrierToPatches` filtrait par `if (!dos.da)` (ne touche pas si deja set). Conception initiale : preserver la saisie manuelle. **Realite metier** : l'armateur fait foi sur la date d'arrivee (comme DPWorld pour Dakar) — la saisie agent n'est qu'un premier remplissage en attendant la donnee officielle. **Fix** : (1) `mapCarrierToPatches` (carriers.ts) : si l'API renvoie une date, on l'applique TOUJOURS. Si differente : `dosPatches.da` ecrase + log "ETA maj 05/05 → 06/05". Si identique : pas de patch (eviter pollution journal) mais `summary='ETA confirmee (06/05)'`. (2) `mapDCSAEvents` (cma.ts) : meme logique pour le format DCSA v2.2.0. (3) `useCarrierSync.syncCarrier` : pose `lastCarrierSync` meme quand aucun changement (evite de re-bruler le quota CMA 20/h pour les dossiers en sync). Quand seul `lastCarrierSync` change : `sv()` direct sans `wLog` pour ne pas creer de log SYNC_CARRIER bruyant. (4) Tests : remplacement du test "n'ecrase pas dos.da deja renseignee" (ancien comportement) par 2 nouveaux : "ecrase dos.da quand l'armateur renvoie une date differente" + "n'ecrase pas quand meme date (summary='confirmee')". 286/286 tests verts (+1). **Effet de bord intentionnel** : tous les anciens dossiers CMA actifs sans `lastCarrierSync` seront re-sync au prochain rechargement et leur `da` peut etre mis a jour si CMA a une donnee plus fraiche. |
 
 ---
 

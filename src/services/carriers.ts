@@ -243,10 +243,21 @@ export function mapCarrierToPatches(resp: CarrierResponse, dosTcs: any[], dos: a
   var newTcs: any[] = [];
   var changes: string[] = [];
 
-  if (!dos.da && resp.arrivalDate) {
-    dosPatches.da = resp.arrivalDate;
-    dosPatches.daSrc = 'cma';
-    changes.push('Date arrivee ' + resp.arrivalDate);
+  // L'armateur fait foi (comme DPWorld pour l'arrivee Dakar). Si l'API renvoie
+  // une date, Sapurai l'applique TOUJOURS, qu'elle soit posee ou non, manuelle
+  // ou automatique. La saisie agent est seulement un "premier remplissage" en
+  // attendant que l'API publique remonte la donnee officielle.
+  if (resp.arrivalDate) {
+    if (!dos.da) {
+      dosPatches.da = resp.arrivalDate;
+      dosPatches.daSrc = 'cma';
+      changes.push('Date arrivee ' + resp.arrivalDate);
+    } else if (dos.da !== resp.arrivalDate) {
+      dosPatches.da = resp.arrivalDate;
+      dosPatches.daSrc = 'cma';
+      changes.push('ETA maj ' + dos.da + ' → ' + resp.arrivalDate);
+    }
+    // Sinon (date identique) : rien a faire, on ne pollue pas le journal
   }
 
   // Ajout TC manquants si l'armateur en a remonte
@@ -262,9 +273,18 @@ export function mapCarrierToPatches(resp: CarrierResponse, dosTcs: any[], dos: a
     });
   }
 
-  var summary = changes.length > 0
-    ? changes.length + ' maj : ' + changes.slice(0, 3).join(', ') + (changes.length > 3 ? '...' : '')
-    : 'Aucune nouveaute (' + (resp.note || 'site rendu cote JS') + ')';
+  // Notification claire selon le cas :
+  // - Si changements : "X maj : ..."
+  // - Si aucune modif mais date confirmee par l'armateur : "ETA confirmee (06/05)"
+  // - Si l'API n'a meme pas de date : "Aucune date renvoyee par l'armateur"
+  var summary;
+  if (changes.length > 0) {
+    summary = changes.length + ' maj : ' + changes.slice(0, 3).join(', ') + (changes.length > 3 ? '...' : '');
+  } else if (resp.arrivalDate && resp.arrivalDate === dos.da) {
+    summary = 'ETA confirmee (' + resp.arrivalDate + ')';
+  } else {
+    summary = 'Aucune nouveaute (' + (resp.note || 'site rendu cote JS') + ')';
+  }
 
   return { dosPatches: dosPatches, newTcs: newTcs, summary: summary, changes: changes };
 }

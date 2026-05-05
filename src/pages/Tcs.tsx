@@ -224,16 +224,16 @@ function Tcs(p: TcsProps) {
                 {steps.map(function (s, i) {
                   var isCur = s.k === tc.st;
                   var col = s.done ? (isCur ? SC[s.k] || "var(--text-primary)" : "var(--success)") : "#d6d3d1";
-                  return <div key={s.k} style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0 }}>
-                    <div style={{ textAlign: "center", minWidth: 56 }}>
+                  return <div key={s.k} style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+                    <div style={{ textAlign: "center", minWidth: 76 }}>
                       <div style={{ width: 22, height: 22, borderRadius: "50%", background: s.done ? col : "var(--bg-primary)", border: "2px solid " + col, margin: "0 auto 4px auto", display: "flex", alignItems: "center", justifyContent: "center" }}>
                         {s.done && !isCur ? <span style={{ color: "white", fontSize: 11, fontWeight: 800 }}>{"\u2713"}</span> : null}
                         {isCur ? <div style={{ width: 8, height: 8, borderRadius: "50%", background: "white" }}></div> : null}
                       </div>
-                      <div style={{ fontSize: 10, fontWeight: isCur ? 800 : 600, color: isCur ? "var(--text-primary)" : s.done ? "var(--success)" : "var(--text-muted)" }}>{s.lbl}</div>
-                      {s.dt ? <div style={{ fontSize: 9, color: "var(--text-secondary)", marginTop: 1 }}>{fd(s.dt)}</div> : null}
+                      <div style={{ fontSize: 10, fontWeight: isCur ? 800 : 600, color: isCur ? "var(--text-primary)" : s.done ? "var(--success)" : "var(--text-muted)", whiteSpace: "nowrap" }}>{s.lbl}</div>
+                      {s.dt ? <div style={{ fontSize: 9, color: "var(--text-secondary)", marginTop: 1, whiteSpace: "nowrap" }}>{fd(s.dt)}</div> : null}
                     </div>
-                    {i < steps.length - 1 ? <div style={{ flex: 1, height: 2, background: steps[i + 1].done ? "var(--success)" : "var(--border)", marginTop: -14, minWidth: 8 }}></div> : null}
+                    {i < steps.length - 1 ? <div style={{ width: 16, minWidth: 16, height: 2, background: steps[i + 1].done ? "var(--success)" : "var(--border)", marginTop: -14 }}></div> : null}
                   </div>;
                 })}
               </div>

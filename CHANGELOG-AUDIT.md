@@ -1,7 +1,15 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-05-03 (122 taches)
+> Derniere mise a jour : 2026-05-04 (123 taches)
+
+---
+
+## FAIT — Sprint 19 : Fix timeline TC mobile (chevauchement labels/dates)
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 123 | **Fix chevauchement timeline TC sur mobile** | `src/pages/Tcs.tsx` (lignes 227-236) | Probleme : sur mobile, le panneau deplie d'un conteneur affichait des labels ("Chargement"/"Sortie DK") qui se chevauchaient, et des dates collees ("20/04/202625/04/202625/04/2026"). Cause : `flex: 1, minWidth: 0` + `minWidth: 56` trop petit pour le texte "Chargement" (~80px). Le `overflowX: auto` du parent ne s'activait pas car flex compressait au lieu de deborder. **Fix** : (1) Wrapper de chaque etape : `flex: 1, minWidth: 0` -> `flexShrink: 0`. (2) Cellule label : `minWidth: 56` -> `76`. (3) Ajout `whiteSpace: "nowrap"` sur le label et la date pour empecher tout retour a la ligne dans la cellule. (4) Barre de connexion : `flex: 1, minWidth: 8` -> `width: 16, minWidth: 16` (largeur fixe au lieu de stretch). **Resultat** : desktop inchange (le scroll horizontal du parent existe deja), mobile scrolle horizontalement proprement quand les 7 etapes ne tiennent pas. **Reproduction** : commit Codespace `cbc8356` (4 mai 2026) refait en local apres abandon du push Codespace bloque par non-fast-forward sur origin/main. Build 11.51s, lint 0 erreurs. |
 
 ---
 

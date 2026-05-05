@@ -4,7 +4,7 @@ import type { CSSProperties } from 'react';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from './firebase.js';
 
-export default function Login() {
+export default function Login(props: { onBack?: () => void } = {}) {
   var params = new URLSearchParams(window.location.search);
   var urlCode = (params.get('invite') || '').toUpperCase().trim();
 
@@ -124,8 +124,9 @@ export default function Login() {
   return (
     <div className="lt-login-root" style={{ minHeight: '100vh', background: 'var(--bg-body)', fontFamily: 'var(--font-sans)' }}>
       {/* Sprint 2 : split-screen desktop. Panneau droit cache en mobile (<768px). */}
-      <style>{".lt-login-root{display:grid;grid-template-columns:1fr;min-height:100vh}.lt-login-left{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:var(--bg-primary)}.lt-login-right{display:none;background:#0a0a09;color:#fff;padding:48px;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}.lt-login-right .lt-pat{position:absolute;inset:0;opacity:.08;background-image:repeating-linear-gradient(45deg,#fff 0 1px,transparent 1px 24px)}.lt-login-wrap{display:flex;flex-direction:column;align-items:center;gap:28px;width:100%}.lt-login-bullets{display:none;gap:28px;color:var(--text-secondary);font-size:13px;flex-wrap:wrap;justify-content:center}.lt-login-bullets span{display:inline-flex;align-items:center;gap:6px}@media(min-width:1024px){.lt-login-root{grid-template-columns:1fr 1fr}.lt-login-right{display:flex}.lt-login-bullets{display:flex}}"}</style>
+      <style>{".lt-login-root{display:grid;grid-template-columns:1fr;min-height:100vh}.lt-login-left{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:var(--bg-body);position:relative}.lt-login-right{display:none;background:#0a0a09;color:#fff;padding:48px;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}.lt-login-right .lt-pat{position:absolute;inset:0;opacity:.08;background-image:repeating-linear-gradient(45deg,#fff 0 1px,transparent 1px 24px)}.lt-login-wrap{display:flex;flex-direction:column;align-items:center;gap:28px;width:100%}.lt-login-bullets{display:none;gap:28px;color:var(--text-secondary);font-size:13px;flex-wrap:wrap;justify-content:center}.lt-login-bullets span{display:inline-flex;align-items:center;gap:6px}@media(min-width:1024px){.lt-login-root{grid-template-columns:1fr 1fr}.lt-login-right{display:flex}.lt-login-bullets{display:flex}}"}</style>
       <div className="lt-login-left">
+      {props.onBack ? (<button onClick={props.onBack} aria-label="Retour a la landing" style={{ position: "absolute", top: 16, left: 16, background: "var(--bg-primary)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 600, color: "var(--text-primary)", cursor: "pointer", fontFamily: "var(--font-mono)", display: "inline-flex", alignItems: "center", gap: 6, zIndex: 10 }}>{"← Retour"}</button>) : null}
       <div className="lt-login-wrap">
       <div style={boxStyle}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>

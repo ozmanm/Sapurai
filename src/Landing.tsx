@@ -130,7 +130,7 @@ export default function Landing() {
   if (showLogin) {
     return (
       <Suspense fallback={<div style={{ minHeight: '100vh', background: BG_CREAM }} />}>
-        <Login />
+        <Login onBack={function () { setShowLogin(false); }} />
       </Suspense>
     );
   }
@@ -242,6 +242,9 @@ export default function Landing() {
         .lt-l-nav-links { display: flex; align-items: center; gap: 26px; font-family: ${FONT_MONO}; font-size: 13px; }
         .lt-l-nav-links a, .lt-l-nav-links button { color: ${FG_DARK}; text-decoration: none; background: none; border: none; cursor: pointer; font-family: ${FONT_MONO}; font-size: 13px; padding: 0; transition: color .15s; }
         .lt-l-nav-links a:hover, .lt-l-nav-links button:hover { color: ${ACCENT_GREEN}; }
+        /* Login : pill outline + accent vert pour bien se distinguer des liens nav */
+        .lt-l-nav-login { display: inline-flex !important; align-items: center; padding: 8px 14px !important; border: 1px solid ${BORDER} !important; border-radius: 8px !important; background: ${CARD_BG} !important; transition: all .15s !important; min-height: 36px; font-weight: 600; }
+        .lt-l-nav-login:hover { color: ${FG_DARK} !important; border-color: ${ACCENT_GREEN} !important; box-shadow: 0 0 0 3px rgba(22,163,74,0.12); }
 
         /* ============ SECTIONS ============ */
         .lt-l-section { padding: 80px 24px; }
@@ -372,7 +375,7 @@ export default function Landing() {
           <a href="#architecture">architecture</a>
           <a href="#faq">docs</a>
           <a href="#tracking">tracking</a>
-          <button onClick={goLogin}>$ login</button>
+          <button onClick={goLogin} className="lt-l-nav-login" title="Se connecter a votre espace"><span style={{ color: ACCENT_GREEN, marginRight: 4, fontWeight: 700 }}>{'$'}</span>login</button>
           <button onClick={goRegister} className="lt-l-cta-primary" style={{ padding: '10px 16px', minHeight: 40 }}>essayer 30j →</button>
         </div>
       </nav>
@@ -487,7 +490,7 @@ export default function Landing() {
               </div>
               <div><span className="warn lt-l-blink-amber">⚠</span> alert J-2 <span className="arrow">→</span> notify_user()</div>
             </FnCard>
-            <FnCard delay="d4" tag="FN_03" title="Tracking WhatsApp" desc="Un lien partageable par conteneur. Vos clients voient l'etat en temps reel sans vous appeler." inView={solutionInView.inView}>
+            <FnCard id="tracking" delay="d4" tag="FN_03" title="Tracking WhatsApp" desc="Un lien partageable par conteneur. Vos clients voient l'etat en temps reel sans vous appeler." inView={solutionInView.inView}>
               <div><span className="muted">GET</span> sapurai.app/t/a7f9 <span className="muted">.</span></div>
               <div><span className="arrow">→</span> status: <span className="ok">en_transit</span></div>
               <div><span className="arrow">→</span> ETA: kati 14h32</div>
@@ -573,9 +576,9 @@ function ProblemCard(p: { color: 'red' | 'amber' | 'green'; big: string; tag: st
   );
 }
 
-function FnCard(p: { tag: string; title: string; desc: string; children?: React.ReactNode; delay?: string; inView?: boolean }) {
+function FnCard(p: { id?: string; tag: string; title: string; desc: string; children?: React.ReactNode; delay?: string; inView?: boolean }) {
   return (
-    <div className={'lt-l-fn-card' + (p.inView ? ' lt-l-fadeup-' + (p.delay || 'd1') : '')} style={{ opacity: p.inView === false ? 0 : undefined }}>
+    <div id={p.id} className={'lt-l-fn-card' + (p.inView ? ' lt-l-fadeup-' + (p.delay || 'd1') : '')} style={{ opacity: p.inView === false ? 0 : undefined, scrollMarginTop: 80 }}>
       <div className="lt-l-fn-head">
         <span>{p.tag}</span>
         <span className="active">active</span>

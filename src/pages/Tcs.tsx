@@ -219,19 +219,45 @@ function Tcs(p: TcsProps) {
             </div>
             {/* Expanded panel */}
             {isExp ? <div style={{ padding: "0 12px 14px 12px", background: "var(--bg-tertiary)" }}>
-              {/* Timeline */}
+              {/* Timeline cliquable : le prochain step (cercle pulsant) avance le TC */}
               <div style={{ display: "flex", alignItems: "flex-start", gap: 0, margin: "10px 0 14px 0", overflowX: "auto", paddingBottom: 4 }}>
                 {steps.map(function (s, i) {
                   var isCur = s.k === tc.st;
                   var col = s.done ? (isCur ? SC[s.k] || "var(--text-primary)" : "var(--success)") : "#d6d3d1";
+                  // Step cliquable = c'est le tout prochain dans la sequence (nx[0])
+                  var isNext = canEdit && nx.length > 0 && s.k === nx[0];
+                  // Cas special : transition PORT -> DISPATCHE necessite le modal Dispatch (chauffeur)
+                  // Cas special : transition vers PORT seulement si BAE/Pregate disponible
+                  var blockedDispatch = isNext && s.k === "DISPATCHE" && tc.st === "PORT" && !d.pn && d.as2 !== "OBTENU";
+                  function handleStepClick() {
+                    if (!isNext || blockedDispatch) return;
+                    if (s.k === "DISPATCHE" && tc.st === "PORT") {
+                      // Ouvre le modal de dispatch (assignation chauffeur + budget)
+                      setMl({ t: "disp", tid: tc.id });
+                    } else {
+                      // Avance simple : ouvre le mini-modal de date
+                      setAdvPending({ tid: tc.id, ns: s.k, dt: today() });
+                    }
+                  }
+                  var clickable = isNext && !blockedDispatch;
                   return <div key={s.k} style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-                    <div style={{ textAlign: "center", minWidth: 76 }}>
-                      <div style={{ width: 22, height: 22, borderRadius: "50%", background: s.done ? col : "var(--bg-primary)", border: "2px solid " + col, margin: "0 auto 4px auto", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div
+                      role={clickable ? "button" : undefined}
+                      tabIndex={clickable ? 0 : undefined}
+                      onClick={clickable ? handleStepClick : undefined}
+                      onKeyDown={clickable ? function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleStepClick(); } } : undefined}
+                      title={clickable ? ("Avancer vers " + s.lbl) : (blockedDispatch ? "BAE ou Pregate requis avant dispatch" : undefined)}
+                      style={{ textAlign: "center", minWidth: 76, cursor: clickable ? "pointer" : (blockedDispatch ? "not-allowed" : "default"), padding: clickable ? "2px 4px" : 0, borderRadius: 6, transition: "background .15s", outline: "none" }}
+                      onMouseEnter={clickable ? function (e) { (e.currentTarget as HTMLElement).style.background = "var(--bg-tertiary)"; } : undefined}
+                      onMouseLeave={clickable ? function (e) { (e.currentTarget as HTMLElement).style.background = "transparent"; } : undefined}
+                    >
+                      <div style={{ width: 22, height: 22, borderRadius: "50%", background: s.done ? col : "var(--bg-primary)", border: "2px solid " + col, margin: "0 auto 4px auto", display: "flex", alignItems: "center", justifyContent: "center", animation: clickable ? "lt-tc-step-pulse 1.6s ease-in-out infinite" : "none", boxShadow: clickable ? "0 0 0 0 rgba(22,163,74,0.4)" : "none" }}>
                         {s.done && !isCur ? <span style={{ color: "white", fontSize: 11, fontWeight: 800 }}>{"\u2713"}</span> : null}
                         {isCur ? <div style={{ width: 8, height: 8, borderRadius: "50%", background: "white" }}></div> : null}
+                        {clickable ? <span style={{ color: "var(--success)", fontSize: 12, fontWeight: 800 }}>{"\u2192"}</span> : null}
                       </div>
-                      <div style={{ fontSize: 10, fontWeight: isCur ? 800 : 600, color: isCur ? "var(--text-primary)" : s.done ? "var(--success)" : "var(--text-muted)", whiteSpace: "nowrap" }}>{s.lbl}</div>
-                      {s.dt ? <div style={{ fontSize: 9, color: "var(--text-secondary)", marginTop: 1, whiteSpace: "nowrap" }}>{fd(s.dt)}</div> : null}
+                      <div style={{ fontSize: 10, fontWeight: isCur ? 800 : (clickable ? 700 : 600), color: isCur ? "var(--text-primary)" : s.done ? "var(--success)" : (clickable ? "var(--success)" : "var(--text-muted)"), whiteSpace: "nowrap", textDecoration: clickable ? "underline" : "none", textDecorationStyle: clickable ? "dotted" : undefined as any, textUnderlineOffset: 3 }}>{s.lbl}</div>
+                      {s.dt ? <div style={{ fontSize: 9, color: "var(--text-secondary)", marginTop: 1, whiteSpace: "nowrap" }}>{fd(s.dt)}</div> : (clickable ? <div style={{ fontSize: 9, color: "var(--success)", marginTop: 1, whiteSpace: "nowrap", fontStyle: "italic" }}>{"cliquer"}</div> : null)}
                     </div>
                     {i < steps.length - 1 ? <div style={{ width: 16, minWidth: 16, height: 2, background: steps[i + 1].done ? "var(--success)" : "var(--border)", marginTop: -14 }}></div> : null}
                   </div>;

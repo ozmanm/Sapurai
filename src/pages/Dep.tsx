@@ -56,8 +56,8 @@ function Dep(p: DepProps) {
         <h1 style={{ fontSize: 20, fontWeight: 800 }}>{"Dépenses (" + String(dep.length) + ")"}</h1>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {canEdit ? <button onClick={function () { setMl({ t: "ndep" }); }} style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", border: "none", borderRadius: 8, padding: "10px 16px", fontWeight: 600, cursor: "pointer", minHeight: 44, fontSize: 14 }}>{"+ Nouvelle"}</button> : null}
-          <button onClick={function () { exportDepenses(dep, dos, companyName); }} title="Exporter Excel" style={{ background: "var(--success)", color: "white", border: "none", borderRadius: 8, padding: "10px 14px", fontWeight: 600, cursor: "pointer", minHeight: 44, fontSize: 13 }}>{"↓ Excel"}</button>
-          <button onClick={function () { pdfDepenses(filtered, dos, companyName); }} title="Exporter PDF" style={{ background: "var(--danger)", color: "white", border: "none", borderRadius: 8, padding: "10px 14px", fontWeight: 600, cursor: "pointer", minHeight: 44, fontSize: 13 }}>{"↓ PDF"}</button>
+          <button onClick={function () { exportDepenses(dep, dos, companyName); }} title="Exporter Excel" style={{ background: "var(--bg-primary)", color: "var(--text-primary)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 14px", fontWeight: 600, cursor: "pointer", minHeight: 44, fontSize: 13 }}><span style={{ color: "var(--success)", marginRight: 4, fontWeight: 700 }}>{"↓"}</span>{"Excel"}</button>
+          <button onClick={function () { pdfDepenses(filtered, dos, companyName); }} title="Exporter PDF" style={{ background: "var(--bg-primary)", color: "var(--text-primary)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 14px", fontWeight: 600, cursor: "pointer", minHeight: 44, fontSize: 13 }}><span style={{ color: "var(--danger)", marginRight: 4, fontWeight: 700 }}>{"↓"}</span>{"PDF"}</button>
         </div>
       </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>

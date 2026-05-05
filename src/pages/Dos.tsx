@@ -92,7 +92,7 @@ function Dos(p: DosProps) {
           </div>
           {canEdit ? <button onClick={function () { setMl({ t: "ndos" }); }} style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>{"+ Nouveau"}</button> : null}
           {canEdit ? <button className="lt-hide-mobile" onClick={function () { setMl({ t: "import" }); }} style={{ background: "transparent", color: "var(--btn-primary-bg)", border: "2px solid var(--btn-primary-bg)", borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>{"\uD83D\uDCC1"}</button> : null}
-          <button className="lt-hide-mobile" onClick={function () { exportDossiers(dos, tcs, dep, companyName); }} title="Exporter Excel" style={{ background: "var(--success)", color: "white", border: "none", borderRadius: 8, padding: "7px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>{"↓ Excel"}</button>
+          <button className="lt-hide-mobile" onClick={function () { exportDossiers(dos, tcs, dep, companyName); }} title="Exporter Excel" style={{ background: "var(--bg-primary)", color: "var(--text-primary)", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}><span style={{ color: "var(--success)", marginRight: 3, fontWeight: 700 }}>{"↓"}</span>{"Excel"}</button>
         </div>
       </div>
 

@@ -70,3 +70,14 @@
   .lt-grid4 { grid-template-columns: 1fr !important; }
   .lt-overlay-inner { padding: 12px !important; margin: 0 4px !important; }
 }
+
+/* Pulse subtil sur le prochain step cliquable de la timeline TC (Tcs.tsx) */
+@keyframes lt-tc-step-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  @keyframes lt-tc-step-pulse {
+    0%, 100% { box-shadow: none; }
+  }
+}

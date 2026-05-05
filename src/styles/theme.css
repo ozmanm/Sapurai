@@ -9,46 +9,46 @@
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-  /* ── Neutrals (refonte : softer + plus contrastes) ── */
-  --bg-body: #f7f7f5;
+  /* ── Neutrals (Sprint 24 : alignes sur la palette landing v3 — creme/taupe) ── */
+  --bg-body: #f5f1e8;          /* creme landing */
   --bg-primary: #ffffff;
-  --bg-secondary: #fafaf9;
-  --bg-tertiary: #fafaf9;
-  --bg-hover: #f5f5f4;
+  --bg-secondary: #efe9d6;     /* creme + (sections alternees) */
+  --bg-tertiary: #f0eada;      /* hover/inputs */
+  --bg-hover: #ebe5d3;
 
-  --text-primary: #0a0a09;     /* presque noir, meilleur contraste */
-  --text-secondary: #404040;
-  --text-tertiary: #525252;
-  --text-muted: #737373;
-  --text-input: #404040;
+  --text-primary: #0a0a09;
+  --text-secondary: #3d3a32;   /* taupe fonce, contraste 9:1 sur creme */
+  --text-tertiary: #525048;
+  --text-muted: #737067;       /* taupe landing, contraste ~5:1 sur creme */
+  --text-input: #3d3a32;
 
-  --border: #e5e5e3;
-  --border-light: #f5f5f4;
+  --border: #d6d0c0;           /* taupe clair landing */
+  --border-light: #ebe5d3;
 
-  --shadow: rgba(0,0,0,0.08);
-  --shadow-lg: rgba(0,0,0,0.12);
+  --shadow: rgba(10,10,9,0.08);
+  --shadow-lg: rgba(10,10,9,0.16);
   --overlay: rgba(10,10,9,0.55);
 
-  /* ── Semantic: Success (vert plus dense) ── */
-  --success: #166534;
-  --success-bg: #dcfce7;
-  --success-light: #dcfce7;
-  --success-text: #166534;
-  --success-border: #bbf7d0;
+  /* ── Semantic: Success (vert landing) ── */
+  --success: #15803d;
+  --success-bg: #d8efd8;
+  --success-light: #ecf7ee;
+  --success-text: #15803d;
+  --success-border: #a8e0b8;
 
-  /* ── Semantic: Danger / Alert (orange foncé = surestaries, urgences) ── */
-  --danger: #9a3412;
-  --danger-bg: #ffedd5;
-  --danger-light: #fff7ed;
-  --danger-text: #9a3412;
-  --danger-border: #fed7aa;
+  /* ── Semantic: Danger / Alert (rouge landing pour urgences) ── */
+  --danger: #c0392b;
+  --danger-bg: #fde7e3;
+  --danger-light: #fce8e3;
+  --danger-text: #c0392b;
+  --danger-border: #f5b7b0;
 
-  /* ── Semantic: Warning (jaune-brun, magasinage / detention) ── */
-  --warning: #854d0e;
-  --warning-bg: #fef9c3;
-  --warning-light: #fde68a;
-  --warning-text: #854d0e;
-  --warning-border: #fde68a;
+  /* ── Semantic: Warning (ambre landing, magasinage / detention) ── */
+  --warning: #a86a17;
+  --warning-bg: #fbeacd;
+  --warning-light: #fdf3df;
+  --warning-text: #7d4e0d;
+  --warning-border: #f5c98a;
 
   /* ── Semantic: Info ── */
   --info: #1e40af;

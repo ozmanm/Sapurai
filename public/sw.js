@@ -1,6 +1,8 @@
 // Sapurai Service Worker — Phase 1.2 PWA optim (cache-first assets, network-first HTML)
 // Bump CACHE_VERSION pour forcer cleanup chez les users existants.
-var CACHE_VERSION = 'sapurai-v2';
+// v3 (mai 2026) : favicon/icons root passes en network-first pour eviter de cacher
+// indefiniment l'ancien camion apres un changement de logo.
+var CACHE_VERSION = 'sapurai-v3';
 var CACHE_STATIC = CACHE_VERSION + '-static';   // assets immuables (JS/CSS hashes)
 var CACHE_FONTS = CACHE_VERSION + '-fonts';     // Google Fonts (Inter, JetBrains Mono)
 var CACHE_RUNTIME = CACHE_VERSION + '-runtime'; // pages, navigations
@@ -41,9 +43,11 @@ function isFirebaseOrApi(url) {
 }
 
 function isStaticAsset(url) {
-  // Vite genere des assets avec hash : /assets/index-xxxxxx.js
-  return /\/assets\/[A-Za-z0-9_\-]+\.(js|css|woff2?|ttf|otf|png|jpg|jpeg|svg|webp|ico)(\?.*)?$/.test(url)
-    || /\.(woff2?|ttf|otf|png|jpg|jpeg|svg|webp|ico)$/.test(url);
+  // Vite genere des assets avec hash dans /assets/ : immuables, cache-first OK.
+  // Les fichiers root (favicon.svg, icon-*.png, og-tracking.png, manifest.json)
+  // ne sont PAS hashes et peuvent changer entre 2 deploys → on les exclut du
+  // cache-first pour qu'ils passent en network-first (toujours fresh).
+  return /\/assets\/[A-Za-z0-9_\-]+\.(js|css|woff2?|ttf|otf|png|jpg|jpeg|svg|webp|ico)(\?.*)?$/.test(url);
 }
 
 function isFonts(url) {

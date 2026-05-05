@@ -1,7 +1,15 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-05-05 (125 taches)
+> Derniere mise a jour : 2026-05-05 (126 taches)
+
+---
+
+## FAIT — Sprint 22 : Refonte Landing page v3 (terminal/dashboard anime)
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 126 | **Refonte complete Landing.tsx selon design PDF** | `src/Landing.tsx` (reecriture complete, ~640 lignes) | Refonte totale de la landing publique selon design PDF fourni par l'utilisateur. **Style** : terminal/dashboard, palette creme `#f5f1e8` + noir `#0a0a09` + accents vert/orange/ambre, typographie JetBrains Mono pour terminal blocks et Inter pour titres XL. **Sections** : (1) status bar noire ticker continu (boucle 50s, pause sur reduced-motion), (2) nav avec SapuraiLogo + version v3.0 prod + liens, (3) hero split-screen (titre 72px "Gerez vos transits sans jamais oublier une surestarie." + box terminal `$ sapurai --status` + 2 CTA + a droite mock dashboard avec urgences/stats), (4) section "le_probleme" (3 cards 200k/3-5×/30+), (5) section "la_solution" (4 fonctionnalites FN_01-04 en grille 2x2 avec terminal mockups), (6) section "ce_qui_change" (tableau 8 lignes task/legacy/sapurai), (7) section "faq" (6 questions 3x2), (8) section finale fond noir avec titre rouge glow, (9) footer creme. **Animations** : (a) ticker status bar continu, (b) typewriter terminal hero (5 lignes, 320ms/ligne), (c) compteurs animes dashboard (38/76/865k via requestAnimationFrame ease-out cubic), (d) compteurs scroll-triggered (200k/30+), (e) progress bar FN_02 0->80% au scroll, (f) Intersection Observer fade-up sur sections + cards (cascade d1/d2/d3/d4), (g) curseurs `▋` clignotants sur terminaux, (h) pulse rouge sur banner urgences, glow vert sur "active" badges, glow rouge sur titre final, (i) hover lift -3px + ombre sur cards, hover ligne tableau fond creme, (j) liens nav vert au hover. **Accessibilite** : `prefers-reduced-motion: reduce` desactive toutes les animations. **Responsive** : <900px tout en 1 colonne, ticker accelere a 35s, nav reduite. <480px status bar + nav compacte. **Hooks utilitaires** (in-file) : `useAnimatedCounter` (RAF + ease-out), `useInView` (IntersectionObserver one-shot), `useTypewriter` (delais cumulatifs setTimeout). **Build** : Landing 26.65 KB gzip 6.4 KB. **CTA voir-demo** : desactive (disabled, opacity 0.4, cursor not-allowed) en attendant video demo. **WhatsApp** : wa.me/221771234567 (placeholder a personnaliser). **Email** : sapurailogistics@gmail.com. Tests 286/286 verts, lint 9 warnings hex hardcoded sur Landing (legitimes : design tier brand permanent non-inversible en dark mode, comme le hero card DetView). |
 
 ---
 

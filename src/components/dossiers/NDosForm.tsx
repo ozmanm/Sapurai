@@ -49,8 +49,10 @@ function NDosForm(p: NDosFormProps) {
   var [etaLoading, setEtaLoading] = useState(false);
   var [daSrcState, setDaSrcState] = useState<'manual' | 'cma' | undefined>(i && i.daSrc ? i.daSrc : undefined);
   // Sprint 26 : Scan BL via Gemini Vision (reactive, gate beta + cle Gemini configuree)
+  // Sprint 27 : desactive temporairement (region Senegal hors free tier Gemini, billing
+  // non active). Pour reactiver : retirer le `false &&` ci-dessous quand billing OK.
   var [showScan, setShowScan] = useState(false);
-  var canScan = isBetaCompany(p.companyId) && !p.init && !!p.apiKey;
+  var canScan = false && isBetaCompany(p.companyId) && !p.init && !!p.apiKey;
   var initTcs = sc && sc.tcs && sc.tcs.length > 0 ? sc.tcs : (p.initTcs || []).map(function (c) { return { n: c.n || "", ty: c.ty || "20GP", po: c.po || "" }; });
   var [tc, sTc] = useState(initTcs.length > 0 ? initTcs : [{ n: "", ty: "20GP", po: "" }]);
 
@@ -190,8 +192,12 @@ function NDosForm(p: NDosFormProps) {
         </div>
         <div style={{ marginBottom: 12 }}><label style={LS}>{"Contact / WhatsApp"}</label><input value={ct} onChange={function (e) { sCt(e.target.value); }} placeholder="77 xxx xx xx" style={IS} maxLength={20} /></div>
         <div style={{ marginBottom: 12 }}><label style={LS} htmlFor="ndos-ce">{"Email client"}</label><input id="ndos-ce" type="email" value={ce} onChange={function (e) { sCe(e.target.value); }} placeholder="client@example.com" style={IS} maxLength={60} aria-invalid={!!vErr.ce} aria-describedby={vErr.ce ? "ndos-ce-err" : undefined} /><FieldError msg={vErr.ce} id="ndos-ce-err" /></div>
-        <div style={{ marginBottom: 12 }}><label style={LS}>{"Garantie"}</label><select value={gr} onChange={function (e) { sGr(e.target.value); if (e.target.value === "PERMANENTE") { sGarContact(""); sGarTel(""); sGarFrais(""); sGarCaution(""); sGarStatut(""); } }} style={IS}><option value="PERMANENTE">{"Permanente"}</option><option value="LOUEE">{"Louée"}</option><option value="VENDUE">{"Vente lettre"}</option></select></div>
-        <div style={{ marginBottom: 12 }}><label style={LS}>{"Type dossier"}</label><select value={td} onChange={function (e) { var v = e.target.value; sTd(v); if (v !== "IMPORT") sBesc(false); if (v !== "VEHICULE") sRor(false); }} style={IS}><option value="IMPORT">{"Importation / consommation"}</option><option value="TRANSIT">{"Transit (Mali, Burkina...)"}</option><option value="VEHICULE">{"Véhicule"}</option></select></div>
+        {/* Sprint 27 : Type dossier AVANT Garantie (UX logique : on choisit d'abord le type). */}
+        <div style={{ marginBottom: 12 }}><label style={LS}>{"Type dossier"}</label><select value={td} onChange={function (e) { var v = e.target.value; sTd(v); if (v !== "IMPORT") sBesc(false); if (v !== "VEHICULE") sRor(false); /* Reset garantie a Permanente si on quitte TRANSIT (sauf si init avec garantie deja posee, on tolere pour edition) */ if (v !== "TRANSIT" && !i) { sGr("PERMANENTE"); sGarContact(""); sGarTel(""); sGarFrais(""); sGarCaution(""); sGarStatut(""); } }} style={IS}><option value="IMPORT">{"Importation / consommation"}</option><option value="TRANSIT">{"Transit (Mali, Burkina...)"}</option><option value="VEHICULE">{"Véhicule"}</option></select></div>
+        {/* Sprint 27 : Garantie visible UNIQUEMENT pour TRANSIT (lettre de garantie / caution douaniere obligatoire pour transit hinterland). Tolere l'affichage en edition d'un ancien dossier IMPORT/VEHICULE qui aurait une garantie LOUEE/VENDUE par accident pour permettre la correction. */}
+        {td === "TRANSIT" || (p.init && i && i.gr && i.gr !== "PERMANENTE") ? (
+          <div style={{ marginBottom: 12 }}><label style={LS}>{"Garantie"}</label><select value={gr} onChange={function (e) { sGr(e.target.value); if (e.target.value === "PERMANENTE") { sGarContact(""); sGarTel(""); sGarFrais(""); sGarCaution(""); sGarStatut(""); } }} style={IS}><option value="PERMANENTE">{"Permanente"}</option><option value="LOUEE">{"Louée"}</option><option value="VENDUE">{"Vente lettre"}</option></select></div>
+        ) : null}
         {/* Recette et prix fret masques a la creation — le transitaire peut les renseigner via "Modifier" */}
         {p.init ? <div style={{ marginBottom: 12 }}><label style={LS}>{"Total client FCFA"}</label><input type="number" value={rv} onChange={function (e) { sRv(e.target.value); }} placeholder="Montant convenu avec le client" style={IS} /></div> : null}
         {p.init ? <div style={{ marginBottom: 12 }}><label style={LS}>{"Transport/TC FCFA"}</label><input type="number" value={pf} onChange={function (e) { sPf(e.target.value); }} placeholder="Prix chauffeur par conteneur" style={IS} /></div> : null}

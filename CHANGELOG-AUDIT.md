@@ -1,7 +1,15 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-05-06 (130 taches)
+> Derniere mise a jour : 2026-05-06 (131 taches)
+
+---
+
+## FAIT — Sprint 27 : Scan BL desactive (region) + Garantie conditionnelle au type TRANSIT
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 131 | **Scan BL desactive (region) + UX garantie** | `src/components/dossiers/NDosForm.tsx` | (1) **Scan BL desactive** : `canScan = false && isBetaCompany(...)` car region Senegal hors free tier Gemini → quota 429 immediat. Le code reste en place, reactivation = retirer le `false &&` quand billing Google Cloud active sur le projet. (2) **Reordonnement** : "Type dossier" deplace AVANT "Garantie" dans le formulaire — UX logique car le type conditionne la presence de la garantie. (3) **Garantie conditionnelle TRANSIT** : seule la valeur `td === 'TRANSIT'` affiche le selecteur Garantie (Permanente / Louee / Vente lettre). Logique metier : importation/consommation et vehicules ne necessitent pas de lettre de garantie / caution douaniere — seuls les transits hinterland (Mali, Burkina...) traversent les frontieres. (4) **Tolerance migration** : en mode edition (`p.init`), si l'ancien dossier a `i.gr !== 'PERMANENTE'` (cas legacy ou erreur de saisie), le selecteur Garantie reste affiche pour permettre la correction. (5) **Reset auto** : quand l'utilisateur change `td` de TRANSIT vers IMPORT/VEHICULE en mode creation, `gr` revient a 'PERMANENTE' et tous les champs garantie (gar_contact, gar_tel, gar_frais, gar_caution, gar_statut) sont vides. **Tests** : 286/286 verts. Build 15.78s. Lint 0 erreur. **Effet metier attendu** : agents de transit ne voient plus le champ Garantie pour les imports classiques (gain de clarte), et impossible de saisir une garantie par erreur sur un import. |
 
 ---
 

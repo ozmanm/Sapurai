@@ -287,7 +287,7 @@ export default function useData(uid: string, email: string) {
     }
     var tcList = (cur.tcs || []).filter(function (t) { return t.did === dosId; });
     var chsList = cur.chs || [];
-    var trackDoc = {
+    var trackDoc: any = {
       companyId: userInfo.companyId,
       cl: d.cl || "",
       bl: d.bl || "",
@@ -302,6 +302,10 @@ export default function useData(uid: string, email: string) {
       shared: true,
       updatedAt: new Date().toISOString()
     };
+    // Sprint 25 #3 : timeline voyage + navire (si recuperee via API armateur)
+    if (Array.isArray(d.timeline) && d.timeline.length > 0) trackDoc.timeline = d.timeline;
+    if (d.vesselName) trackDoc.vesselName = d.vesselName;
+    if (d.voyageNumber) trackDoc.voyageNumber = d.voyageNumber;
     // merge: true pour preserver les champs ecrits par le client (rating, ratingAt...)
     await setDoc(doc(db, "tracking", tokId), trackDoc, { merge: true });
     return "/t/" + tokId;
@@ -328,7 +332,7 @@ export default function useData(uid: string, email: string) {
       await setDoc(doc(db, 'companies', userInfo.companyId), { cfg: newCfg }, { merge: true });
       setData(Object.assign({}, cur, { cfg: newCfg }));
     }
-    var trackDoc = {
+    var trackDoc: any = {
       companyId: userInfo.companyId,
       type: "client",
       cl: clientName,

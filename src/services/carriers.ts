@@ -56,6 +56,22 @@ export interface CarrierResponse {
   carrier?: string;
   arrivalDate?: string | null;
   containers?: Array<{ n?: string; ty?: string }>;
+  // Sprint 25 #1 : statut detecte pour chaque TC connu (auto-avancement)
+  tcStatuses?: Array<{ n: string; st?: string; dr?: string; gateOutDate?: string }>;
+  // Sprint 25 #3 : timeline du voyage (events vessel ARRI/DEPA tries chronologiquement)
+  timeline?: Array<{
+    port: string;
+    portCode?: string;
+    date: string;
+    type: 'DEPA' | 'ARRI';
+    vessel?: string;
+    voyage?: string;
+    classifier?: 'ACT' | 'EST' | 'PLN';
+    phase?: string;
+  }>;
+  // Sprint 25 bonus : nom du navire et n° voyage du dernier event Import
+  vesselName?: string;
+  voyageNumber?: string;
   error?: string;
   note?: string;
   cached?: boolean;
@@ -111,11 +127,19 @@ export async function fetchCarrier(bl: string, cp?: string): Promise<CarrierResp
     if (carrier === 'cma' && json.ok && json.data) {
       var raw = json.data;
       var arrivalDate = extractCMAArrivalDate(raw);
+      var timeline = extractCMATimeline(raw);
+      // Vessel name + voyage du dernier event Import (le plus recent)
+      var importEvents = timeline.filter(function (e) { return e.phase === 'Import'; });
+      var lastImport = importEvents.length > 0 ? importEvents[importEvents.length - 1] : null;
       return {
         ok: true,
         carrier: 'cma',
         arrivalDate: arrivalDate,
         containers: extractCMAContainers(raw),
+        tcStatuses: extractCMATcStatuses(raw),
+        timeline: timeline,
+        vesselName: lastImport ? lastImport.vessel : undefined,
+        voyageNumber: lastImport ? lastImport.voyage : undefined,
         cached: !!json.cached,
       };
     }
@@ -257,13 +281,124 @@ function extractCMAContainers(raw: any): Array<{ n?: string; ty?: string }> {
 }
 
 /**
+ * Sprint 25 #1 : extrait pour chaque TC connu son statut Sapurai detecte
+ * via les events DCSA (ACT only). Ne touche jamais le statut courant — c'est
+ * le consommateur (mapCarrierToPatches) qui decide d'appliquer ou non en
+ * fonction de l'ordre PORT < DISPATCHE < TRANSIT < ... < RETURNED.
+ *
+ * Regles :
+ * - EQUIPMENT.DISC ACT en phase Import (decharge a Dakar) → st = 'PORT'
+ * - GTOT/GateOut ACT en phase Import → st = 'DISPATCHE' (sortie portique)
+ * - "Empty Returned" ACT → st = 'RETURNED' + dr = date
+ */
+function extractCMATcStatuses(raw: any): Array<{ n: string; st?: string; dr?: string; gateOutDate?: string }> {
+  var events = extractDCSAEvents(raw);
+  var byTc: Record<string, { n: string; st?: string; dr?: string; gateOutDate?: string }> = {};
+
+  function classifier(e: any): string { return String(e.eventClassifierCode || '').toUpperCase(); }
+  function isImport(e: any): boolean { return String((e.transportCall && e.transportCall.transportationPhase) || '').toLowerCase() === 'import'; }
+  function lbl(e: any): string { return String((e.carrierSpecificData && e.carrierSpecificData.internalEventLabel) || '').toLowerCase(); }
+  function code(e: any): string { return String((e.carrierSpecificData && e.carrierSpecificData.internalEventCode) || '').toUpperCase(); }
+  function eqCode(e: any): string { return String(e.equipmentEventTypeCode || '').toUpperCase(); }
+  function trCode(e: any): string { return String(e.transportEventTypeCode || '').toUpperCase(); }
+  function dt(e: any): string { return String(e.eventDateTime || '').split('T')[0]; }
+
+  events.forEach(function (e: any) {
+    if (classifier(e) !== 'ACT') return;  // seuls les events reels (pas EST/PLN)
+    var ref = String(e.equipmentReference || '').toUpperCase().trim();
+    if (!ref) return;
+    if (!byTc[ref]) byTc[ref] = { n: ref };
+
+    // Empty returned → RETURNED + dr
+    var l = lbl(e);
+    if (l.indexOf('empty') >= 0 && (l.indexOf('return') >= 0 || l.indexOf('back') >= 0)) {
+      byTc[ref].st = 'RETURNED';
+      byTc[ref].dr = dt(e);
+      return;
+    }
+    // Gate out (sortie portique apres dispatch)
+    if (eqCode(e) === 'GTOT' || code(e) === 'OUT' || code(e) === 'GTOUT' || l.indexOf('gate out') >= 0 || l.indexOf('pick') >= 0) {
+      // Ne pose 'DISPATCHE' que si pas deja RETURNED detecte
+      if (byTc[ref].st !== 'RETURNED') {
+        byTc[ref].st = 'DISPATCHE';
+        byTc[ref].gateOutDate = dt(e);
+      }
+      return;
+    }
+    // Discharged Import → PORT
+    if (isImport(e) && (eqCode(e) === 'DISC' || trCode(e) === 'ARRI' || l.indexOf('discharg') >= 0 || l.indexOf('arriv') >= 0)) {
+      // Ne rétrograde jamais : si on a deja DISPATCHE/RETURNED, on garde
+      if (!byTc[ref].st) byTc[ref].st = 'PORT';
+      return;
+    }
+  });
+
+  return Object.keys(byTc).map(function (k) { return byTc[k]; });
+}
+
+/**
+ * Sprint 25 #3 : extrait la timeline du voyage (events vessel ARRI/DEPA)
+ * pour affichage sur la TrackingPage et DetView. Tries chronologiquement.
+ * Garde uniquement les events TRANSPORT (pas equipment) avec un port identifie.
+ */
+function extractCMATimeline(raw: any): Array<{
+  port: string; portCode?: string; date: string; type: 'DEPA' | 'ARRI';
+  vessel?: string; voyage?: string; classifier?: 'ACT' | 'EST' | 'PLN'; phase?: string;
+}> {
+  var events = extractDCSAEvents(raw);
+  var entries: any[] = [];
+
+  events.forEach(function (e: any) {
+    var trCode = String(e.transportEventTypeCode || '').toUpperCase();
+    if (trCode !== 'ARRI' && trCode !== 'DEPA') return;
+    var dt = String(e.eventDateTime || '').split('T')[0];
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dt)) return;
+    var loc = (e.transportCall && e.transportCall.location) || {};
+    var portName = String(loc.locationName || '').trim();
+    if (!portName) return;
+    var portCode = String(loc.UNLocationCode || '').toUpperCase() || undefined;
+    var vessel = (e.transportCall && e.transportCall.vessel) || {};
+    var classifier = String(e.eventClassifierCode || '').toUpperCase();
+    entries.push({
+      port: portName,
+      portCode: portCode,
+      date: dt,
+      type: trCode,
+      vessel: String(vessel.vesselName || '').trim() || undefined,
+      voyage: String(e.transportCall.carrierVoyageNumber || e.transportCall.universalVoyageReference || '').trim() || undefined,
+      classifier: (classifier === 'ACT' || classifier === 'EST' || classifier === 'PLN') ? classifier : undefined,
+      phase: String(e.transportCall.transportationPhase || '').trim() || undefined,
+    });
+  });
+
+  // Tri chronologique
+  entries.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+  // Deduplication : garde 1 entree par (port + type + date) (eviter doublons EST + ACT pour le meme event)
+  var dedup: Record<string, any> = {};
+  entries.forEach(function (e) {
+    var k = e.portCode + '|' + e.type + '|' + e.date;
+    var existing = dedup[k];
+    // Prefere ACT sur EST/PLN si dupe
+    if (!existing || (e.classifier === 'ACT' && existing.classifier !== 'ACT')) dedup[k] = e;
+  });
+  return Object.keys(dedup).map(function (k) { return dedup[k]; }).sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+}
+
+/**
  * Mapping vers patches Sapurai (compatible avec dos+tcs).
  * Scope minimal : pose dos.da si pas deja set, ajoute TC manquants.
  */
+// Sprint 25 #1 : ordre des statuts TC pour eviter la retrogradation lors d'un sync
+var TC_STATUS_ORDER: Record<string, number> = {
+  ATTENDU: 0, PORT: 1, DISPATCHE: 2, TRANSIT: 3, KATI: 4, BAMAKO: 5, RETURNED: 6,
+};
+
 export function mapCarrierToPatches(resp: CarrierResponse, dosTcs: any[], dos: any) {
   var dosPatches: Record<string, any> = {};
   var newTcs: any[] = [];
+  var tcUpdates: Array<{ n: string; st?: string; dr?: string }> = [];
   var changes: string[] = [];
+  var etaChanged: { from: string; to: string } | null = null;
 
   // L'armateur fait foi (comme DPWorld pour l'arrivee Dakar). Si l'API renvoie
   // une date, Sapurai l'applique TOUJOURS, qu'elle soit posee ou non, manuelle
@@ -275,11 +410,40 @@ export function mapCarrierToPatches(resp: CarrierResponse, dosTcs: any[], dos: a
       dosPatches.daSrc = 'cma';
       changes.push('Date arrivee ' + resp.arrivalDate);
     } else if (dos.da !== resp.arrivalDate) {
+      // Sprint 25 #4 : detection retard ETA + historique
+      etaChanged = { from: dos.da, to: resp.arrivalDate };
+      var prevHistory: Array<{ date: string; syncedAt: string }> = Array.isArray(dos.etaHistory) ? dos.etaHistory : [];
+      // Ajoute l'ancienne valeur a l'historique (evite doublons consecutifs identiques)
+      var lastEntry = prevHistory[prevHistory.length - 1];
+      if (!lastEntry || lastEntry.date !== dos.da) {
+        prevHistory = prevHistory.concat([{ date: dos.da, syncedAt: new Date().toISOString() }]);
+      }
+      // Limite a 5 entrees pour eviter croissance infinie
+      if (prevHistory.length > 5) prevHistory = prevHistory.slice(prevHistory.length - 5);
+      dosPatches.etaHistory = prevHistory;
       dosPatches.da = resp.arrivalDate;
       dosPatches.daSrc = 'cma';
       changes.push('ETA maj ' + dos.da + ' → ' + resp.arrivalDate);
     }
     // Sinon (date identique) : rien a faire, on ne pollue pas le journal
+  }
+
+  // Sprint 25 #3 : timeline du voyage (events ARRI/DEPA tries) + vessel name/voyage
+  if (Array.isArray(resp.timeline) && resp.timeline.length > 0) {
+    // Compare avec ce qui est deja stocke pour eviter de polluer le journal si rien n'a change
+    var prevTl = Array.isArray(dos.timeline) ? dos.timeline : [];
+    var newTlSig = resp.timeline.map(function (e) { return e.date + '|' + e.type + '|' + e.portCode; }).join(',');
+    var prevTlSig = prevTl.map(function (e: any) { return e.date + '|' + e.type + '|' + e.portCode; }).join(',');
+    if (newTlSig !== prevTlSig) {
+      dosPatches.timeline = resp.timeline;
+    }
+  }
+  if (resp.vesselName && dos.vesselName !== resp.vesselName) {
+    dosPatches.vesselName = resp.vesselName;
+    if (!dos.vesselName) changes.push('Navire ' + resp.vesselName);
+  }
+  if (resp.voyageNumber && dos.voyageNumber !== resp.voyageNumber) {
+    dosPatches.voyageNumber = resp.voyageNumber;
   }
 
   // Ajout TC manquants si l'armateur en a remonte
@@ -295,10 +459,27 @@ export function mapCarrierToPatches(resp: CarrierResponse, dosTcs: any[], dos: a
     });
   }
 
-  // Notification claire selon le cas :
-  // - Si changements : "X maj : ..."
-  // - Si aucune modif mais date confirmee par l'armateur : "ETA confirmee (06/05)"
-  // - Si l'API n'a meme pas de date : "Aucune date renvoyee par l'armateur"
+  // Sprint 25 #1 : Avancement statut TC auto (ne retrograde JAMAIS)
+  if (Array.isArray(resp.tcStatuses) && resp.tcStatuses.length > 0) {
+    var byTcN: Record<string, any> = {};
+    dosTcs.forEach(function (t: any) { if (t.n) byTcN[String(t.n).toUpperCase().trim().replace(/[\s\-]/g, '')] = t; });
+    resp.tcStatuses.forEach(function (s) {
+      if (!s.n || !s.st) return;
+      var key = String(s.n).toUpperCase().trim().replace(/[\s\-]/g, '');
+      var t = byTcN[key];
+      if (!t) return;  // TC inconnu (sera ajoute via newTcs)
+      var curOrder = TC_STATUS_ORDER[t.st] !== undefined ? TC_STATUS_ORDER[t.st] : -1;
+      var newOrder = TC_STATUS_ORDER[s.st] !== undefined ? TC_STATUS_ORDER[s.st] : -1;
+      if (newOrder > curOrder) {
+        var update: any = { n: t.n, st: s.st };
+        if (s.st === 'RETURNED' && s.dr) update.dr = s.dr;
+        tcUpdates.push(update);
+        changes.push((t.n || '?') + ' → ' + s.st);
+      }
+    });
+  }
+
+  // Notification claire selon le cas
   var summary;
   if (changes.length > 0) {
     summary = changes.length + ' maj : ' + changes.slice(0, 3).join(', ') + (changes.length > 3 ? '...' : '');
@@ -308,5 +489,12 @@ export function mapCarrierToPatches(resp: CarrierResponse, dosTcs: any[], dos: a
     summary = 'Aucune nouveaute (' + (resp.note || 'site rendu cote JS') + ')';
   }
 
-  return { dosPatches: dosPatches, newTcs: newTcs, summary: summary, changes: changes };
+  return {
+    dosPatches: dosPatches,
+    newTcs: newTcs,
+    tcUpdates: tcUpdates,
+    summary: summary,
+    changes: changes,
+    etaChanged: etaChanged,
+  };
 }

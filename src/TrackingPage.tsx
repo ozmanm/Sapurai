@@ -627,8 +627,19 @@ export default function TrackingPage(p: TrackingPageProps) {
               <div style={LBL}>{"Date d'arriv\u00E9e"}</div>
               <div style={VAL}>{d.da ? formatDate(d.da) : "—"}</div>
             </div>
+            {d.vesselName ? (
+              <div style={{ gridColumn: "1 / -1" }}>
+                <div style={LBL}>{"Navire"}</div>
+                <div style={VAL}>{d.vesselName + (d.voyageNumber ? " · " + d.voyageNumber : "")}</div>
+              </div>
+            ) : null}
           </div>
         </section>
+
+        {/* Sprint 25 #3 : Timeline du voyage (si recuperee via API armateur) */}
+        {Array.isArray(d.timeline) && d.timeline.length > 0 ? (
+          <VoyageTimeline timeline={d.timeline} />
+        ) : null}
 
         {/* Conteneurs */}
         <h2 style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10, marginTop: 0 }}>
@@ -651,6 +662,33 @@ export default function TrackingPage(p: TrackingPageProps) {
 
       <Footer />
     </div>
+  );
+}
+
+// Sprint 25 #3 : composant timeline voyage (events ARRI/DEPA tries chronologiquement)
+function VoyageTimeline(p: { timeline: Array<{ port: string; portCode?: string; date: string; type: 'DEPA' | 'ARRI'; vessel?: string; voyage?: string; classifier?: string; phase?: string }> }) {
+  if (!p.timeline || p.timeline.length === 0) return null;
+  return (
+    <section style={{ background: "var(--bg-primary)", borderRadius: 14, padding: 16, marginBottom: 16, boxShadow: "0 1px 3px var(--shadow)" }} aria-label="Voyage navire">
+      <div style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>{"Voyage"}</div>
+      <div style={{ position: "relative", paddingLeft: 22 }}>
+        {p.timeline.map(function (e, i) {
+          var isAct = e.classifier === 'ACT';
+          var isLast = i === p.timeline.length - 1;
+          var color = isAct ? "var(--success)" : "var(--text-muted)";
+          var label = e.type === 'DEPA' ? 'Depart' : 'Arrivee';
+          return (
+            <div key={i} style={{ position: "relative", paddingBottom: isLast ? 0 : 14 }}>
+              <div style={{ position: "absolute", left: -22, top: 4, width: 12, height: 12, borderRadius: "50%", background: isAct ? color : "var(--bg-primary)", border: "2px solid " + color, zIndex: 1 }} />
+              {!isLast ? <div style={{ position: "absolute", left: -17, top: 16, bottom: -2, width: 2, background: "var(--border)" }} /> : null}
+              <div style={{ fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--text-secondary)", marginBottom: 1 }}>{formatDate(e.date) + (isAct ? "" : " (prevu)")}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{label + " " + e.port + (e.portCode ? " (" + e.portCode + ")" : "")}</div>
+              {e.vessel ? <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 1 }}>{e.vessel + (e.voyage ? " - " + e.voyage : "")}</div> : null}
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 

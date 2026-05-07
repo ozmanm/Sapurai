@@ -70,6 +70,22 @@ export interface Dossier {
   // Dates
   da?: string;        // Date arrivee (ISO)
   daSrc?: 'manual' | 'cma';  // Source de la date arrivee : saisie manuelle ou auto-sync CMA
+  // Sprint 25 : historique des ETA successives (max 5 entrees) pour detection retard
+  etaHistory?: Array<{ date: string; syncedAt: string }>;
+  // Sprint 25 : timeline du voyage (events vessel arrival/departure depuis API armateur)
+  timeline?: Array<{
+    port: string;             // Nom du port (ex: "Shanghai")
+    portCode?: string;        // UN/LOCODE (ex: "CNSGH")
+    date: string;             // ISO date
+    type: 'DEPA' | 'ARRI';    // Departure / Arrival
+    vessel?: string;          // Nom du navire
+    voyage?: string;          // N° voyage
+    classifier?: 'ACT' | 'EST' | 'PLN';  // Reel / Estime / Planifie
+    phase?: string;           // Export / Transhipment / Import
+  }>;
+  // Sprint 25 : nom navire + voyage du dernier event (affichage rapide)
+  vesselName?: string;
+  voyageNumber?: string;
 
   // Statuts documentaires (OBTENU / EN_COURS / NON_DEMANDE / BLOQUE)
   bs?: string;        // BSC (Bordereau de Suivi Cargaison)

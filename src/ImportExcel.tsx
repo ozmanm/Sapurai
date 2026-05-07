@@ -488,6 +488,7 @@ export default function ImportExcel(p: ImportExcelProps) {
     setResult(headerResult);
     setStep(3);
   }
+  var [cmaCount, setCmaCount] = useState(0);
   function doImport() {
     if (!result || !result.dossiers.length) return;
     var toImport = result.dossiers.filter(function (d) { return !excluded.has(d.bl); });
@@ -495,6 +496,13 @@ export default function ImportExcel(p: ImportExcelProps) {
     var importedBls = new Set(toImport.map(function (d) { return d.bl; }));
     var filteredDeps = result.deps.filter(function (f) { return importedBls.has(f.bl); });
     p.bulkImport(toImport, filteredDeps, result.chauffeurs);
+    // Sprint 25 #5 : compter les BL CMA pour informer du sync auto background
+    var cmaBls = toImport.filter(function (d) {
+      var cp = String(d.cp || '').toUpperCase();
+      var bl = String(d.bl || '').toUpperCase();
+      return cp.indexOf('CMA') >= 0 || /^(CMA|CHN|CAN|GGZ|NGP)/.test(bl);
+    });
+    setCmaCount(cmaBls.length);
     setImported(toImport.length);
     setStep(4);
   }
@@ -723,6 +731,7 @@ export default function ImportExcel(p: ImportExcelProps) {
           <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>{String(imported) + " dossiers importes !"}</div>
           {result && result.deps.length > 0 ? <div style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 4 }}>{String(result.deps.length) + " depenses"}</div> : null}
           {result && result.chauffeurs.length > 0 ? <div style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 4 }}>{String(result.chauffeurs.length) + " chauffeurs"}</div> : null}
+          {cmaCount > 0 ? <div style={{ fontSize: 13, color: "var(--info)", background: "var(--info-bg)", borderRadius: 8, padding: "10px 14px", marginTop: 12, marginBottom: 4, display: "inline-flex", alignItems: "center", gap: 8 }}><span>{"📡"}</span><span>{String(cmaCount) + " BL CMA detectes — sync auto en arriere-plan (espacement 5s, quota CMA respecte)"}</span></div> : null}
           <button onClick={p.onClose} style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", border: "none", borderRadius: 10, padding: "12px 28px", fontSize: 15, fontWeight: 700, cursor: "pointer", minHeight: 48, marginTop: 16 }}>{"Fermer"}</button>
         </div>
       ) : null}

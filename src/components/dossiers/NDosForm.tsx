@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { IS, LS } from '../../constants/styles.js';
 import { today } from '../../utils/date.js';
+import ScanBL from '../../ScanBL.tsx';
 import Btn from '../ui/Btn.tsx';
 import { validateAll, FieldError } from '../../utils/validate.js';
 import {
@@ -47,6 +48,9 @@ function NDosForm(p: NDosFormProps) {
   // Chantier 1 — bouton "Recuperer ETA via CMA" : appel API a la demande
   var [etaLoading, setEtaLoading] = useState(false);
   var [daSrcState, setDaSrcState] = useState<'manual' | 'cma' | undefined>(i && i.daSrc ? i.daSrc : undefined);
+  // Sprint 26 : Scan BL via Gemini Vision (reactive, gate beta + cle Gemini configuree)
+  var [showScan, setShowScan] = useState(false);
+  var canScan = isBetaCompany(p.companyId) && !p.init && !!p.apiKey;
   var initTcs = sc && sc.tcs && sc.tcs.length > 0 ? sc.tcs : (p.initTcs || []).map(function (c) { return { n: c.n || "", ty: c.ty || "20GP", po: c.po || "" }; });
   var [tc, sTc] = useState(initTcs.length > 0 ? initTcs : [{ n: "", ty: "20GP", po: "" }]);
 
@@ -122,6 +126,22 @@ function NDosForm(p: NDosFormProps) {
 
   return (
     <div>
+      {/* Sprint 26 : bandeau Scan BL (reactive en beta, necessite cle Gemini) */}
+      {canScan && !showScan ? (
+        <div style={{ background: "var(--success-bg)", border: "2px dashed var(--success-border)", borderRadius: 10, padding: 14, marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--success-text)" }}>{"📷 Gagnez du temps"}</div>
+            <div style={{ fontSize: 12, color: "var(--success-text)" }}>{"Scannez votre BL pour pre-remplir automatiquement"}</div>
+          </div>
+          <Btn variant="success" size="sm" onClick={function () { setShowScan(true); }}>{"📷 Scanner BL"}</Btn>
+        </div>
+      ) : null}
+      {showScan ? (
+        <div style={{ marginBottom: 14 }}>
+          <ScanBL apiKey={p.apiKey} onResult={function (r: any) { sBl(r.bl || ""); sCl(r.cl || ""); sCp(r.cp || ""); if (r.cr) sCr(r.cr); if (r.da) sDa(r.da); if (r.ct) sCt(r.ct); if (r.tcs && r.tcs.length > 0) sTc(r.tcs); setShowScan(false); p.nf("BL scanne avec succes !"); }} />
+          <Btn variant="ghost" size="sm" onClick={function () { setShowScan(false); }} style={{ marginTop: 8 }}>{"Annuler le scan"}</Btn>
+        </div>
+      ) : null}
       <div className="lt-grid2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div style={{ marginBottom: 12 }}><label style={LS} htmlFor="ndos-bl">{"BL *"}</label><input id="ndos-bl" value={bl} onChange={function (e) { sBl(e.target.value.toUpperCase()); }} style={IS} maxLength={30} aria-invalid={!!vErr.bl} aria-describedby={vErr.bl ? "ndos-bl-err" : undefined} aria-required="true" /><FieldError msg={vErr.bl} id="ndos-bl-err" /></div>
         <div style={{ marginBottom: 12, position: "relative" }}>

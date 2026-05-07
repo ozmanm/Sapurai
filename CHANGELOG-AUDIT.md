@@ -1,7 +1,15 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-05-06 (129 taches)
+> Derniere mise a jour : 2026-05-06 (130 taches)
+
+---
+
+## FAIT — Sprint 26 : Reactivation Scan BL (Gemini Vision) avec gate beta
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 130 | **Scan BL via Gemini Vision reactive** | `src/components/dossiers/NDosForm.tsx`, `src/components/shared/AppModals.tsx` | Reactivation du module Scan BL retire au Sprint 20. **Gate beta** : `canScan = isBetaCompany(p.companyId) && !p.init && !!p.apiKey` — visible uniquement chez la compagnie test (`c_mocpodna9egt`) ET en mode creation (pas modification) ET si la cle Gemini est configuree. (1) `NDosForm` : import `ScanBL`, restauration du bandeau vert "Gagnez du temps - Scanner BL" + modal scan avec callback `onResult` qui pre-remplit BL/client/compagnie/destination/date/contact/conteneurs. State `showScan` + flag `canScan`. (2) `AppModals` : import `ScanBL` re-ajoute, restauration du modal `ml.t === "scan"` (declenche depuis menu, garde sur `cfg.geminiKey` configure), passage `apiKey={cfg.geminiKey}` et `scan={ml.scan}` au NDosForm. **Configuration cle** : la cle Gemini doit etre saisie dans Firestore directement par l'admin (companies/c_mocpodna9egt/cfg.geminiKey) ou via le panel super-admin. Le hook `useData.ts` lit `cfg.geminiKey` au niveau compagnie avec fallback sur `config/global.geminiKey`. **Tests** : 286/286 verts (le composant ScanBL existait deja, on a juste re-cable). Build 8.47s. Lint 0 erreur. |
 
 ---
 

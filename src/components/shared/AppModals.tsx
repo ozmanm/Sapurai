@@ -3,6 +3,7 @@ import { SL } from '../../constants/statuts.js';
 import Overlay from './Overlay.tsx';
 import ErrorBound from './ErrorBound.tsx';
 import ImportExcel from '../../ImportExcel.tsx';
+import ScanBL from '../../ScanBL.tsx';
 import NChForm from '../chauffeurs/NChForm.tsx';
 import DispForm from '../conteneurs/DispForm.tsx';
 import TrancheForm from '../conteneurs/TrancheForm.tsx';
@@ -103,7 +104,7 @@ function AppModals(p: AppModalsProps) {
 
   return (
     <>
-      {ml && ml.t === "ndos" ? <Overlay close={function () { setMl(null); }} title="Nouveau dossier" w={820}><NDosForm allDos={dos} members={(p.teamProps || {}).members || []} onSave={addDos} onClose={function () { setMl(null); }} nf={nf} setMl={setMl} companyId={companyId} /></Overlay> : null}
+      {ml && ml.t === "ndos" ? <Overlay close={function () { setMl(null); }} title="Nouveau dossier" w={820}><NDosForm allDos={dos} members={(p.teamProps || {}).members || []} onSave={addDos} onClose={function () { setMl(null); }} nf={nf} setMl={setMl} companyId={companyId} apiKey={cfg.geminiKey || ""} scan={ml.scan || null} /></Overlay> : null}
       {ml && ml.t === "edos" ? <Overlay close={function () { setMl(ml.prev || null); }} title="Modifier dossier" w={820}><NDosForm allDos={dos} members={(p.teamProps || {}).members || []} init={dos.find(function (d) { return d.id === ml.did; })} initTcs={tcs.filter(function (c) { return c.did === ml.did && (c.st === "PORT" || c.st === "ATTENDU"); })} onSave={function (f, tcl) { var prev = ml.prev; editDos(ml.did, f, tcl); if (prev) setTimeout(function () { setMl(prev); }, 0); }} onClose={function () { setMl(ml.prev || null); }} nf={nf} /></Overlay> : null}
       {ml && ml.t === "nch" ? <Overlay close={function () { setMl(null); }} title="Nouveau chauffeur" w={600}><NChForm onSave={addCh} onClose={function () { setMl(null); }} nf={nf} /></Overlay> : null}
       {ml && ml.t === "ech" ? <Overlay close={function () { setMl(null); }} title="Modifier chauffeur" w={600}><NChForm init={chs.find(function (c) { return c.id === ml.cid; })} onSave={function (d) { editCh(ml.cid, d); }} onClose={function () { setMl(null); }} nf={nf} /></Overlay> : null}
@@ -116,7 +117,8 @@ function AppModals(p: AppModalsProps) {
       {ml && ml.t === "jdoc" ? <Overlay close={function () { setMl(null); }} title="Documents justificatifs" w={600}><JdocView did={ml.did} dos={dos} sv={sv} db={db} nf={nf} setMl={setMl} companyId={companyId} /></Overlay> : null}
       {ml && ml.t === "pregate" ? <Overlay close={function () { setMl(null); }} title="Pregate - Facture DP World payee" w={420}><PregateInput did={ml.did} dos={dos} sv={sv} db={db} nf={nf} setMl={setMl} /></Overlay> : null}
       {ml && ml.t === "import" ? <Overlay close={function () { setMl(null); }} title="Importer depuis Excel/CSV" w={820}><ImportExcel bulkImport={bulkImport} dos={dos} tcs={tcs} onClose={function () { setMl(null); }} /></Overlay> : null}
-      {/* Modal "scan" desactivee : pas de cle Gemini configuree pour l'instant */}
+      {/* Sprint 26 : modal scan reactive, garde sur cle Gemini configuree */}
+      {ml && ml.t === "scan" && cfg.geminiKey ? <Overlay close={function () { setMl(null); }} title="Scanner un BL" w={520}><ScanBL apiKey={cfg.geminiKey} onResult={function (r: any) { setMl({ t: "ndos", scan: r }); }} /></Overlay> : null}
       {ml && ml.t === "settings" ? <Overlay close={function () { setMl(null); }} title="Paramètres" w={720}><SettingsForm cfg={cfg} sv={sv} db={db} nf={nf} onClose={function () { setMl(null); }} theme={p.theme} toggleTheme={p.toggleTheme} teamProps={p.teamProps} /></Overlay> : null}
       {ml && ml.t === "syncreport" && ml.report ? <Overlay close={function () { setMl(null); }} title="Rapport de synchronisation DPWorld" w={720}><SyncReport report={ml.report} setMl={setMl} onClose={function () { setMl(null); }} /></Overlay> : null}
       {ml && ml.t === "tctimeline" && ml.tcid ? (function () {

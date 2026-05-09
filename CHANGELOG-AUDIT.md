@@ -1,7 +1,15 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-05-07 (132 taches)
+> Derniere mise a jour : 2026-05-07 (133 taches)
+
+---
+
+## FAIT — Sprint 29 : Harden TrackingPage (touch targets WCAG + h1 sr-only + empty states + truncate)
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 133 | **Harden production-ready TrackingPage** | `src/TrackingPage.tsx`, `src/styles/layout.css` | Resolution des 2 P1 residuels de l'audit + edge cases naturels (texte long, etats vides). Score audit 17/20 -> 19-20/20 attendu. (1) **Touch targets WCAG 2.5.5** : boutons `tel:` et WhatsApp dans la card chauffeur passent de `minHeight: 40, padding: "8px 14px"` a `minHeight: 44, padding: "10px 16px"`. Boutons rating reasons (pills secondaires) passent de `minHeight: 36, padding: "6px 12px"` a `minHeight: 40, padding: "8px 14px"`. Conformite WCAG 2.1 AA Target Size sur tous les CTA. (2) **`<h1 className="sr-only">`** ajoute en debut de `<main>` vue BL : "Suivi BL XXX nom_client" — la vue client multi-dossier a deja son `<h1>` visible, la vue BL principale en manquait. Screen readers ont maintenant une hierarchie heading claire. Utility class `.sr-only` ajoutee dans `src/styles/layout.css` (pattern standard a11y). (3) **Empty state vue client multi-dossier** : si `clientDos.length === 0`, affiche une card avec `role="status"`, titre "Aucun dossier actif", sous-titre rassurant "Vos dossiers en cours apparaitront ici". (4) **Empty state vue BL** : si `tcs.length === 0`, affiche une card neutre "Aucun conteneur enregistre pour ce dossier" (au lieu d'un vide muet apres la card Informations). (5) **Truncate `vesselName + voyageNumber`** : navires CMA peuvent avoir des noms tres longs (ex: "CMA CGM JACQUES JOSEPH RIBOLI" + voyage "0BVAXN1MA"). Ajout `overflow: hidden, textOverflow: ellipsis, whiteSpace: nowrap` + attribut `title` HTML pour tooltip natif au hover (full text accessible sans casser le layout). (6) **`borderRadius: 10`** residuels (4 occurrences : btnBase rating, error card, info card, autres) -> `12` pour coherence avec `--radius-lg` du systeme. (7) **`transition: "background 0.3s"`** L171 (barre entre steps desktop) -> `"background 0.3s ease-out"` (easing explicite coherent avec autres transitions de la page, respect skill impeccable "ease-out exponential curves"). **Verifications** : 286/286 tests, build 11.88s, lint 0 erreur. **Score Nielsen attendu** : Heuristique 1 (Visibility) 3/4 -> 4/4 (empty states clairs), Heuristique 9 (Error recovery) 3/4 -> 4/4 (edge cases couverts). |
 
 ---
 

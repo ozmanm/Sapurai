@@ -168,7 +168,7 @@ function TcTrackingCard(p: TcTrackingCardProps) {
                       background: si < currentIdx ? "var(--success)" : "var(--border)",
                       margin: "0 2px",
                       borderRadius: 2,
-                      transition: "background 0.3s"
+                      transition: "background 0.3s ease-out"
                     }}></div>
                   ) : null}
                 </div>
@@ -200,11 +200,11 @@ function TcTrackingCard(p: TcTrackingCardProps) {
               var waMsg = encodeURIComponent("Bonjour, je suis le client du conteneur " + (tc.n || "") + ". Pouvez-vous me donner le statut svp ?");
               return (
                 <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <a href={"tel:" + tc.tl} aria-label={"Appeler le chauffeur " + (tc.ch || "")} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--success)", color: "white", padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none", minHeight: 40 }}>
+                  <a href={"tel:" + tc.tl} aria-label={"Appeler le chauffeur " + (tc.ch || "")} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--success)", color: "white", padding: "10px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none", minHeight: 44 }}>
                     {"\uD83D\uDCDE " + tc.tl}
                   </a>
                   {/* eslint-disable-next-line no-restricted-syntax -- WhatsApp brand color */}
-                  {waNum ? <a href={"https://wa.me/" + waNum + "?text=" + waMsg} target="_blank" rel="noopener noreferrer" aria-label="Contacter le chauffeur sur WhatsApp" style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#25D366", color: "white", padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none", minHeight: 40 }}>{"\uD83D\uDCAC WhatsApp"}</a> : null}
+                  {waNum ? <a href={"https://wa.me/" + waNum + "?text=" + waMsg} target="_blank" rel="noopener noreferrer" aria-label="Contacter le chauffeur sur WhatsApp" style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#25D366", color: "white", padding: "10px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none", minHeight: 44 }}>{"\uD83D\uDCAC WhatsApp"}</a> : null}
                 </div>
               );
             })() : null}
@@ -343,7 +343,7 @@ function RatingWidget(p: RatingWidgetProps) {
     });
   }
 
-  var btnBase: any = { flex: 1, minHeight: 56, borderRadius: 10, padding: "12px 10px", fontSize: 13, fontWeight: 700, cursor: "pointer", border: "2px solid transparent", transition: "background 0.2s ease-out, color 0.2s ease-out, border-color 0.2s ease-out", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4 };
+  var btnBase: any = { flex: 1, minHeight: 56, borderRadius: 12, padding: "12px 10px", fontSize: 13, fontWeight: 700, cursor: "pointer", border: "2px solid transparent", transition: "background 0.2s ease-out, color 0.2s ease-out, border-color 0.2s ease-out", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4 };
 
   return (
     <div className="lt-no-print-share" style={{ background: "var(--bg-primary)", borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: "0 1px 3px var(--shadow)", border: "1px solid var(--border)" }}>
@@ -390,7 +390,7 @@ function RatingWidget(p: RatingWidgetProps) {
       </div>
 
       {selected === 3 ? (
-        <div style={{ background: "var(--bg-secondary)", borderRadius: 10, padding: 14, marginBottom: 14 }}>
+        <div style={{ background: "var(--bg-secondary)", borderRadius: 12, padding: 14, marginBottom: 14 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>{"Qu'est-ce qui n'a pas marche ? (plusieurs choix possibles)"}</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
             {RATING_REASONS.map(function (r) {
@@ -405,11 +405,11 @@ function RatingWidget(p: RatingWidgetProps) {
                     color: active ? "white" : "var(--text-primary)",
                     border: "1px solid " + (active ? "var(--danger)" : "var(--border)"),
                     borderRadius: 999,
-                    padding: "6px 12px",
+                    padding: "8px 14px",
                     fontSize: 12,
                     fontWeight: 600,
                     cursor: "pointer",
-                    minHeight: 36,
+                    minHeight: 40,
                   }}
                 >{r.l}</button>
               );
@@ -440,7 +440,7 @@ function RatingWidget(p: RatingWidgetProps) {
           background: selected && !submitting ? "var(--btn-primary-bg)" : "var(--bg-secondary)",
           color: selected && !submitting ? "var(--btn-primary-text)" : "var(--text-muted)",
           border: "none",
-          borderRadius: 10,
+          borderRadius: 12,
           padding: "12px 24px",
           fontSize: 14,
           fontWeight: 700,
@@ -488,7 +488,7 @@ function Skeleton() {
             <div style={Object.assign({}, bar, { width: 60, height: 24, borderRadius: 8 })}></div>
           </div>
           <div style={Object.assign({}, bar, { height: 40, marginBottom: 12 })}></div>
-          <div style={Object.assign({}, bar, { height: 70, borderRadius: 10 })}></div>
+          <div style={Object.assign({}, bar, { height: 70, borderRadius: 12 })}></div>
         </div>
       </div>
     </div>
@@ -574,6 +574,12 @@ export default function TrackingPage(p: TrackingPageProps) {
             <h1 style={{ fontSize: 18, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>{d.cl || "—"}</h1>
             <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4 }}>{String(clientDos.length) + " dossier(s)"}</div>
           </div>
+          {clientDos.length === 0 ? (
+            <div role="status" style={{ background: "var(--bg-primary)", borderRadius: 12, padding: 32, textAlign: "center", boxShadow: "0 1px 3px var(--shadow)" }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>{"Aucun dossier actif"}</div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{"Vos dossiers en cours apparaitront ici."}</div>
+            </div>
+          ) : null}
           {clientDos.map(function (dos2: any, di: number) {
             var dosTcs = dos2.tcs || [];
             return (
@@ -607,6 +613,7 @@ export default function TrackingPage(p: TrackingPageProps) {
       </header>
 
       <main style={{ padding: "16px 16px 100px 16px", maxWidth: 600, margin: "0 auto" }}>
+        <h1 className="sr-only">{"Suivi BL " + (d.bl || "") + " " + (d.cl || "")}</h1>
         {/* Dossier Info */}
         <section style={{ background: "var(--bg-primary)", borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: "0 1px 3px var(--shadow)" }} aria-label="Informations du dossier">
           <div style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>{"Informations du dossier"}</div>
@@ -630,7 +637,7 @@ export default function TrackingPage(p: TrackingPageProps) {
             {d.vesselName ? (
               <div style={{ gridColumn: "1 / -1" }}>
                 <div style={LBL}>{"Navire"}</div>
-                <div style={VAL}>{d.vesselName + (d.voyageNumber ? " · " + d.voyageNumber : "")}</div>
+                <div style={Object.assign({}, VAL, { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" })} title={d.vesselName + (d.voyageNumber ? " · " + d.voyageNumber : "")}>{d.vesselName + (d.voyageNumber ? " · " + d.voyageNumber : "")}</div>
               </div>
             ) : null}
           </div>
@@ -641,8 +648,13 @@ export default function TrackingPage(p: TrackingPageProps) {
           <VoyageTimeline timeline={d.timeline} />
         ) : null}
 
-        {/* Sprint 28 polish : h2 redondant retire, section wrappee avec aria-label */}
+        {/* Sprint 28-29 : section wrappee avec aria-label + empty state si pas de TC */}
         <section aria-label={String(tcs.length) + " conteneur" + (tcs.length > 1 ? "s" : "")}>
+          {tcs.length === 0 ? (
+            <div role="status" style={{ background: "var(--bg-primary)", borderRadius: 12, padding: 24, textAlign: "center", boxShadow: "0 1px 3px var(--shadow)" }}>
+              <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>{"Aucun conteneur enregistre pour ce dossier."}</div>
+            </div>
+          ) : null}
           {tcs.map(function (tc: Tc, idx: number) {
             return <TcTrackingCard key={idx} tc={tc} fallbackIndex={idx} />;
           })}

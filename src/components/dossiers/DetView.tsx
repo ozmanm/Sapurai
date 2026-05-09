@@ -137,7 +137,7 @@ function DetView(p: DetViewProps) {
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button onClick={function () { navigator.clipboard.writeText(shr.url).then(function () { p.nf("Lien copie !"); }); }} style={{ background: "var(--btn-primary-bg)", color: "white", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", minHeight: 44 }}>{"\uD83D\uDCCB Copier le lien"}</button>
               {/* eslint-disable-next-line no-restricted-syntax -- WhatsApp brand color */}
-              <a href={"https://wa.me/" + (d.ct || "").replace(/[^0-9+]/g, "") + "?text=" + encodeURIComponent(shr.msg)} target="_blank" rel="noopener noreferrer" style={{ background: "#25d366", color: "white", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44 }}>{"\uD83D\uDCF1 WhatsApp"}</a>
+              <a href={"https://wa.me/" + (d.ct || "").replace(/[^0-9+]/g, "") + "?text=" + encodeURIComponent(shr.msg)} target="_blank" rel="noopener noreferrer" style={{ background: "#25D366", color: "white", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44 }}>{"\uD83D\uDCF1 WhatsApp"}</a>
             </div>
           </div>
         </div>
@@ -305,7 +305,7 @@ function DetView(p: DetViewProps) {
             <div style={{ fontWeight: 700, color: txtH, marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
               {isLouee ? "Lettre louée — " + (d.gar_contact || "?") : "Vente lettre — " + (d.gar_contact || "?")}
               {/* eslint-disable-next-line no-restricted-syntax -- WhatsApp brand color */}
-              {d.gar_tel ? <a href={"https://wa.me/" + (d.gar_tel || "").replace(/[^0-9+]/g, "")} target="_blank" rel="noopener noreferrer" style={{ color: "#25d366", fontWeight: 600, fontSize: 10 }}>{"WhatsApp"}</a> : null}
+              {d.gar_tel ? <a href={"https://wa.me/" + (d.gar_tel || "").replace(/[^0-9+]/g, "")} target="_blank" rel="noopener noreferrer" style={{ color: "#25D366", fontWeight: 600, fontSize: 10 }}>{"WhatsApp"}</a> : null}
             </div>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 6 }}>
               {d.gar_frais > 0 ? <span>{isLouee ? "Frais location : " : "Montant vente : "}<strong>{fm(d.gar_frais)}</strong></span> : null}

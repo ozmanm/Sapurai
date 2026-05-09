@@ -44,7 +44,7 @@ export default function Setup(props: SetupProps) {
 
   var boxStyle = { width: '90%', maxWidth: 420, background: 'var(--bg-primary)', borderRadius: 16, padding: '28px 24px', boxShadow: '0 4px 24px var(--shadow)' };
   // Primary hero : gradient dark permanent (non-inversible dark mode, meme pattern que Login btnPrimary)
-  var btnPrimary = { background: 'linear-gradient(135deg, #1c1917, #292524)', color: 'white', border: 'none', borderRadius: 10, padding: '14px 24px', fontSize: 15, fontWeight: 700, cursor: 'pointer', width: '100%', opacity: loading ? 0.6 : 1 };
+  var btnPrimary = { background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', borderRadius: 10, padding: '14px 24px', fontSize: 15, fontWeight: 700, cursor: 'pointer', width: '100%', opacity: loading ? 0.6 : 1 };
   // Ghost outline, non-dominant
   var btnGhost = { background: 'transparent', color: 'var(--text-primary)', border: '1.5px solid var(--border)', borderRadius: 10, padding: '12px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer', width: '100%' };
   var inputStyle: CSSProperties = { width: '100%', padding: '12px 14px', border: '2px solid var(--border)', borderRadius: 10, fontSize: 15, outline: 'none', boxSizing: 'border-box', background: 'var(--bg-primary)', color: 'var(--text-input)' };

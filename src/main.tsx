@@ -9,6 +9,7 @@ import useFCM from './hooks/useFCM.ts';
 import { PageSkeleton } from './components/ui/Skeleton.tsx';
 import './styles/theme.css';
 import './styles/layout.css';
+import './styles/print.css';
 
 var SUPER_ADMIN_UID = import.meta.env.VITE_SUPER_ADMIN_UID || '';
 

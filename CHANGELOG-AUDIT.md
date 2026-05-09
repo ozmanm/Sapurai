@@ -1,7 +1,15 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-05-06 (131 taches)
+> Derniere mise a jour : 2026-05-07 (132 taches)
+
+---
+
+## FAIT — Sprint 28 : Polish design system / TrackingPage + drift fixes (impeccable)
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 132 | **Polish design system Sprint impeccable** | `src/TrackingPage.tsx`, `src/Login.tsx`, `src/Setup.tsx`, `src/components/dossiers/DetView.tsx`, `src/pages/Dos.tsx`, `src/pages/Dep.tsx`, `src/styles/print.css` (CREE), `src/main.tsx` | Polish complet de TrackingPage et resolution des drifts identifies par `/impeccable audit` + `/impeccable critique` (score Nielsen 24/40 -> ~30/40). **TrackingPage.tsx** : (1) STEP_COLORS arc-en-ciel 6 hex hardcodes (#3b82f6 PORT, #8b5cf6 DISPATCH, #f59e0b TRANSIT, #ef4444 KATI, #059669 BAMAKO, #6b7280 RETOUR) remplaces par fonction `stepStateColor(done, current)` qui retourne 3 etats semantiques tokens (`var(--success)` / `var(--text-primary)` / `var(--text-muted)`) — fix critique car KATI rouge "danger universel" semait confusion chez clients maliens. (2) STEP_ICONS emojis (⚓🚚🛣️📍🏙️✅) remplaces par STEP_LETTERS mono (P/D/T/K/B/R) coherent JetBrains Mono identite Sapurai, plus 1 seul emoji ✓ pour done. (3) Card chauffeur aplatit : suppression du nesting card-in-card (sub-card `var(--success-bg)` dans `<article>`), divider semantique + grid au meme niveau (respect skill impeccable "Nested cards are always wrong"). (4) "🚚 Transport" -> "Transport" (couleur passee de `var(--success)` a `var(--text-secondary)`), "📞" emoji retire du bouton tel. (5) Header sous-ligne "Suivi de dossier" / "Suivi client" supprimee (redondant), fallback `"SAPURAI"` -> `"Suivi de dossier"` (le client doit voir son transitaire ou neutre, pas la marque vendor). (6) `<h2>"X conteneur(s)"` retire, remplace par `<section aria-label>` (le visible est evident, l'aria-label suffit pour SR). (7) CTA gradient "Envoyer mon avis" `linear-gradient(135deg, #1c1917, #292524)` -> `var(--btn-primary-bg)` + `var(--btn-primary-text)` (retire `eslint-disable`, aligne sur token systeme). (8) Border-radius unifie : 14 -> 12, 20 -> 999 (pills), 10 -> 8 selon contexte. (9) `transition: "all 0.3s"` -> proprietes explicites `background + box-shadow` (skill : "Don't animate CSS layout properties"). (10) `useEffect` print CSS injecte runtime simplifie, deplacement vers `src/styles/print.css` statique importe dans main.tsx (retire race condition crawler + CSS-in-JS hacky). Reste runtime : meta robots noindex (lie a la route /t/). (11) Import inutilise `textColorFor` retire. **Login.tsx + Setup.tsx** : btnPrimary gradient `linear-gradient(135deg, #1c1917, #292524)` remplace par `var(--btn-primary-bg)` + `var(--btn-primary-text)` (3 duplications du meme gradient resolues, tokens systeme). **DetView/Dos/Dep** : casse WhatsApp brand color uniformisee `#25d366` -> `#25D366` (3 + 2 + 1 occurrences). Le `eslint-disable` n'est pas ajoute dans les attributs JSX style inline (delicat sans casser la lisibilite) — les warnings restent informatifs (legitimes brand) sans bloquer le commit. **Verifications** : 286/286 tests, build 9.20s, lint 0 erreur. **Score Nielsen** : Heuristique Consistency 1/4 -> 3/4, Aesthetic 2/4 -> 3/4. |
 
 ---
 

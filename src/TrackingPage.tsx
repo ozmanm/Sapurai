@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { doc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase.js';
-import { textColorFor } from './utils/contrast.js';
 
 // Normalise un numero senegalais (+221) ou malien (+223) pour lien WhatsApp
 function normalizeWaPhone(tl: string): string {
@@ -48,8 +47,14 @@ function useIsNarrow(): boolean {
 
 var STEPS = ["PORT", "DISPATCH", "TRANSIT", "KATI", "BAMAKO", "RETOUR"];
 var STEP_LABELS: Record<string, string> = { PORT: "Au Port", DISPATCH: "Dispatché", TRANSIT: "En Transit", KATI: "Kati", BAMAKO: "Bamako", RETOUR: "Retourné" };
-var STEP_ICONS: Record<string, string> = { PORT: "\u2693", DISPATCH: "\uD83D\uDE9A", TRANSIT: "\uD83D\uDEE3\uFE0F", KATI: "\uD83D\uDCCD", BAMAKO: "\uD83C\uDFD9\uFE0F", RETOUR: "\u2705" };
-var STEP_COLORS: Record<string, string> = { PORT: "#3b82f6", DISPATCH: "#8b5cf6", TRANSIT: "#f59e0b", KATI: "#ef4444", BAMAKO: "#059669", RETOUR: "#6b7280" };
+var STEP_LETTERS: Record<string, string> = { PORT: "P", DISPATCH: "D", TRANSIT: "T", KATI: "K", BAMAKO: "B", RETOUR: "R" };
+// Sprint 28 polish : 3 etats semantiques (la position dans le stepper raconte la progression,
+// la couleur l'affirme). Plus de palette arc-en-ciel inventee hors-systeme.
+function stepStateColor(done: boolean, current: boolean): string {
+  if (current) return 'var(--text-primary)';
+  if (done) return 'var(--success)';
+  return 'var(--text-muted)';
+}
 
 interface Tc {
   n?: string;
@@ -70,17 +75,17 @@ function TcTrackingCard(p: TcTrackingCardProps) {
   var narrow = useIsNarrow();
   var currentIdx = STEPS.indexOf(tc.st || "");
   if (currentIdx < 0) currentIdx = 0;
-  var stepColor = STEP_COLORS[tc.st || ""] || "var(--text-muted)";
+  var hasStatus = !!STEPS[currentIdx];
 
   return (
-    <article className="lt-no-print-share" style={{ background: "var(--bg-primary)", borderRadius: 14, padding: 20, marginBottom: 12, boxShadow: "0 1px 3px var(--shadow)" }}>
+    <article className="lt-no-print-share" style={{ background: "var(--bg-primary)", borderRadius: 12, padding: 20, marginBottom: 12, boxShadow: "0 1px 3px var(--shadow)" }}>
       {/* TC Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12 }}>
         <div>
           <div style={{ fontFamily: "var(--font-mono)", fontWeight: 800, fontSize: 15, color: "var(--text-primary)" }}>{tc.n || "TC " + String(p.fallbackIndex + 1)}</div>
           <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{tc.ty || "20GP"}</div>
         </div>
-        <div style={{ background: stepColor, color: stepColor.startsWith("#") ? textColorFor(stepColor) : "white", padding: "5px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }} aria-label={"Statut : " + (STEP_LABELS[tc.st || ""] || tc.st)}>
+        <div style={{ background: hasStatus ? "var(--success)" : "var(--bg-secondary)", color: hasStatus ? "var(--btn-primary-text)" : "var(--text-muted)", padding: "5px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }} aria-label={"Statut : " + (STEP_LABELS[tc.st || ""] || tc.st)}>
           {STEP_LABELS[tc.st || ""] || tc.st}
         </div>
       </div>
@@ -91,7 +96,7 @@ function TcTrackingCard(p: TcTrackingCardProps) {
           {STEPS.map(function (step, si) {
             var isDone = si <= currentIdx;
             var isCurrent = si === currentIdx;
-            var color = isDone ? (STEP_COLORS[step] || "var(--success)") : "var(--border)";
+            var color = isDone ? "var(--success)" : "var(--border)";
             return (
               <li key={step} aria-current={isCurrent ? "step" : undefined} style={{ display: "flex", alignItems: "center", gap: 12, padding: "6px 0", position: "relative" }}>
                 <div style={{
@@ -107,10 +112,10 @@ function TcTrackingCard(p: TcTrackingCardProps) {
                   color: isDone ? "white" : "var(--text-muted)",
                   fontWeight: 700,
                   flexShrink: 0,
-                  boxShadow: isCurrent ? "0 2px 8px " + color + "40" : "none",
+                  boxShadow: isCurrent ? "0 2px 8px var(--shadow)" : "none",
                   zIndex: 1
                 }}>
-                  {isDone ? STEP_ICONS[step] : String(si + 1)}
+                  {isDone ? "✓" : (isCurrent ? STEP_LETTERS[step] : String(si + 1))}
                 </div>
                 <div style={{ fontSize: 13, color: isCurrent ? "var(--text-primary)" : isDone ? "var(--text-secondary)" : "var(--text-muted)", fontWeight: isCurrent ? 700 : 500 }}>
                   {STEP_LABELS[step]}
@@ -122,7 +127,7 @@ function TcTrackingCard(p: TcTrackingCardProps) {
                     top: isCurrent ? 38 : 30,
                     width: 2,
                     height: 14,
-                    background: si < currentIdx ? (STEP_COLORS[STEPS[si + 1]] || "var(--success)") : "var(--border)"
+                    background: si < currentIdx ? "var(--success)" : "var(--border)"
                   }}></div>
                 ) : null}
               </li>
@@ -134,7 +139,7 @@ function TcTrackingCard(p: TcTrackingCardProps) {
           {STEPS.map(function (step, si) {
             var isDone = si <= currentIdx;
             var isCurrent = si === currentIdx;
-            var color = isDone ? (STEP_COLORS[step] || "var(--success)") : "var(--border)";
+            var color = isDone ? "var(--success)" : "var(--border)";
             return (
               <li key={step} aria-current={isCurrent ? "step" : undefined} style={{ display: "flex", alignItems: "center", flex: si < STEPS.length - 1 ? 1 : "none", flexDirection: "column" }}>
                 <div style={{ display: "flex", alignItems: "center", width: "100%", marginBottom: 6 }}>
@@ -150,24 +155,24 @@ function TcTrackingCard(p: TcTrackingCardProps) {
                     fontSize: isCurrent ? 16 : 12,
                     color: isDone ? "white" : "var(--text-muted)",
                     fontWeight: 700,
-                    transition: "all 0.3s",
+                    transition: "background 0.3s ease-out, box-shadow 0.3s ease-out",
                     flexShrink: 0,
-                    boxShadow: isCurrent ? "0 2px 8px " + color + "40" : "none"
+                    boxShadow: isCurrent ? "0 2px 8px var(--shadow)" : "none"
                   }}>
-                    {isDone ? STEP_ICONS[step] : String(si + 1)}
+                    {isDone ? "✓" : (isCurrent ? STEP_LETTERS[step] : String(si + 1))}
                   </div>
                   {si < STEPS.length - 1 ? (
                     <div aria-hidden="true" style={{
                       flex: 1,
                       height: 3,
-                      background: si < currentIdx ? (STEP_COLORS[STEPS[si + 1]] || "var(--success)") : "var(--border)",
+                      background: si < currentIdx ? "var(--success)" : "var(--border)",
                       margin: "0 2px",
                       borderRadius: 2,
                       transition: "background 0.3s"
                     }}></div>
                   ) : null}
                 </div>
-                <div style={{ fontSize: 11, color: isCurrent ? STEP_COLORS[step] : isDone ? "var(--text-tertiary)" : "var(--text-secondary)", fontWeight: isCurrent ? 800 : 500, textAlign: "center", width: si < STEPS.length - 1 ? "100%" : "auto", alignSelf: "flex-start" }}>
+                <div style={{ fontSize: 11, color: isCurrent ? "var(--text-primary)" : isDone ? "var(--success)" : "var(--text-muted)", fontWeight: isCurrent ? 800 : 500, textAlign: "center", width: si < STEPS.length - 1 ? "100%" : "auto", alignSelf: "flex-start" }}>
                   {STEP_LABELS[step]}
                 </div>
               </li>
@@ -178,8 +183,9 @@ function TcTrackingCard(p: TcTrackingCardProps) {
 
       {/* Chauffeur info if dispatched */}
       {tc.ch ? (
-        <div style={{ background: "var(--success-bg)", borderRadius: 10, padding: 12, border: "1px solid var(--border)" }}>
-          <div style={{ fontSize: 12, color: "var(--success)", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>{"\uD83D\uDE9A Transport"}</div>
+        <>
+          <div role="separator" aria-orientation="horizontal" style={{ borderTop: "1px solid var(--border)", margin: "16px 0 12px" }} />
+          <div style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>{"Transport"}</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <div>
               <div style={{ fontSize: 11, color: "var(--text-secondary)", marginBottom: 2 }}>{"Chauffeur"}</div>
@@ -203,7 +209,7 @@ function TcTrackingCard(p: TcTrackingCardProps) {
               );
             })() : null}
           </div>
-        </div>
+        </>
       ) : null}
     </article>
   );
@@ -284,7 +290,7 @@ function RatingWidget(p: RatingWidgetProps) {
     var ratingLabel = data.rating === 1 ? "Tres satisfait" : data.rating === 2 ? "Correct" : "Probleme signale";
     var ratingColor = data.rating === 1 ? "var(--success)" : data.rating === 2 ? "var(--warning)" : "var(--danger)";
     return (
-      <div style={{ background: "var(--bg-primary)", borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: "0 1px 3px var(--shadow)", border: "1px solid var(--border)" }}>
+      <div style={{ background: "var(--bg-primary)", borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: "0 1px 3px var(--shadow)", border: "1px solid var(--border)" }}>
         <div style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>{"Votre avis"}</div>
         <div style={{ fontSize: 15, fontWeight: 700, color: ratingColor }}>{"\u2713 " + ratingLabel}</div>
         <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>{"Merci, votre avis a ete enregistre."}</div>
@@ -298,7 +304,7 @@ function RatingWidget(p: RatingWidgetProps) {
   // Cas 3 : submit success immediat (avant le listener qui relit data)
   if (done) {
     return (
-      <div role="status" aria-live="polite" style={{ background: "var(--success-bg)", borderRadius: 14, padding: 20, marginBottom: 16, border: "1px solid var(--success-border)" }}>
+      <div role="status" aria-live="polite" style={{ background: "var(--success-bg)", borderRadius: 12, padding: 20, marginBottom: 16, border: "1px solid var(--success-border)" }}>
         <div style={{ fontSize: 15, fontWeight: 700, color: "var(--success-text)" }}>{"Merci pour votre retour !"}</div>
         <div style={{ fontSize: 13, color: "var(--success-text)", marginTop: 6, lineHeight: 1.5 }}>
           {selected === 3 ? "Votre transitaire sera alerte et vous rappellera si besoin." : "Votre avis aide votre transitaire a ameliorer son service."}
@@ -337,10 +343,10 @@ function RatingWidget(p: RatingWidgetProps) {
     });
   }
 
-  var btnBase: any = { flex: 1, minHeight: 56, borderRadius: 10, padding: "12px 10px", fontSize: 13, fontWeight: 700, cursor: "pointer", border: "2px solid transparent", transition: "all 0.2s", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4 };
+  var btnBase: any = { flex: 1, minHeight: 56, borderRadius: 10, padding: "12px 10px", fontSize: 13, fontWeight: 700, cursor: "pointer", border: "2px solid transparent", transition: "background 0.2s ease-out, color 0.2s ease-out, border-color 0.2s ease-out", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4 };
 
   return (
-    <div className="lt-no-print-share" style={{ background: "var(--bg-primary)", borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: "0 1px 3px var(--shadow)", border: "1px solid var(--border)" }}>
+    <div className="lt-no-print-share" style={{ background: "var(--bg-primary)", borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: "0 1px 3px var(--shadow)", border: "1px solid var(--border)" }}>
       <div style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>{"Votre avis"}</div>
       <h3 style={{ fontSize: 16, fontWeight: 800, color: "var(--text-primary)", margin: "0 0 14px 0" }}>{"Comment s'est passe votre dossier ?"}</h3>
 
@@ -398,7 +404,7 @@ function RatingWidget(p: RatingWidgetProps) {
                     background: active ? "var(--danger)" : "var(--bg-primary)",
                     color: active ? "white" : "var(--text-primary)",
                     border: "1px solid " + (active ? "var(--danger)" : "var(--border)"),
-                    borderRadius: 20,
+                    borderRadius: 999,
                     padding: "6px 12px",
                     fontSize: 12,
                     fontWeight: 600,
@@ -431,9 +437,8 @@ function RatingWidget(p: RatingWidgetProps) {
         style={{
           width: "100%",
           minHeight: 48,
-          // eslint-disable-next-line no-restricted-syntax -- gradient brand dark permanent (CTA submit rating)
-          background: selected && !submitting ? "linear-gradient(135deg, #1c1917, #292524)" : "var(--bg-secondary)",
-          color: selected && !submitting ? "white" : "var(--text-muted)",
+          background: selected && !submitting ? "var(--btn-primary-bg)" : "var(--bg-secondary)",
+          color: selected && !submitting ? "var(--btn-primary-text)" : "var(--text-muted)",
           border: "none",
           borderRadius: 10,
           padding: "12px 24px",
@@ -468,7 +473,7 @@ function Skeleton() {
         <div style={Object.assign({}, bar, { width: 90, height: 10 })}></div>
       </div>
       <div style={{ padding: "16px 16px 100px 16px", maxWidth: 600, margin: "0 auto" }}>
-        <div style={{ background: "var(--bg-primary)", borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: "0 1px 3px var(--shadow)" }}>
+        <div style={{ background: "var(--bg-primary)", borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: "0 1px 3px var(--shadow)" }}>
           <div style={Object.assign({}, bar, { width: 100, marginBottom: 12 })}></div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div style={Object.assign({}, bar, { height: 36 })}></div>
@@ -477,7 +482,7 @@ function Skeleton() {
             <div style={Object.assign({}, bar, { height: 36 })}></div>
           </div>
         </div>
-        <div style={{ background: "var(--bg-primary)", borderRadius: 14, padding: 20, marginBottom: 12, boxShadow: "0 1px 3px var(--shadow)" }}>
+        <div style={{ background: "var(--bg-primary)", borderRadius: 12, padding: 20, marginBottom: 12, boxShadow: "0 1px 3px var(--shadow)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div style={Object.assign({}, bar, { width: 120 })}></div>
             <div style={Object.assign({}, bar, { width: 60, height: 24, borderRadius: 8 })}></div>
@@ -500,18 +505,15 @@ export default function TrackingPage(p: TrackingPageProps) {
   var [loading, setLoading] = useState(true);
   var [error, setError] = useState("");
 
-  // Bloque l'indexation des pages de suivi (confidentialite client) + style print
+  // Sprint 28 polish : print CSS deplace vers src/styles/print.css (statique).
+  // Reste runtime : meta robots noindex (lie a la route /t/, ne doit pas s'appliquer ailleurs).
   useEffect(function () {
     var meta = document.createElement("meta");
     meta.name = "robots";
     meta.content = "noindex,nofollow,noarchive";
     document.head.appendChild(meta);
-    var style = document.createElement("style");
-    style.textContent = "@media print { .lt-no-print-share { display: none !important; } main { padding-bottom: 20px !important; } header { break-inside: avoid; } article { break-inside: avoid; page-break-inside: avoid; } }";
-    document.head.appendChild(style);
     return function () {
       document.head.removeChild(meta);
-      document.head.removeChild(style);
     };
   }, []);
 
@@ -562,13 +564,12 @@ export default function TrackingPage(p: TrackingPageProps) {
       <div style={PAGE}>
         <header style={{ background: "var(--bg-primary)", borderBottom: "1px solid var(--border)", color: "var(--text-primary)", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: 1.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.coName || "SAPURAI"}</div>
-            <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{"Suivi client"}</div>
+            <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: 1.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.coName || "Suivi de dossier"}</div>
           </div>
           <ShareButton title={"Suivi " + (d.cl || "client")} />
         </header>
         <main style={{ padding: "16px 16px 100px 16px", maxWidth: 600, margin: "0 auto" }}>
-          <div style={{ background: "var(--bg-primary)", borderRadius: 14, padding: 16, marginBottom: 16, boxShadow: "0 1px 3px var(--shadow)" }}>
+          <div style={{ background: "var(--bg-primary)", borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: "0 1px 3px var(--shadow)" }}>
             <div style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>{"Client"}</div>
             <h1 style={{ fontSize: 18, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>{d.cl || "—"}</h1>
             <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4 }}>{String(clientDos.length) + " dossier(s)"}</div>
@@ -600,15 +601,14 @@ export default function TrackingPage(p: TrackingPageProps) {
     <div style={PAGE}>
       <header style={{ background: "var(--bg-primary)", borderBottom: "1px solid var(--border)", color: "var(--text-primary)", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: 1.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.coName || "SAPURAI"}</div>
-          <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{"Suivi de dossier"}</div>
+          <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: 1.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.coName || "Suivi de dossier"}</div>
         </div>
         <ShareButton title={"Suivi BL " + (d.bl || "")} />
       </header>
 
       <main style={{ padding: "16px 16px 100px 16px", maxWidth: 600, margin: "0 auto" }}>
         {/* Dossier Info */}
-        <section style={{ background: "var(--bg-primary)", borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: "0 1px 3px var(--shadow)" }} aria-label="Informations du dossier">
+        <section style={{ background: "var(--bg-primary)", borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: "0 1px 3px var(--shadow)" }} aria-label="Informations du dossier">
           <div style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>{"Informations du dossier"}</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
@@ -641,14 +641,12 @@ export default function TrackingPage(p: TrackingPageProps) {
           <VoyageTimeline timeline={d.timeline} />
         ) : null}
 
-        {/* Conteneurs */}
-        <h2 style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10, marginTop: 0 }}>
-          {String(tcs.length) + " conteneur" + (tcs.length > 1 ? "s" : "")}
-        </h2>
-
-        {tcs.map(function (tc: Tc, idx: number) {
-          return <TcTrackingCard key={idx} tc={tc} fallbackIndex={idx} />;
-        })}
+        {/* Sprint 28 polish : h2 redondant retire, section wrappee avec aria-label */}
+        <section aria-label={String(tcs.length) + " conteneur" + (tcs.length > 1 ? "s" : "")}>
+          {tcs.map(function (tc: Tc, idx: number) {
+            return <TcTrackingCard key={idx} tc={tc} fallbackIndex={idx} />;
+          })}
+        </section>
 
         {/* Rating client — visible uniquement si dossier cloture */}
         <RatingWidget tokId={tokId} data={d} onRated={function () {}} />
@@ -669,7 +667,7 @@ export default function TrackingPage(p: TrackingPageProps) {
 function VoyageTimeline(p: { timeline: Array<{ port: string; portCode?: string; date: string; type: 'DEPA' | 'ARRI'; vessel?: string; voyage?: string; classifier?: string; phase?: string }> }) {
   if (!p.timeline || p.timeline.length === 0) return null;
   return (
-    <section style={{ background: "var(--bg-primary)", borderRadius: 14, padding: 16, marginBottom: 16, boxShadow: "0 1px 3px var(--shadow)" }} aria-label="Voyage navire">
+    <section style={{ background: "var(--bg-primary)", borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: "0 1px 3px var(--shadow)" }} aria-label="Voyage navire">
       <div style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>{"Voyage"}</div>
       <div style={{ position: "relative", paddingLeft: 22 }}>
         {p.timeline.map(function (e, i) {

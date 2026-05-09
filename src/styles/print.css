@@ -1,0 +1,17 @@
+/* Print stylesheet — masque les controles partage/rating et optimise l'impression
+   sur la page tracking publique /t/:tokId */
+@media print {
+  .lt-no-print-share {
+    display: none !important;
+  }
+  main {
+    padding-bottom: 20px !important;
+  }
+  header {
+    break-inside: avoid;
+  }
+  article {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

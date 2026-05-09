@@ -159,7 +159,7 @@ function Dep(p: DepProps) {
                             var msg = "Bonjour " + r.cl + ",\n\nVous avez " + String(details.length) + " facture(s) en attente de reglement pour un montant total de " + fm(imp) + ".\n\nDetail :\n" + shown.join("\n") + "\n\nCordialement,\n" + companyName;
                             var href = "https://wa.me/" + tel.replace(/[^0-9+]/g, "") + "?text=" + encodeURIComponent(msg);
                             // eslint-disable-next-line no-restricted-syntax -- WhatsApp brand green (couleur officielle)
-                            return <a href={href} target="_blank" rel="noopener noreferrer" onClick={function (e) { e.stopPropagation(); }} style={{ fontSize: 11, cursor: "pointer", color: "#25d366", padding: "2px 6px", borderRadius: 4, border: "1px solid #25d366", textDecoration: "none", fontWeight: 700 }} title={"Relancer " + r.cl}>{"📱"}</a>;
+                            return <a href={href} target="_blank" rel="noopener noreferrer" onClick={function (e) { e.stopPropagation(); }} style={{ fontSize: 11, cursor: "pointer", color: "#25D366", padding: "2px 6px", borderRadius: 4, border: "1px solid #25D366", textDecoration: "none", fontWeight: 700 }} title={"Relancer " + r.cl}>{"📱"}</a>;
                           })()}
                         </div>
                       </div>

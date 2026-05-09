@@ -118,7 +118,7 @@ export default function Login(props: { onBack?: () => void } = {}) {
   var boxStyle = { width: '90%', maxWidth: 400, background: 'var(--bg-primary)', borderRadius: 16, padding: '28px 24px', boxShadow: '0 4px 24px var(--shadow)' };
   var inputStyle: CSSProperties = { width: '100%', padding: '12px 14px', border: '2px solid var(--border)', borderRadius: 10, fontSize: 15, outline: 'none', boxSizing: 'border-box', background: 'var(--bg-primary)', color: 'var(--text-input)' };
   // Primary "hero" : gradient dark permanent (ne s'inverse pas en dark, contrairement a var(--btn-primary-bg))
-  var btnPrimary = { width: '100%', background: 'linear-gradient(135deg, #1c1917, #292524)', color: 'white', border: 'none', borderRadius: 10, padding: '14px 0', fontSize: 15, fontWeight: 700, cursor: 'pointer', opacity: loading ? 0.6 : 1 };
+  var btnPrimary = { width: '100%', background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', borderRadius: 10, padding: '14px 0', fontSize: 15, fontWeight: 700, cursor: 'pointer', opacity: loading ? 0.6 : 1 };
   var labelStyle = { fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', display: 'block' as const, marginBottom: 4 };
 
   return (

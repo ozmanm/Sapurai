@@ -165,7 +165,7 @@ function DispForm(p: DispFormProps) {
 
   return (
     <div>
-      <div style={{ background: "var(--info-bg)", padding: 12, borderRadius: 10, marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ background: "var(--info-bg)", padding: 12, borderRadius: 8, marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span>{"TC: "}<strong>{tc.n || "?"}</strong>{" | "}<strong>{tc.ty || "?"}</strong>{" | "}<strong>{(tc.po || "?") + " kg"}</strong></span>
         <span style={{ fontSize: 12, fontWeight: 700, color: noCh ? "var(--warning)" : "var(--success)" }}>
           {String(availChs.length) + "/" + String(allActifs.length) + " dispo"}

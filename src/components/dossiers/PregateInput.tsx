@@ -14,7 +14,7 @@ function PregateInput(p: PregateInputProps) {
   }
   return (
     <div>
-      <div style={{ background: "var(--success-bg)", borderRadius: 10, padding: 14, marginBottom: 14, border: "1px solid var(--border)" }}>
+      <div style={{ background: "var(--success-bg)", borderRadius: 8, padding: 14, marginBottom: 14, border: "1px solid var(--border)" }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--success-text)" }}>{"La facture DP World du dossier " + (d.bl || "") + " est payee."}</div>
         <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>{"Saisissez le numero Pregate pour debloquer le dispatch."}</div>
       </div>

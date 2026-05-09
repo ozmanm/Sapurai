@@ -35,8 +35,8 @@ class GlobalErrorBoundary extends React.Component<GEBProps, GEBState> {
           React.createElement("div", { style: { fontSize: 48, marginBottom: 12 } }, "\u26A0\uFE0F"),
           React.createElement("div", { style: { fontSize: 22, fontWeight: 900, color: "var(--text-primary)", marginBottom: 8 } }, "SAPURAI"),
           React.createElement("div", { style: { fontSize: 15, fontWeight: 700, color: "var(--danger-text)", marginBottom: 12 } }, "Une erreur est survenue"),
-          React.createElement("div", { style: { fontSize: 12, color: "var(--text-secondary)", background: "var(--bg-primary)", padding: 14, borderRadius: 10, fontFamily: "var(--font-mono)", textAlign: "left", wordBreak: "break-all", marginBottom: 16, border: "1px solid var(--danger-border)" } }, String(this.state.err.message || this.state.err)),
-          React.createElement("button", { onClick: function () { window.location.reload(); }, style: { background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", border: "none", borderRadius: 10, padding: "12px 24px", fontSize: 15, fontWeight: 700, cursor: "pointer" } }, "Recharger")
+          React.createElement("div", { style: { fontSize: 12, color: "var(--text-secondary)", background: "var(--bg-primary)", padding: 14, borderRadius: 8, fontFamily: "var(--font-mono)", textAlign: "left", wordBreak: "break-all", marginBottom: 16, border: "1px solid var(--danger-border)" } }, String(this.state.err.message || this.state.err)),
+          React.createElement("button", { onClick: function () { window.location.reload(); }, style: { background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", border: "none", borderRadius: 8, padding: "12px 24px", fontSize: 15, fontWeight: 700, cursor: "pointer" } }, "Recharger")
         )
       );
     }
@@ -174,12 +174,12 @@ function AuthenticatedApp(props: AuthAppProps) {
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--danger-bg)', fontFamily: 'var(--font-sans)', padding: 20 }}>
         <div style={{ maxWidth: 420, textAlign: 'center' }}>
           <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--text-primary)', letterSpacing: 2, marginBottom: 16 }}>SAPURAI</div>
-          <div style={{ background: 'var(--bg-primary)', borderRadius: 14, padding: '24px 28px', border: '1px solid var(--danger-border)', boxShadow: '0 4px 20px var(--shadow)' }}>
+          <div style={{ background: 'var(--bg-primary)', borderRadius: 12, padding: '24px 28px', border: '1px solid var(--danger-border)', boxShadow: '0 4px 20px var(--shadow)' }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>🔒</div>
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--danger-text)', marginBottom: 8 }}>Compte suspendu</div>
             <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>Abonnement expiré — contactez sapurai pour renouveler</div>
           </div>
-          <button onClick={logout} style={{ marginTop: 20, background: 'none', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 24px', fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer' }}>Déconnexion</button>
+          <button onClick={logout} style={{ marginTop: 20, background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 24px', fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer' }}>Déconnexion</button>
         </div>
       </div>
     );
@@ -187,8 +187,8 @@ function AuthenticatedApp(props: AuthAppProps) {
 
   // Already-authenticated user received an invite link → offer to switch company
   if (switchCode) {
-    var boxS = { width: '90%', maxWidth: 400, background: 'var(--bg-primary)', borderRadius: 16, padding: '28px 24px', boxShadow: '0 4px 24px var(--shadow)' };
-    var inputS: CSSProperties = { width: '100%', padding: '12px 14px', border: '2px solid var(--border)', borderRadius: 10, fontSize: 15, outline: 'none', boxSizing: 'border-box', background: 'var(--bg-primary)', color: 'var(--text-input)' };
+    var boxS = { width: '90%', maxWidth: 400, background: 'var(--bg-primary)', borderRadius: 12, padding: '28px 24px', boxShadow: '0 4px 24px var(--shadow)' };
+    var inputS: CSSProperties = { width: '100%', padding: '12px 14px', border: '2px solid var(--border)', borderRadius: 8, fontSize: 15, outline: 'none', boxSizing: 'border-box', background: 'var(--bg-primary)', color: 'var(--text-input)' };
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-body)', fontFamily: 'var(--font-sans)', padding: 16 }}>
         <div style={boxS}>
@@ -197,7 +197,7 @@ function AuthenticatedApp(props: AuthAppProps) {
             <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 6 }}>Vous avez une invitation pour rejoindre un nouvel espace</div>
           </div>
           {switchErr ? <div style={{ background: 'var(--danger-light)', color: 'var(--danger-text)', padding: '8px 12px', borderRadius: 8, fontSize: 13, marginBottom: 12 }}>{switchErr}</div> : null}
-          <div style={{ background: 'var(--bg-tertiary)', borderRadius: 10, padding: 14, textAlign: 'center', marginBottom: 16, border: '1px solid var(--border)' }}>
+          <div style={{ background: 'var(--bg-tertiary)', borderRadius: 8, padding: 14, textAlign: 'center', marginBottom: 16, border: '1px solid var(--border)' }}>
             <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>Code d'invitation</div>
             <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: 5, color: 'var(--text-primary)', fontFamily: 'monospace' }}>{switchCode}</div>
           </div>
@@ -218,10 +218,10 @@ function AuthenticatedApp(props: AuthAppProps) {
                 setSwitchErr(e.message || "Code invalide ou expire");
               }
             }}
-            style={{ width: '100%', background: 'var(--success)', color: 'white', border: 'none', borderRadius: 10, padding: '14px 0', fontSize: 15, fontWeight: 700, cursor: 'pointer', opacity: switchLoading ? 0.6 : 1, marginBottom: 10 }}>
+            style={{ width: '100%', background: 'var(--success)', color: 'white', border: 'none', borderRadius: 8, padding: '14px 0', fontSize: 15, fontWeight: 700, cursor: 'pointer', opacity: switchLoading ? 0.6 : 1, marginBottom: 10 }}>
             {switchLoading ? 'Connexion...' : 'Rejoindre ce nouvel espace'}
           </button>
-          <button onClick={function () { setSwitchCode(''); }} style={{ width: '100%', background: 'none', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 0', fontSize: 14, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+          <button onClick={function () { setSwitchCode(''); }} style={{ width: '100%', background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 0', fontSize: 14, color: 'var(--text-secondary)', cursor: 'pointer' }}>
             Ignorer, rester dans mon espace actuel
           </button>
         </div>

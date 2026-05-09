@@ -33,7 +33,7 @@ export function RowSkeleton(p: RowSkeletonProps) {
         return <div key={i} className="lt-skeleton" style={{
           flex: i === 0 ? 2 : 1,
           height: i === 0 ? 14 : 12,
-          borderRadius: 5,
+          borderRadius: 6,
           background: "var(--border)",
           animation: "lt-pulse 1.2s ease-in-out infinite",
           animationDelay: String(i * 0.1) + "s"
@@ -56,7 +56,7 @@ export function TableSkeleton(p: TableSkeletonProps) {
     <div style={{ background: "var(--bg-primary)", borderRadius: 12, border: "1px solid var(--border)", overflow: "hidden" }}>
       <div style={{ padding: "12px 12px", background: "var(--bg-tertiary)", borderBottom: "1px solid var(--border)", display: "flex", gap: 12 }}>
         {Array.from({ length: cols }, function (_, i) {
-          return <div key={i} className="lt-skeleton" style={{ flex: i === 0 ? 2 : 1, height: 10, borderRadius: 4, background: "var(--text-muted)", animation: "lt-pulse 1.2s ease-in-out infinite" }} />;
+          return <div key={i} className="lt-skeleton" style={{ flex: i === 0 ? 2 : 1, height: 10, borderRadius: 6, background: "var(--text-muted)", animation: "lt-pulse 1.2s ease-in-out infinite" }} />;
         })}
       </div>
       {Array.from({ length: rows }, function (_, i) {
@@ -69,10 +69,10 @@ export function TableSkeleton(p: TableSkeletonProps) {
 // Skeleton de carte stats (dashboard)
 export function CardSkeleton() {
   return (
-    <div style={{ background: "var(--bg-primary)", borderRadius: 14, padding: 18, border: "1px solid var(--border)" }}>
-      <div className="lt-skeleton" style={{ width: 60, height: 10, borderRadius: 4, background: "var(--border)", animation: "lt-pulse 1.2s ease-in-out infinite", marginBottom: 10 }} />
+    <div style={{ background: "var(--bg-primary)", borderRadius: 12, padding: 18, border: "1px solid var(--border)" }}>
+      <div className="lt-skeleton" style={{ width: 60, height: 10, borderRadius: 6, background: "var(--border)", animation: "lt-pulse 1.2s ease-in-out infinite", marginBottom: 10 }} />
       <div className="lt-skeleton" style={{ width: 80, height: 24, borderRadius: 6, background: "var(--border)", animation: "lt-pulse 1.2s ease-in-out infinite", marginBottom: 6 }} />
-      <div className="lt-skeleton" style={{ width: 100, height: 10, borderRadius: 4, background: "var(--border)", animation: "lt-pulse 1.2s ease-in-out infinite" }} />
+      <div className="lt-skeleton" style={{ width: 100, height: 10, borderRadius: 6, background: "var(--border)", animation: "lt-pulse 1.2s ease-in-out infinite" }} />
     </div>
   );
 }

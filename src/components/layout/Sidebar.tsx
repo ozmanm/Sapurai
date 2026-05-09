@@ -64,7 +64,7 @@ function Sidebar(p: SidebarProps) {
               <span className="ic" aria-hidden="true">{t.ic}</span>
               <span>{t.l}</span>
               {t.k === "dos" ? <span style={{ marginLeft: "auto", color: isActive ? "var(--btn-primary-text)" : "var(--text-muted)", fontSize: 11, fontWeight: 600, fontVariantNumeric: "tabular-nums", fontFamily: "var(--font-mono)" }}>{String(enCours)}</span> : null}
-              {t.k === "dash" && critCount > 0 ? <span style={{ marginLeft: "auto", background: "var(--danger-bg)", color: "var(--danger)", padding: "1px 8px", borderRadius: 10, fontSize: 11, fontWeight: 600 }}>{String(critCount)}</span> : null}
+              {t.k === "dash" && critCount > 0 ? <span style={{ marginLeft: "auto", background: "var(--danger-bg)", color: "var(--danger)", padding: "1px 8px", borderRadius: 8, fontSize: 11, fontWeight: 600 }}>{String(critCount)}</span> : null}
             </button>;
           })}
         </div>

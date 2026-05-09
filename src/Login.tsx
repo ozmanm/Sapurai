@@ -107,18 +107,18 @@ export default function Login(props: { onBack?: () => void } = {}) {
 
   // Bouton Google : blanc + logo colore (brand Google). Standard pour les 2 themes.
   // Treatement "primary" sur ecran home via shadow + padding genereux.
-  var googleBtnStyle = { width: '100%', background: 'white', color: '#1f1f1f', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 0', fontSize: 15, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: '0 2px 6px rgba(0,0,0,0.08)' };
+  var googleBtnStyle = { width: '100%', background: 'white', color: '#1f1f1f', border: '1px solid var(--border)', borderRadius: 8, padding: '14px 0', fontSize: 15, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: '0 2px 6px rgba(0,0,0,0.08)' };
 
   // Bouton ghost/secondary : transparent + outline, ne domine pas
-  var btnGhost = { width: '100%', background: 'transparent', color: 'var(--text-primary)', border: '1.5px solid var(--border)', borderRadius: 10, padding: '12px 0', fontSize: 14, fontWeight: 600, cursor: 'pointer', opacity: loading ? 0.6 : 1 };
+  var btnGhost = { width: '100%', background: 'transparent', color: 'var(--text-primary)', border: '1.5px solid var(--border)', borderRadius: 8, padding: '12px 0', fontSize: 14, fontWeight: 600, cursor: 'pointer', opacity: loading ? 0.6 : 1 };
 
   // Lien tertiaire : style lien discret, sans bordure
   var btnLink = { background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500, cursor: 'pointer', padding: '8px 0', textDecoration: 'underline', textDecorationColor: 'var(--border)' };
 
-  var boxStyle = { width: '90%', maxWidth: 400, background: 'var(--bg-primary)', borderRadius: 16, padding: '28px 24px', boxShadow: '0 4px 24px var(--shadow)' };
-  var inputStyle: CSSProperties = { width: '100%', padding: '12px 14px', border: '2px solid var(--border)', borderRadius: 10, fontSize: 15, outline: 'none', boxSizing: 'border-box', background: 'var(--bg-primary)', color: 'var(--text-input)' };
+  var boxStyle = { width: '90%', maxWidth: 400, background: 'var(--bg-primary)', borderRadius: 12, padding: '28px 24px', boxShadow: '0 4px 24px var(--shadow)' };
+  var inputStyle: CSSProperties = { width: '100%', padding: '12px 14px', border: '2px solid var(--border)', borderRadius: 8, fontSize: 15, outline: 'none', boxSizing: 'border-box', background: 'var(--bg-primary)', color: 'var(--text-input)' };
   // Primary "hero" : gradient dark permanent (ne s'inverse pas en dark, contrairement a var(--btn-primary-bg))
-  var btnPrimary = { width: '100%', background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', borderRadius: 10, padding: '14px 0', fontSize: 15, fontWeight: 700, cursor: 'pointer', opacity: loading ? 0.6 : 1 };
+  var btnPrimary = { width: '100%', background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', borderRadius: 8, padding: '14px 0', fontSize: 15, fontWeight: 700, cursor: 'pointer', opacity: loading ? 0.6 : 1 };
   var labelStyle = { fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', display: 'block' as const, marginBottom: 4 };
 
   return (
@@ -139,7 +139,7 @@ export default function Login(props: { onBack?: () => void } = {}) {
           <div style={{ background: 'var(--warning-bg)', border: '1px solid var(--warning-border)', borderRadius: 8, padding: '10px 12px', fontSize: 13, marginBottom: 12 }}>
             <div style={{ fontWeight: 700, color: 'var(--warning-text)', marginBottom: 4 }}>Cet email est deja associe a un compte Sapurai.</div>
             <div style={{ color: 'var(--warning-text)', marginBottom: 8 }}>Si c'est votre email, connectez-vous avec votre mot de passe. Sinon, utilisez une adresse email differente.</div>
-            <button onClick={function () { setMode('login'); setEmail(invEmail); setErr(''); }} style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', borderRadius: 7, padding: '7px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+            <button onClick={function () { setMode('login'); setEmail(invEmail); setErr(''); }} style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
               Se connecter avec cet email
             </button>
           </div>
@@ -178,7 +178,7 @@ export default function Login(props: { onBack?: () => void } = {}) {
             {urlCode ? (
               <div style={{ textAlign: 'center', marginBottom: 16 }}>
                 <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>Code d'invitation</div>
-                <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: 5, color: 'var(--text-primary)', fontFamily: 'monospace', background: 'var(--bg-tertiary)', borderRadius: 10, padding: '10px 0' }}>{invCode}</div>
+                <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: 5, color: 'var(--text-primary)', fontFamily: 'monospace', background: 'var(--bg-tertiary)', borderRadius: 8, padding: '10px 0' }}>{invCode}</div>
               </div>
             ) : (
               <div style={{ marginBottom: 14 }}>

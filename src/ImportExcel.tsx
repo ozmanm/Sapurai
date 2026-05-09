@@ -532,7 +532,7 @@ export default function ImportExcel(p: ImportExcelProps) {
                 fontFamily: "var(--font-mono)",
               }}>{done ? "✓" : String(n)}</div>
               <span style={{ fontSize: 12, fontWeight: current ? 700 : 500, color: done || current ? "var(--text-primary)" : "var(--text-muted)", whiteSpace: "nowrap" as const }}>{s.lbl}</span>
-              {i < 3 ? <div style={{ flex: 1, height: 2, background: n < step ? "var(--btn-primary-bg)" : "var(--border)", borderRadius: 1 }} /> : null}
+              {i < 3 ? <div style={{ flex: 1, height: 2, background: n < step ? "var(--btn-primary-bg)" : "var(--border)", borderRadius: 6 }} /> : null}
             </div>
           );
         })}
@@ -553,7 +553,7 @@ export default function ImportExcel(p: ImportExcelProps) {
           </div>
 
           {/* File upload */}
-          <label style={{ display: "block", background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", padding: "14px 0", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: "pointer", minHeight: 48, textAlign: "center", marginBottom: 16 }}>
+          <label style={{ display: "block", background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", padding: "14px 0", borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: "pointer", minHeight: 48, textAlign: "center", marginBottom: 16 }}>
             {"Choisir un fichier Excel/CSV"}
             <input type="file" accept=".xlsx,.xls,.csv,.tsv" onChange={handleFile} style={{ display: "none" }} />
           </label>
@@ -585,7 +585,7 @@ export default function ImportExcel(p: ImportExcelProps) {
         <div>
           <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>{String(sheets.length) + " feuilles detectees — associez chaque feuille :"}</div>
           {sheets.map(function (s, idx) {
-            return <div key={idx} style={{ background: "var(--bg-tertiary)", borderRadius: 10, padding: 14, marginBottom: 10, border: "1px solid var(--border)" }}>
+            return <div key={idx} style={{ background: "var(--bg-tertiary)", borderRadius: 8, padding: 14, marginBottom: 10, border: "1px solid var(--border)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                 <div style={{ flex: 1, minWidth: 150 }}>
                   <div style={{ fontWeight: 700, fontSize: 15 }}>{s.name}</div>
@@ -623,7 +623,7 @@ export default function ImportExcel(p: ImportExcelProps) {
           ) : null}
 
           {/* Interactive Power BI-style table */}
-          <div style={{ overflowX: "auto", maxHeight: 380, overflowY: "auto", border: "1px solid var(--border)", borderRadius: 10, marginBottom: 10 }}>
+          <div style={{ overflowX: "auto", maxHeight: 380, overflowY: "auto", border: "1px solid var(--border)", borderRadius: 8, marginBottom: 10 }}>
             <table style={{ width: "100%", minWidth: 640, borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
                 <tr style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }}>
@@ -679,19 +679,19 @@ export default function ImportExcel(p: ImportExcelProps) {
                       </td>
                       <td style={{ padding: "8px 10px", fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: "var(--text-primary)", whiteSpace: "nowrap" }}>
                         {d.bl}
-                        {existingBls.has((d.bl || "").toUpperCase()) ? <span style={{ marginLeft: 6, background: "var(--danger-light)", color: "var(--danger)", fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 4 }}>{"Existe d\u00e9j\u00e0"}</span> : null}
+                        {existingBls.has((d.bl || "").toUpperCase()) ? <span style={{ marginLeft: 6, background: "var(--danger-light)", color: "var(--danger)", fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 6 }}>{"Existe d\u00e9j\u00e0"}</span> : null}
                       </td>
                       <td style={{ padding: "8px 10px", color: "var(--text-tertiary)" }}>{d.cl || "\u2014"}</td>
                       <td style={{ padding: "8px 10px", color: "var(--text-secondary)", fontSize: 12 }}>{d.cp || "\u2014"}</td>
                       <td style={{ padding: "8px 10px", color: "var(--text-secondary)", fontSize: 12, whiteSpace: "nowrap" }}>{d.da || "\u2014"}</td>
                       <td style={{ padding: "8px", textAlign: "center" }}>
                         {d.tcs.length > 0
-                          ? <span style={{ background: "var(--success-light)", color: "var(--success)", fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 4 }}>{String(d.tcs.length)}</span>
+                          ? <span style={{ background: "var(--success-light)", color: "var(--success)", fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 6 }}>{String(d.tcs.length)}</span>
                           : <span style={{ color: "var(--text-muted)" }}>{"0"}</span>}
                       </td>
                       <td style={{ padding: "8px", textAlign: "center" }}>
                         {nd > 0
-                          ? <span style={{ background: "var(--warning-bg)", color: "var(--warning-text)", fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 4 }}>{String(nd)}</span>
+                          ? <span style={{ background: "var(--warning-bg)", color: "var(--warning-text)", fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 6 }}>{String(nd)}</span>
                           : <span style={{ color: "var(--text-muted)" }}>{"0"}</span>}
                       </td>
                     </tr>
@@ -732,7 +732,7 @@ export default function ImportExcel(p: ImportExcelProps) {
           {result && result.deps.length > 0 ? <div style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 4 }}>{String(result.deps.length) + " depenses"}</div> : null}
           {result && result.chauffeurs.length > 0 ? <div style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 4 }}>{String(result.chauffeurs.length) + " chauffeurs"}</div> : null}
           {cmaCount > 0 ? <div style={{ fontSize: 13, color: "var(--info)", background: "var(--info-bg)", borderRadius: 8, padding: "10px 14px", marginTop: 12, marginBottom: 4, display: "inline-flex", alignItems: "center", gap: 8 }}><span>{"📡"}</span><span>{String(cmaCount) + " BL CMA detectes — sync auto en arriere-plan (espacement 5s, quota CMA respecte)"}</span></div> : null}
-          <button onClick={p.onClose} style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", border: "none", borderRadius: 10, padding: "12px 28px", fontSize: 15, fontWeight: 700, cursor: "pointer", minHeight: 48, marginTop: 16 }}>{"Fermer"}</button>
+          <button onClick={p.onClose} style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", border: "none", borderRadius: 8, padding: "12px 28px", fontSize: 15, fontWeight: 700, cursor: "pointer", minHeight: 48, marginTop: 16 }}>{"Fermer"}</button>
         </div>
       ) : null}
     </div>

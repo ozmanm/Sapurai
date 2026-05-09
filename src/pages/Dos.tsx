@@ -82,7 +82,7 @@ function Dos(p: DosProps) {
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <div style={{ position: "relative" }}>
             <input className="lt-search" value={qr} onChange={function (e) { setQr(e.target.value); }} placeholder="Rechercher client, BL..." style={{
-              border: "1px solid var(--border)", borderRadius: 8, padding: "6px 12px 6px 30px", fontSize: 13, width: 180, outline: "none", minHeight: 36
+              border: "1px solid var(--border)", borderRadius: 8, padding: "6px 12px 6px 30px", fontSize: 13, width: 180, outline: "none", minHeight: 44
             }} />
             <span style={{ position: "absolute", left: 10, top: 8, fontSize: 13, color: "var(--text-muted)" }}>{"\uD83D\uDD0D"}</span>
           </div>
@@ -104,18 +104,18 @@ function Dos(p: DosProps) {
               <span style={{ fontSize: 13, fontWeight: 600, color: "var(--danger-text)" }}>
                 {String(selectedIds.length) + " dossier" + (selectedIds.length > 1 ? "s" : "") + " selectionne" + (selectedIds.length > 1 ? "s" : "")}
               </span>
-              <button onClick={function () { setBulkConfirm(true); }} style={{ background: "var(--danger)", color: "white", border: "none", borderRadius: 7, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+              <button onClick={function () { setBulkConfirm(true); }} style={{ background: "var(--danger)", color: "white", border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                 {"\uD83D\uDDD1 Supprimer " + String(selectedIds.length) + " dossier" + (selectedIds.length > 1 ? "s" : "")}
               </button>
-              <button onClick={function () { setSelectedIds([]); }} style={{ background: "none", border: "1px solid var(--danger-border)", borderRadius: 7, padding: "6px 12px", fontSize: 12, color: "var(--text-secondary)", cursor: "pointer" }}>{"✕ Annuler"}</button>
+              <button onClick={function () { setSelectedIds([]); }} style={{ background: "none", border: "1px solid var(--danger-border)", borderRadius: 8, padding: "6px 12px", fontSize: 12, color: "var(--text-secondary)", cursor: "pointer" }}>{"✕ Annuler"}</button>
             </>
           ) : (
             <>
               <span style={{ fontSize: 13, fontWeight: 700, color: "var(--danger-text)" }}>
                 {"Supprimer " + String(selectedIds.length) + " dossier" + (selectedIds.length > 1 ? "s" : "") + " et tous leurs TCs / depenses ?"}
               </span>
-              <button onClick={function () { bulkDeleteDos(selectedIds); setSelectedIds([]); setBulkConfirm(false); }} style={{ background: "var(--danger)", color: "white", border: "none", borderRadius: 7, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{"Confirmer la suppression"}</button>
-              <button onClick={function () { setBulkConfirm(false); }} style={{ background: "none", border: "1px solid var(--danger-border)", borderRadius: 7, padding: "6px 12px", fontSize: 12, color: "var(--text-secondary)", cursor: "pointer" }}>{"Annuler"}</button>
+              <button onClick={function () { bulkDeleteDos(selectedIds); setSelectedIds([]); setBulkConfirm(false); }} style={{ background: "var(--danger)", color: "white", border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{"Confirmer la suppression"}</button>
+              <button onClick={function () { setBulkConfirm(false); }} style={{ background: "none", border: "1px solid var(--danger-border)", borderRadius: 8, padding: "6px 12px", fontSize: 12, color: "var(--text-secondary)", cursor: "pointer" }}>{"Annuler"}</button>
             </>
           )}
         </div>
@@ -275,13 +275,13 @@ function Dos(p: DosProps) {
                     <div style={{ padding: "10px 8px", fontSize: 11, color: "var(--text-secondary)" }}>{d.cp || "---"}</div>
                     <div style={{ padding: "10px 8px", fontSize: 11, color: d.da ? "var(--text-primary)" : "var(--text-muted)", fontWeight: d.da ? 600 : 400 }}>{d.da ? fd(d.da) : "---"}</div>
                     <div style={{ padding: "10px 10px", textAlign: "center" }}>
-                      <span style={{ background: "var(--bg-tertiary)", color: "var(--text-primary)", padding: "2px 7px", borderRadius: 4, fontSize: 12, fontWeight: 700 }}>{String(dtcs.length)}</span>
+                      <span style={{ background: "var(--bg-tertiary)", color: "var(--text-primary)", padding: "2px 7px", borderRadius: 6, fontSize: 12, fontWeight: 700 }}>{String(dtcs.length)}</span>
                     </div>
                     <div style={{ padding: "10px 10px", fontWeight: 600, fontSize: 12 }}>{dTot > 0 ? fm(dTot) : "---"}</div>
                     <div style={{ padding: "10px 6px" }}>
                       {dTot > 0 ? <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        <div style={{ flex: 1, height: 4, background: "var(--border)", borderRadius: 2, minWidth: 30 }}>
-                          <div style={{ width: dPct + "%", height: 4, background: dPct === 100 ? "var(--success)" : "var(--warning)", borderRadius: 2 }}></div>
+                        <div style={{ flex: 1, height: 4, background: "var(--border)", borderRadius: 6, minWidth: 30 }}>
+                          <div style={{ width: dPct + "%", height: 4, background: dPct === 100 ? "var(--success)" : "var(--warning)", borderRadius: 6 }}></div>
                         </div>
                         <span style={{ fontSize: 10, color: dPct === 100 ? "var(--success)" : "var(--warning)", fontWeight: 600 }}>{String(dPct) + "%"}</span>
                       </div> : <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{"---"}</span>}
@@ -290,8 +290,8 @@ function Dos(p: DosProps) {
                     {(function () { var dMarge = (d.rv || 0) - dTot; var hasRv = (d.rv || 0) > 0; return <div style={{ padding: "10px 6px", fontWeight: 700, fontSize: 11, color: !hasRv ? "var(--text-muted)" : dMarge >= 0 ? "var(--success)" : "var(--danger)" }}>{hasRv ? fm(dMarge) : "---"}</div>; })()}
                     <div style={{ padding: "10px 6px" }}>
                       <div style={{ display: "flex", gap: 3 }}>
-                        <span title="BAD" style={{ width: 8, height: 8, borderRadius: 99, display: "inline-block", background: d.bs === "OBTENU" ? "var(--success)" : d.bs === "EN_COURS" ? "var(--warning)" : "var(--danger)" }}></span>
-                        <span title="BAE" style={{ width: 8, height: 8, borderRadius: 99, display: "inline-block", background: d.as2 === "OBTENU" || d.pn ? "var(--success)" : d.as2 === "EN_COURS" ? "var(--warning)" : "var(--danger)" }}></span>
+                        <span title="BAD" style={{ width: 8, height: 8, borderRadius: 999, display: "inline-block", background: d.bs === "OBTENU" ? "var(--success)" : d.bs === "EN_COURS" ? "var(--warning)" : "var(--danger)" }}></span>
+                        <span title="BAE" style={{ width: 8, height: 8, borderRadius: 999, display: "inline-block", background: d.as2 === "OBTENU" || d.pn ? "var(--success)" : d.as2 === "EN_COURS" ? "var(--warning)" : "var(--danger)" }}></span>
                       </div>
                     </div>
                     <div style={{ padding: "10px 6px" }}>
@@ -311,18 +311,18 @@ function Dos(p: DosProps) {
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <span style={{ background: DBG[d.st] || "var(--bg-secondary)", color: DC[d.st] || "var(--text-secondary)", padding: "3px 9px", borderRadius: 999, fontSize: 11, fontWeight: 600, letterSpacing: "0.005em", border: "1px solid var(--border)" }}>{DL[d.st] || "?"}</span>
                         {/* eslint-disable-next-line no-restricted-syntax -- WhatsApp brand green (couleur officielle) */}
-                        {d.ct ? <a href={"https://wa.me/" + d.ct.replace(/[^0-9+]/g, "") + "?text=" + encodeURIComponent("Bonjour " + (d.cl || "client") + ",\n\nSuivi de votre dossier BL " + (d.bl || "") + " (" + String(dtcs.length) + " conteneur" + (dtcs.length > 1 ? "s" : "") + ").\n\nStatut : " + (DL[d.st] || d.st) + (dtcs.length > 0 ? "\n\nConteneur(s) :\n" + dtcs.map(function (tc) { return "- " + (tc.n || "?") + " (" + (tc.ty || "") + ")"; }).join("\n") : "") + "\n\nCordialement")} target="_blank" rel="noopener noreferrer" onClick={function (e) { e.stopPropagation(); }} style={{ background: "#25D366", color: "white", borderRadius: 6, padding: "4px 8px", fontSize: 11, fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", minHeight: 28 }}>{"\uD83D\uDCF1"}</a> : null}
+                        {d.ct ? <a href={"https://wa.me/" + d.ct.replace(/[^0-9+]/g, "") + "?text=" + encodeURIComponent("Bonjour " + (d.cl || "client") + ",\n\nSuivi de votre dossier BL " + (d.bl || "") + " (" + String(dtcs.length) + " conteneur" + (dtcs.length > 1 ? "s" : "") + ").\n\nStatut : " + (DL[d.st] || d.st) + (dtcs.length > 0 ? "\n\nConteneur(s) :\n" + dtcs.map(function (tc) { return "- " + (tc.n || "?") + " (" + (tc.ty || "") + ")"; }).join("\n") : "") + "\n\nCordialement")} target="_blank" rel="noopener noreferrer" onClick={function (e) { e.stopPropagation(); }} style={{ background: "#25D366", color: "white", borderRadius: 6, padding: "4px 8px", fontSize: 11, fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", minHeight: 44 }}>{"\uD83D\uDCF1"}</a> : null}
                         {canEdit ? <button onClick={function (e) { e.stopPropagation(); setOm(isOpen ? null : d.id); }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "var(--text-secondary)", padding: "4px 2px", minHeight: 44, minWidth: 32 }}>{"\u22EE"}</button> : null}
                       </div>
                     </div>
                     {dTot > 0 ? <ClickableDiv onClick={function () { setMl({ t: "det", did: d.id }); }} label="Voir details financiers" style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
                       <span style={{ fontSize: 12, fontWeight: 600 }}>{fm(dTot)}</span>
-                      <div style={{ flex: 1, height: 3, background: "var(--border)", borderRadius: 2 }}><div style={{ width: dPct + "%", height: 3, background: dPct === 100 ? "var(--success)" : "var(--warning)", borderRadius: 2 }}></div></div>
+                      <div style={{ flex: 1, height: 3, background: "var(--border)", borderRadius: 6 }}><div style={{ width: dPct + "%", height: 3, background: dPct === 100 ? "var(--success)" : "var(--warning)", borderRadius: 6 }}></div></div>
                       <span style={{ fontSize: 10, fontWeight: 600, color: dPct === 100 ? "var(--success)" : "var(--warning)" }}>{String(dPct) + "%"}</span>
                     </ClickableDiv> : null}
                   </div>
                   {/* Context menu */}
-                  {isOpen ? <div onClick={function (e) { e.stopPropagation(); }} style={{ position: "absolute", right: 8, top: 40, background: "var(--bg-primary)", border: "1px solid var(--border)", borderRadius: 10, boxShadow: "0 4px 16px var(--shadow-lg)", zIndex: 50, minWidth: 200, overflow: "hidden" }}>
+                  {isOpen ? <div onClick={function (e) { e.stopPropagation(); }} style={{ position: "absolute", right: 8, top: 40, background: "var(--bg-primary)", border: "1px solid var(--border)", borderRadius: 8, boxShadow: "0 4px 16px var(--shadow-lg)", zIndex: 50, minWidth: 200, overflow: "hidden" }}>
                     <ClickableDiv onClick={function () { setOm(null); setMl({ t: "det", did: d.id }); }} label="Voir details" style={{ padding: "12px 14px", fontSize: 13, display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid var(--border-light)", minHeight: 44 }}><span style={{ fontSize: 15 }}>{"\uD83D\uDCC4"}</span>{"Details"}</ClickableDiv>
                     <ClickableDiv onClick={function () { setOm(null); setMl({ t: "edos", did: d.id }); }} label="Modifier dossier" style={{ padding: "12px 14px", fontSize: 13, display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid var(--border-light)", minHeight: 44 }}><span style={{ fontSize: 15 }}>{"\u270F\uFE0F"}</span>{"Modifier"}</ClickableDiv>
                     <ClickableDiv onClick={function () { setOm(null); setMl({ t: "jdoc", did: d.id }); }} label="Joindre documents" style={{ padding: "12px 14px", fontSize: 13, display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid var(--border-light)", minHeight: 44 }}><span style={{ fontSize: 15 }}>{"\uD83D\uDCCE"}</span>{"Documents"}</ClickableDiv>
@@ -395,13 +395,13 @@ function Dos(p: DosProps) {
                     </div> : null}
                   </div>
                   {dTot > 0 ? <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <div style={{ flex: 1, height: 4, background: "var(--border)", borderRadius: 2 }}>
-                      <div style={{ width: dPct + "%", height: 4, background: dPct === 100 ? "var(--success)" : "var(--warning)", borderRadius: 2 }}></div>
+                    <div style={{ flex: 1, height: 4, background: "var(--border)", borderRadius: 6 }}>
+                      <div style={{ width: dPct + "%", height: 4, background: dPct === 100 ? "var(--success)" : "var(--warning)", borderRadius: 6 }}></div>
                     </div>
                     <span style={{ fontSize: 11, fontWeight: 600, color: dPct === 100 ? "var(--success)" : "var(--warning)" }}>{String(dPct) + "%"}</span>
                     <div style={{ display: "flex", gap: 3, marginLeft: 4 }}>
-                      <span title="BAD" style={{ width: 8, height: 8, borderRadius: 99, display: "inline-block", background: d.bs === "OBTENU" ? "var(--success)" : "var(--danger)" }}></span>
-                      <span title="BAE" style={{ width: 8, height: 8, borderRadius: 99, display: "inline-block", background: d.as2 === "OBTENU" || d.pn ? "var(--success)" : "var(--danger)" }}></span>
+                      <span title="BAD" style={{ width: 8, height: 8, borderRadius: 999, display: "inline-block", background: d.bs === "OBTENU" ? "var(--success)" : "var(--danger)" }}></span>
+                      <span title="BAE" style={{ width: 8, height: 8, borderRadius: 999, display: "inline-block", background: d.as2 === "OBTENU" || d.pn ? "var(--success)" : "var(--danger)" }}></span>
                     </div>
                   </div> : null}
                 </div>;

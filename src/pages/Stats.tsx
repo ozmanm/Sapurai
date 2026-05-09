@@ -98,7 +98,7 @@ function Stats(p: StatsProps) {
     var pct = props.max > 0 ? Math.round(props.val / props.max * 100) : 0;
     return <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
       <div style={{ width: 70, minWidth: 50, fontSize: 11, fontWeight: 600, color: "var(--text-tertiary)", textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{props.label}</div>
-      <div style={{ flex: 1, height: 22, background: "var(--bg-secondary)", borderRadius: 4, overflow: "hidden" }}><div style={{ width: pct + "%", height: "100%", background: props.color || "var(--chart-1)", borderRadius: 4, minWidth: pct > 0 ? 4 : 0 }} /></div>
+      <div style={{ flex: 1, height: 22, background: "var(--bg-secondary)", borderRadius: 6, overflow: "hidden" }}><div style={{ width: pct + "%", height: "100%", background: props.color || "var(--chart-1)", borderRadius: 6, minWidth: pct > 0 ? 4 : 0 }} /></div>
       <div style={{ width: 70, minWidth: 50, fontSize: 11, fontWeight: 700, textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{props.fmt || fm(props.val)}</div>
     </div>;
   }
@@ -115,17 +115,17 @@ function Stats(p: StatsProps) {
         </div>
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
           {[{ k: "month", l: "Ce mois" }, { k: "quarter", l: "Trimestre" }, { k: "year", l: "Annee" }, { k: "all", l: "Tout" }].map(function (p2) {
-            return <button key={p2.k} onClick={function () { setPer(p2.k); }} style={{ background: per === p2.k ? "var(--btn-primary-bg)" : "transparent", color: per === p2.k ? "var(--btn-primary-text)" : "var(--text-tertiary)", border: per === p2.k ? "none" : "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", minHeight: 36 }}>{p2.l}</button>;
+            return <button key={p2.k} onClick={function () { setPer(p2.k); }} style={{ background: per === p2.k ? "var(--btn-primary-bg)" : "transparent", color: per === p2.k ? "var(--btn-primary-text)" : "var(--text-tertiary)", border: per === p2.k ? "none" : "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", minHeight: 44 }}>{p2.l}</button>;
           })}
         </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 8, marginBottom: 16 }}>
-        <div style={{ background: "var(--bg-primary)", borderRadius: 10, padding: 14, border: "1px solid var(--border)", textAlign: "center" }}><div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)" }}>{"DOSSIERS"}</div><div style={{ fontSize: 28, fontWeight: 600, fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums" as const, letterSpacing: "-0.02em" }}>{String(totalDos)}</div><div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{String(actifs) + " actifs | " + String(clotures) + " clos"}</div></div>
-        <div style={{ background: "var(--bg-primary)", borderRadius: 10, padding: 14, border: "1px solid var(--border)", textAlign: "center" }}><div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)" }}>{"CONTENEURS"}</div><div style={{ fontSize: 28, fontWeight: 600, fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums" as const, letterSpacing: "-0.02em", color: "var(--info)" }}>{String(nTC)}</div></div>
-        <div style={{ background: "var(--bg-primary)", borderRadius: 10, padding: 14, border: "1px solid var(--border)", textAlign: "center" }}><div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)" }}>{"DEPENSES TTC"}</div><div style={{ fontSize: 16, fontWeight: 900, color: "var(--danger)" }}>{fm(totalTTC)}</div><div style={{ fontSize: 10, color: "var(--warning)" }}>{"Taxes: " + fm(totalTax)}</div></div>
-        <div style={{ background: "var(--bg-primary)", borderRadius: 10, padding: 14, border: "1px solid var(--border)", textAlign: "center" }}><div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)" }}>{"IMPAYE"}</div><div style={{ fontSize: 16, fontWeight: 900, color: impaye > 0 ? "var(--warning)" : "var(--success)" }}>{fm(impaye)}</div></div>
-        <div style={{ background: "var(--bg-primary)", borderRadius: 10, padding: 14, border: "1px solid var(--border)", textAlign: "center" }}><div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)" }}>{"TRANSIT MOY."}</div><div style={{ fontSize: 28, fontWeight: 600, fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums" as const, letterSpacing: "-0.02em", color: "var(--purple)" }}>{avgTransit > 0 ? String(avgTransit) + "j" : "---"}</div></div>
+        <div style={{ background: "var(--bg-primary)", borderRadius: 8, padding: 14, border: "1px solid var(--border)", textAlign: "center" }}><div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)" }}>{"DOSSIERS"}</div><div style={{ fontSize: 28, fontWeight: 600, fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums" as const, letterSpacing: "-0.02em" }}>{String(totalDos)}</div><div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{String(actifs) + " actifs | " + String(clotures) + " clos"}</div></div>
+        <div style={{ background: "var(--bg-primary)", borderRadius: 8, padding: 14, border: "1px solid var(--border)", textAlign: "center" }}><div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)" }}>{"CONTENEURS"}</div><div style={{ fontSize: 28, fontWeight: 600, fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums" as const, letterSpacing: "-0.02em", color: "var(--info)" }}>{String(nTC)}</div></div>
+        <div style={{ background: "var(--bg-primary)", borderRadius: 8, padding: 14, border: "1px solid var(--border)", textAlign: "center" }}><div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)" }}>{"DEPENSES TTC"}</div><div style={{ fontSize: 16, fontWeight: 900, color: "var(--danger)" }}>{fm(totalTTC)}</div><div style={{ fontSize: 10, color: "var(--warning)" }}>{"Taxes: " + fm(totalTax)}</div></div>
+        <div style={{ background: "var(--bg-primary)", borderRadius: 8, padding: 14, border: "1px solid var(--border)", textAlign: "center" }}><div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)" }}>{"IMPAYE"}</div><div style={{ fontSize: 16, fontWeight: 900, color: impaye > 0 ? "var(--warning)" : "var(--success)" }}>{fm(impaye)}</div></div>
+        <div style={{ background: "var(--bg-primary)", borderRadius: 8, padding: 14, border: "1px solid var(--border)", textAlign: "center" }}><div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)" }}>{"TRANSIT MOY."}</div><div style={{ fontSize: 28, fontWeight: 600, fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums" as const, letterSpacing: "-0.02em", color: "var(--purple)" }}>{avgTransit > 0 ? String(avgTransit) + "j" : "---"}</div></div>
       </div>
 
       <div className="lt-grid2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
@@ -170,7 +170,7 @@ function Stats(p: StatsProps) {
         </div>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           {["INITIALISE", "SECURISE", "EN_TRANSIT", "CLOTURE", "ARCHIVE"].map(function (s) {
-            return <div key={s} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11 }}><div style={{ width: 10, height: 10, borderRadius: 3, background: stColors[s] }} /><span style={{ fontWeight: 600 }}>{DL[s]}</span><span style={{ color: "var(--text-secondary)" }}>{"(" + String(dosBySt[s] || 0) + ")"}</span></div>;
+            return <div key={s} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11 }}><div style={{ width: 10, height: 10, borderRadius: 6, background: stColors[s] }} /><span style={{ fontWeight: 600 }}>{DL[s]}</span><span style={{ color: "var(--text-secondary)" }}>{"(" + String(dosBySt[s] || 0) + ")"}</span></div>;
           })}
         </div>
       </div>
@@ -236,7 +236,7 @@ function Stats(p: StatsProps) {
             {chRows.slice(0, 10).map(function (r, i) {
               return <div key={r.ch} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                 <div style={{ width: 90, minWidth: 70, fontSize: 11, fontWeight: 600, color: "var(--text-tertiary)", textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.ch}</div>
-                <div style={{ flex: 1, height: 22, background: "var(--bg-secondary)", borderRadius: 4, overflow: "hidden" }}><div style={{ width: Math.round(r.n / maxChN * 100) + "%", height: "100%", background: PAL[i % PAL.length], borderRadius: 4, minWidth: 4 }} /></div>
+                <div style={{ flex: 1, height: 22, background: "var(--bg-secondary)", borderRadius: 6, overflow: "hidden" }}><div style={{ width: Math.round(r.n / maxChN * 100) + "%", height: "100%", background: PAL[i % PAL.length], borderRadius: 6, minWidth: 4 }} /></div>
                 <div style={{ width: 130, minWidth: 100, fontSize: 10, textAlign: "right", display: "flex", gap: 8, justifyContent: "flex-end" }}>
                   <span style={{ fontWeight: 700 }}>{String(r.n) + " voy."}</span>
                   <span style={{ color: "var(--text-secondary)" }}>{"moy. " + fm(r.avg)}</span>
@@ -251,7 +251,7 @@ function Stats(p: StatsProps) {
               {tyRows.map(function (r) {
                 return <div key={r.ty} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                   <div style={{ width: 50, fontSize: 12, fontWeight: 700, color: tyColors2[r.ty] || "var(--text-primary)", textAlign: "right" }}>{r.ty}</div>
-                  <div style={{ flex: 1, height: 22, background: "var(--bg-secondary)", borderRadius: 4, overflow: "hidden" }}><div style={{ width: Math.round(r.n / maxTyN * 100) + "%", height: "100%", background: tyColors2[r.ty] || "var(--text-secondary)", borderRadius: 4, minWidth: 4 }} /></div>
+                  <div style={{ flex: 1, height: 22, background: "var(--bg-secondary)", borderRadius: 6, overflow: "hidden" }}><div style={{ width: Math.round(r.n / maxTyN * 100) + "%", height: "100%", background: tyColors2[r.ty] || "var(--text-secondary)", borderRadius: 6, minWidth: 4 }} /></div>
                   <div style={{ width: 100, fontSize: 10, textAlign: "right" }}>
                     <div style={{ fontWeight: 700 }}>{fm(r.avg)}</div>
                     <div style={{ color: "var(--text-secondary)" }}>{String(r.n) + " TC"}</div>
@@ -265,7 +265,7 @@ function Stats(p: StatsProps) {
               {tyRows.filter(function (r) { return r.poAvg > 0; }).map(function (r) {
                 return <div key={r.ty} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                   <div style={{ width: 50, fontSize: 12, fontWeight: 700, color: tyColors2[r.ty] || "var(--text-primary)", textAlign: "right" }}>{r.ty}</div>
-                  <div style={{ flex: 1, height: 22, background: "var(--bg-secondary)", borderRadius: 4, overflow: "hidden" }}><div style={{ width: Math.round(r.poAvg / Math.max.apply(null, tyRows.map(function (x) { return x.poAvg || 1; })) * 100) + "%", height: "100%", background: tyColors2[r.ty] || "var(--text-secondary)", borderRadius: 4, minWidth: 4 }} /></div>
+                  <div style={{ flex: 1, height: 22, background: "var(--bg-secondary)", borderRadius: 6, overflow: "hidden" }}><div style={{ width: Math.round(r.poAvg / Math.max.apply(null, tyRows.map(function (x) { return x.poAvg || 1; })) * 100) + "%", height: "100%", background: tyColors2[r.ty] || "var(--text-secondary)", borderRadius: 6, minWidth: 4 }} /></div>
                   <div style={{ width: 80, fontSize: 11, fontWeight: 700, textAlign: "right" }}>{String(r.poAvg) + " T"}</div>
                 </div>;
               })}

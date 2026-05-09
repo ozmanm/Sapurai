@@ -1,7 +1,15 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-05-07 (134 taches)
+> Derniere mise a jour : 2026-05-08 (135 taches)
+
+---
+
+## FAIT — Sprint 31 : Polish design system global (borderRadius + touch targets + transitions)
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 135 | **Polish design system global** | 38 fichiers (.tsx) src/ + CHANGELOG | Resolution des 3 drifts systemiques identifies par /impeccable audit + critique global. (1) **Migration borderRadius globale** : 174 occurrences hors-tokens migrees vers les 4 valeurs canoniques DESIGN.md (`--radius-sm` 6px, `--radius` 8px, `--radius-lg` 12px, `999` pill). Heuristique : 1/2/3/4/5 -> 6 (compact), 7/10 -> 8 (boutons/badges), 14/16 -> 12 (cards), 20/99 -> 999 (pills). Distribution finale : **uniquement 4 valeurs canoniques** (8 x246, 6 x189, 12 x70, 999 x15). Plus aucun radius hors-token dans le projet. (2) **Touch targets WCAG 2.5.5** : 17 boutons interactifs migres a `minHeight: 44` sur 5 pages (Dep x7, Tcs x4, AgentView x3, Stats x1, Dos x2). Pages mobile-critiques (Dep, Tcs, AgentView) particulierement importantes pour le transitaire en deplacement. (3) **`transition: "all"` x3** dans Caut.tsx (lignes 55-57, tabs PERMANENTES/LOUEES/VENDUES) remplaces par proprietes explicites `background 0.2s ease-out, color 0.2s ease-out, border-color 0.2s ease-out` (respect skill impeccable "Don't transition all"). (4) **Cleanup** : 0 console.log en prod, TODO commentaires justifies (references decisions documentees), warnings unused-vars pre-existants laisses (pas critiques, decision separee). **Verifications** : 286/286 tests verts, build 11.01s, lint 0 erreur. **Score audit attendu** : Theming 3/4 -> 4/4, A11y 3/4 -> 4/4, Consistency Nielsen 4 (2.5/4 -> 3.5/4), Aesthetic Nielsen 8 (3/4 -> 3.5/4). **Score moyen pages app** : 16.7/20 -> ~18.5/20. **Effet utilisateur** : ryhme visuel uniforme sur toute l'app (cards/buttons/badges coherents), boutons mobile cliquables sans rater (44x44 minimum), transitions fluides ease-out. |
 
 ---
 

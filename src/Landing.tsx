@@ -368,7 +368,7 @@ export default function Landing() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <SapuraiLogo size={32} />
           <span style={{ fontFamily: FONT_MONO, fontSize: 16, fontWeight: 700 }}>sapurai</span>
-          <span style={{ fontFamily: FONT_MONO, fontSize: 10, color: TEXT_MUTED, background: '#ebe5d3', padding: '3px 7px', borderRadius: 4, letterSpacing: '0.05em' }}>v3.0 · prod</span>
+          <span style={{ fontFamily: FONT_MONO, fontSize: 10, color: TEXT_MUTED, background: '#ebe5d3', padding: '3px 7px', borderRadius: 6, letterSpacing: '0.05em' }}>v3.0 · prod</span>
         </div>
         <div className="lt-l-nav-links">
           <a href="#produit">produit</a>
@@ -560,7 +560,7 @@ function UrgenceRow(p: { code: string; client: string; tag: string; last?: boole
         <div style={{ color: ACCENT_RED, fontWeight: 700 }}>{p.code}</div>
         <div style={{ color: TEXT_MUTED, fontSize: 10 }}>{p.client}</div>
       </div>
-      <span style={{ background: '#fde7e3', color: ACCENT_RED, padding: '3px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600 }}>{p.tag}</span>
+      <span style={{ background: '#fde7e3', color: ACCENT_RED, padding: '3px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600 }}>{p.tag}</span>
     </div>
   );
 }

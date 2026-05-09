@@ -188,7 +188,7 @@ function Tcs(p: TcsProps) {
             {/* Desktop row */}
             <div className="lt-hide-mobile" onClick={function () { setOpenTc(isExp ? null : tc.id); }} style={{ display: "grid", gridTemplateColumns: "2fr 1.8fr 0.9fr 0.8fr 0.8fr 1fr 60px", alignItems: "center", cursor: "pointer", background: isExp ? "var(--bg-tertiary)" : "transparent" }}>
               <div style={{ padding: "12px 12px" }}>
-                <div style={{ fontFamily: "var(--font-mono)", fontWeight: 800, fontSize: 13, color: "var(--text-primary)" }}>{tc.n || "?"}{fr ? <span style={{ marginLeft: 6, background: ABG[fr.col], color: ACOL[fr.col], padding: "2px 6px", borderRadius: 4, fontSize: 10, fontWeight: 700, fontFamily: "system-ui" }}>{fr.lbl + " " + (fr.val > 0 ? "J-" + String(fr.val) : "+" + String(Math.abs(fr.val)) + "j")}</span> : null}</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontWeight: 800, fontSize: 13, color: "var(--text-primary)" }}>{tc.n || "?"}{fr ? <span style={{ marginLeft: 6, background: ABG[fr.col], color: ACOL[fr.col], padding: "2px 6px", borderRadius: 6, fontSize: 10, fontWeight: 700, fontFamily: "system-ui" }}>{fr.lbl + " " + (fr.val > 0 ? "J-" + String(fr.val) : "+" + String(Math.abs(fr.val)) + "j")}</span> : null}</div>
                 {tc.ch ? <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 1 }}>{"\u2192 " + tc.ch}</div> : null}
               </div>
               <div style={{ padding: "12px 12px" }}>
@@ -196,7 +196,7 @@ function Tcs(p: TcsProps) {
                 <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{(d.bl || "") + " \u00B7 " + (d.cp || "")}</div>
               </div>
               <div style={{ padding: "12px 12px", fontSize: 12, fontWeight: 600, color: "var(--text-input)" }}>{d.da ? fd(d.da) : "---"}</div>
-              <div style={{ padding: "12px 12px" }}><span style={{ background: "var(--bg-secondary)", padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700, color: "var(--text-input)" }}>{tc.ty || "---"}</span></div>
+              <div style={{ padding: "12px 12px" }}><span style={{ background: "var(--bg-secondary)", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700, color: "var(--text-input)" }}>{tc.ty || "---"}</span></div>
               <div style={{ padding: "12px 12px", fontSize: 12, color: "var(--text-input)" }}>{tc.po ? String(Math.round(tc.po / 1000)) + "t" : "---"}</div>
               <div style={{ padding: "12px 12px" }}><span style={{ background: SB[tc.st] || "var(--bg-secondary)", color: SC[tc.st] || "var(--text-secondary)", padding: "3px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700 }}>{SL[tc.st] || tc.st}</span></div>
               <div style={{ padding: "12px 8px", display: "flex", gap: 4, alignItems: "center" }}>
@@ -207,7 +207,7 @@ function Tcs(p: TcsProps) {
             <div className="lt-show-mobile" onClick={function () { setOpenTc(isExp ? null : tc.id); }} style={{ display: "none", padding: "10px 12px", cursor: "pointer", background: isExp ? "var(--bg-tertiary)" : "transparent" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
                 <div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontWeight: 800, fontSize: 13, color: "var(--text-primary)" }}>{tc.n || "?"}{fr ? <span style={{ marginLeft: 6, background: ABG[fr.col], color: ACOL[fr.col], padding: "2px 6px", borderRadius: 4, fontSize: 10, fontWeight: 700, fontFamily: "system-ui" }}>{fr.lbl + " " + (fr.val > 0 ? "J-" + String(fr.val) : "+" + String(Math.abs(fr.val)) + "j")}</span> : null}</div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontWeight: 800, fontSize: 13, color: "var(--text-primary)" }}>{tc.n || "?"}{fr ? <span style={{ marginLeft: 6, background: ABG[fr.col], color: ACOL[fr.col], padding: "2px 6px", borderRadius: 6, fontSize: 10, fontWeight: 700, fontFamily: "system-ui" }}>{fr.lbl + " " + (fr.val > 0 ? "J-" + String(fr.val) : "+" + String(Math.abs(fr.val)) + "j")}</span> : null}</div>
                   <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{(d.cl || "") + " \u00B7 " + (d.bl || "")}</div>
                   <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{(d.da ? fd(d.da) : "") + " \u00B7 " + (tc.ty || "") + (tc.po ? " \u00B7 " + String(Math.round(tc.po / 1000)) + "t" : "") + (tc.ch ? " \u00B7 " + tc.ch : "")}</div>
                 </div>
@@ -301,11 +301,11 @@ function Tcs(p: TcsProps) {
               </div> : null}
               {/* Actions */}
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {tc.st === "ATTENDU" ? <button onClick={function () { setAdvPending({ tid: tc.id, ns: "PORT", dt: today() }); }} style={{ background: "var(--info)", color: "white", border: "none", borderRadius: 6, padding: "8px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", minHeight: 36 }}>{"\u26F5 Arrive au port"}</button> : null}
-                {tc.st === "PORT" && (d.pn || d.as2 === "OBTENU") ? <button onClick={function () { setMl({ t: "disp", tid: tc.id }); }} style={{ background: "var(--success)", color: "white", border: "none", borderRadius: 6, padding: "8px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", minHeight: 36 }}>{"Dispatcher"}</button> : null}
+                {tc.st === "ATTENDU" ? <button onClick={function () { setAdvPending({ tid: tc.id, ns: "PORT", dt: today() }); }} style={{ background: "var(--info)", color: "white", border: "none", borderRadius: 6, padding: "8px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", minHeight: 44 }}>{"\u26F5 Arrive au port"}</button> : null}
+                {tc.st === "PORT" && (d.pn || d.as2 === "OBTENU") ? <button onClick={function () { setMl({ t: "disp", tid: tc.id }); }} style={{ background: "var(--success)", color: "white", border: "none", borderRadius: 6, padding: "8px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", minHeight: 44 }}>{"Dispatcher"}</button> : null}
                 {tc.st === "PORT" && !d.pn && d.as2 !== "OBTENU" ? <span style={{ fontSize: 11, color: "var(--danger)", fontWeight: 600, padding: "8px 0" }}>{"BAE / Pregate requis avant dispatch"}</span> : null}
-                {tc.st !== "PORT" && tc.st !== "ATTENDU" && nx.length > 0 ? <select value="" onChange={function (e) { if (e.target.value) setAdvPending({ tid: tc.id, ns: e.target.value, dt: today() }); }} style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid var(--border)", fontSize: 12, cursor: "pointer", minHeight: 36 }}><option value="">{"Avancer \u2192"}</option>{nx.map(function (s) { return <option key={s} value={s}>{SL[s] || s}</option>; })}</select> : null}
-                <button onClick={function () { setMl({ t: "det", did: d.id }); }} style={{ background: "var(--bg-primary)", border: "1px solid var(--border)", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", color: "var(--text-tertiary)", minHeight: 36 }}>{"Voir dossier"}</button>
+                {tc.st !== "PORT" && tc.st !== "ATTENDU" && nx.length > 0 ? <select value="" onChange={function (e) { if (e.target.value) setAdvPending({ tid: tc.id, ns: e.target.value, dt: today() }); }} style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid var(--border)", fontSize: 12, cursor: "pointer", minHeight: 44 }}><option value="">{"Avancer \u2192"}</option>{nx.map(function (s) { return <option key={s} value={s}>{SL[s] || s}</option>; })}</select> : null}
+                <button onClick={function () { setMl({ t: "det", did: d.id }); }} style={{ background: "var(--bg-primary)", border: "1px solid var(--border)", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", color: "var(--text-tertiary)", minHeight: 44 }}>{"Voir dossier"}</button>
               </div>
             </div> : null}
           </div>;

@@ -171,7 +171,7 @@ export default function App(props: AppProps) {
           ) : clientDos.map(function (d) {
             var tcList = L.tcs.filter(function (t) { return t.did === d.id; });
             return (
-              <div key={d.id} style={{ background: "var(--bg-primary)", borderRadius: 10, border: "1px solid var(--border)", padding: "12px 16px", marginBottom: 8 }}>
+              <div key={d.id} style={{ background: "var(--bg-primary)", borderRadius: 8, border: "1px solid var(--border)", padding: "12px 16px", marginBottom: 8 }}>
                 <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-primary)" }}>
                   {d.bl || "\u2014"}
                   {d.cp ? <span style={{ color: "var(--text-muted)", fontWeight: 400, marginLeft: 8 }}>{d.cp}</span> : null}
@@ -184,7 +184,7 @@ export default function App(props: AppProps) {
                     var stColors = { ATTENDU: "#94a3b8", PORT: "#64748b", DISPATCHE: "#2563eb", TRANSIT: "#d97706", KATI: "#7c3aed", BAMAKO: "var(--text-primary)", RETURNED: "#059669" };
                     var stLabels = { ATTENDU: "Attendu", PORT: "Au port", DISPATCHE: "Dispatche", TRANSIT: "En transit", KATI: "Kati", BAMAKO: "Bamako", RETURNED: "Retourne" };
                     return (
-                      <span key={tc.id} style={{ background: stColors[tc.st] || "var(--text-muted)", color: "white", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 5 }}>
+                      <span key={tc.id} style={{ background: stColors[tc.st] || "var(--text-muted)", color: "white", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6 }}>
                         {tc.n || tc.ty} · {stLabels[tc.st] || tc.st}
                       </span>
                     );

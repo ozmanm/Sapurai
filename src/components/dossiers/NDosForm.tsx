@@ -130,7 +130,7 @@ function NDosForm(p: NDosFormProps) {
     <div>
       {/* Sprint 26 : bandeau Scan BL (reactive en beta, necessite cle Gemini) */}
       {canScan && !showScan ? (
-        <div style={{ background: "var(--success-bg)", border: "2px dashed var(--success-border)", borderRadius: 10, padding: 14, marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+        <div style={{ background: "var(--success-bg)", border: "2px dashed var(--success-border)", borderRadius: 8, padding: 14, marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--success-text)" }}>{"📷 Gagnez du temps"}</div>
             <div style={{ fontSize: 12, color: "var(--success-text)" }}>{"Scannez votre BL pour pre-remplir automatiquement"}</div>
@@ -157,7 +157,7 @@ function NDosForm(p: NDosFormProps) {
         <div style={{ marginBottom: 12 }}><label style={LS}>{"Compagnie"}</label><input list="ndos-cp-list" value={cp} onChange={function (e) { sCp(e.target.value.toUpperCase()); }} placeholder="CMA CGM, MAERSK..." style={IS} maxLength={30} /><datalist id="ndos-cp-list">{refCompagnies.map(function (s) { return <option key={s} value={s} />; })}</datalist></div>
         <div style={{ marginBottom: 12 }}><label style={LS}>{"Destination"}</label><input list="ndos-cr-list" value={cr} onChange={function (e) { sCr(e.target.value); }} placeholder="Bamako, Conakry, Abidjan..." style={IS} maxLength={50} /><datalist id="ndos-cr-list">{refDestinations.map(function (s) { return <option key={s} value={s} />; })}</datalist></div>
         <div style={{ marginBottom: 12 }}>
-          <label style={LS}>{"Date arrivee"}{daSrcState === "cma" ? <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, background: "var(--info-bg)", color: "var(--info-text)", padding: "1px 6px", borderRadius: 4 }}>{"📡 CMA"}</span> : null}</label>
+          <label style={LS}>{"Date arrivee"}{daSrcState === "cma" ? <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, background: "var(--info-bg)", color: "var(--info-text)", padding: "1px 6px", borderRadius: 6 }}>{"📡 CMA"}</span> : null}</label>
           <div style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
             <input type="date" value={da} onChange={function (e) { sDa(e.target.value); setDaSrcState("manual"); }} style={Object.assign({}, IS, { flex: 1 })} />
             {isBetaCompany(p.companyId) && cp.toUpperCase().indexOf("CMA") >= 0 && bl.trim().length >= 4 ? (
@@ -203,7 +203,7 @@ function NDosForm(p: NDosFormProps) {
         {p.init ? <div style={{ marginBottom: 12 }}><label style={LS}>{"Transport/TC FCFA"}</label><input type="number" value={pf} onChange={function (e) { sPf(e.target.value); }} placeholder="Prix chauffeur par conteneur" style={IS} /></div> : null}
       </div>
       {gr !== "PERMANENTE" ? (
-        <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 14, background: "var(--bg-tertiary)" }}>
+        <div style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 14, marginBottom: 14, background: "var(--bg-tertiary)" }}>
           <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>{gr === "LOUEE" ? "Caution louée — détails" : "Vente de lettre — détails"}</div>
           <div className="lt-grid2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div style={{ marginBottom: 12 }}><label style={LS}>{gr === "LOUEE" ? "Contact garant" : "Contact acheteur"}</label><input list="ndos-garant-list" value={garContact} onChange={function (e) { sGarContact(e.target.value); }} placeholder="Nom du garant / acheteur" style={IS} maxLength={50} /><datalist id="ndos-garant-list">{refGarants.map(function (s) { return <option key={s} value={s} />; })}</datalist></div>
@@ -215,7 +215,7 @@ function NDosForm(p: NDosFormProps) {
         </div>
       ) : null}
       {p.init ? (
-        <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 14 }}>
+        <div style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 14, marginBottom: 14 }}>
           <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>{"Documents"}</div>
           <div className="lt-grid2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
@@ -234,7 +234,7 @@ function NDosForm(p: NDosFormProps) {
       ) : null}
       {/* Assignation agent (Sprint A bug 2 + C.1 exclusivité) */}
       {availableAgents.length > 0 ? (
-        <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 14, background: "var(--bg-tertiary)" }}>
+        <div style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 14, marginBottom: 14, background: "var(--bg-tertiary)" }}>
           <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>{"Agent assigné"}</div>
           {existingAgentItv && existingAgentItv.nm && agentNm && agentNm !== existingAgentItv.nm ? (
             <div style={{ background: "var(--warning-bg)", border: "1px solid var(--warning-border)", borderRadius: 6, padding: "6px 10px", marginBottom: 10, fontSize: 12, color: "var(--warning-text)" }}>
@@ -273,7 +273,7 @@ function NDosForm(p: NDosFormProps) {
         </div>
       ) : null}
 
-      <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 14, background: "var(--bg-tertiary)" }}>
+      <div style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 14, marginBottom: 14, background: "var(--bg-tertiary)" }}>
         <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{"Paramètres métier (auto-stub factures)"}</div>
         <div style={{ fontSize: 11, color: "var(--text-secondary)", marginBottom: 10 }}>{"Laisser vide pour appliquer les valeurs par défaut. Renseigner uniquement en cas de dérogation client."}</div>
         <div className="lt-grid2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>

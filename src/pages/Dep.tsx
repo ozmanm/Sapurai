@@ -93,10 +93,10 @@ function Dep(p: DepProps) {
         })}
       </div>
       <div className="lt-grid4" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 14 }}>
-        <div style={{ background: "var(--bg-primary)", borderRadius: 10, padding: 12, border: "1px solid var(--border)", textAlign: "center" }}><div style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600 }}>{"HT"}</div><div style={{ fontSize: 14, fontWeight: 800 }}>{fm(fht)}</div></div>
-        <div style={{ background: "var(--bg-primary)", borderRadius: 10, padding: 12, border: "1px solid var(--border)", textAlign: "center" }}><div style={{ fontSize: 10, color: "var(--danger-text)", fontWeight: 600 }}>{"TTC"}</div><div style={{ fontSize: 14, fontWeight: 800, color: "var(--danger-text)" }}>{fm(ftot)}</div></div>
-        <div style={{ background: "var(--bg-primary)", borderRadius: 10, padding: 12, border: "1px solid var(--border)", textAlign: "center" }}><div style={{ fontSize: 10, color: "var(--warning-text)", fontWeight: 600 }}>{"TAXES"}</div><div style={{ fontSize: 14, fontWeight: 800, color: "var(--warning)" }}>{fm(ftax)}</div></div>
-        <div style={{ background: "var(--bg-primary)", borderRadius: 10, padding: 12, border: "1px solid var(--border)", textAlign: "center" }}><div style={{ fontSize: 10, color: "var(--success-text)", fontWeight: 600 }}>{"PAYE"}</div><div style={{ fontSize: 14, fontWeight: 800, color: "var(--success-text)" }}>{String(fpaye) + "/" + String(fpaye + fimp)}</div></div>
+        <div style={{ background: "var(--bg-primary)", borderRadius: 8, padding: 12, border: "1px solid var(--border)", textAlign: "center" }}><div style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600 }}>{"HT"}</div><div style={{ fontSize: 14, fontWeight: 800 }}>{fm(fht)}</div></div>
+        <div style={{ background: "var(--bg-primary)", borderRadius: 8, padding: 12, border: "1px solid var(--border)", textAlign: "center" }}><div style={{ fontSize: 10, color: "var(--danger-text)", fontWeight: 600 }}>{"TTC"}</div><div style={{ fontSize: 14, fontWeight: 800, color: "var(--danger-text)" }}>{fm(ftot)}</div></div>
+        <div style={{ background: "var(--bg-primary)", borderRadius: 8, padding: 12, border: "1px solid var(--border)", textAlign: "center" }}><div style={{ fontSize: 10, color: "var(--warning-text)", fontWeight: 600 }}>{"TAXES"}</div><div style={{ fontSize: 14, fontWeight: 800, color: "var(--warning)" }}>{fm(ftax)}</div></div>
+        <div style={{ background: "var(--bg-primary)", borderRadius: 8, padding: 12, border: "1px solid var(--border)", textAlign: "center" }}><div style={{ fontSize: 10, color: "var(--success-text)", fontWeight: 600 }}>{"PAYE"}</div><div style={{ fontSize: 14, fontWeight: 800, color: "var(--success-text)" }}>{String(fpaye) + "/" + String(fpaye + fimp)}</div></div>
       </div>
       {/* Onglet "Par client" : suivi financier groupe (ex-Dash) */}
       {tab === "BY_CLIENT" ? (function () {
@@ -141,7 +141,7 @@ function Dep(p: DepProps) {
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <span style={{ fontSize: 12, fontWeight: 700, color: col, fontFamily: "var(--font-mono)" }}>{String(pct) + "%"}</span>
-                          <span onClick={function (e) { e.stopPropagation(); pdfClient(r.cl, dos, tcs, dep, companyName); }} style={{ fontSize: 11, cursor: "pointer", color: "var(--text-secondary)", padding: "2px 6px", borderRadius: 4, border: "1px solid var(--border)" }} title={"PDF " + r.cl}>{"📄"}</span>
+                          <span onClick={function (e) { e.stopPropagation(); pdfClient(r.cl, dos, tcs, dep, companyName); }} style={{ fontSize: 11, cursor: "pointer", color: "var(--text-secondary)", padding: "2px 6px", borderRadius: 6, border: "1px solid var(--border)" }} title={"PDF " + r.cl}>{"📄"}</span>
                           {(function () {
                             if (imp <= 0) return null;
                             var clientDos = dos.filter(function (dd: any) { return (dd.cl || "Sans client") === r.cl && dd.st !== "ARCHIVE"; });
@@ -159,7 +159,7 @@ function Dep(p: DepProps) {
                             var msg = "Bonjour " + r.cl + ",\n\nVous avez " + String(details.length) + " facture(s) en attente de reglement pour un montant total de " + fm(imp) + ".\n\nDetail :\n" + shown.join("\n") + "\n\nCordialement,\n" + companyName;
                             var href = "https://wa.me/" + tel.replace(/[^0-9+]/g, "") + "?text=" + encodeURIComponent(msg);
                             // eslint-disable-next-line no-restricted-syntax -- WhatsApp brand green (couleur officielle)
-                            return <a href={href} target="_blank" rel="noopener noreferrer" onClick={function (e) { e.stopPropagation(); }} style={{ fontSize: 11, cursor: "pointer", color: "#25D366", padding: "2px 6px", borderRadius: 4, border: "1px solid #25D366", textDecoration: "none", fontWeight: 700 }} title={"Relancer " + r.cl}>{"📱"}</a>;
+                            return <a href={href} target="_blank" rel="noopener noreferrer" onClick={function (e) { e.stopPropagation(); }} style={{ fontSize: 11, cursor: "pointer", color: "#25D366", padding: "2px 6px", borderRadius: 6, border: "1px solid #25D366", textDecoration: "none", fontWeight: 700 }} title={"Relancer " + r.cl}>{"📱"}</a>;
                           })()}
                         </div>
                       </div>
@@ -170,7 +170,7 @@ function Dep(p: DepProps) {
                         {r.rv > 0 ? <span style={{ color: (r.rv - r.tot) >= 0 ? "var(--success)" : "var(--danger)", fontWeight: 600 }}>{"Marge: " + fm(r.rv - r.tot)}</span> : null}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 5 }}>
-                        <div style={{ flex: 1, height: 4, background: "var(--border)", borderRadius: 2 }}><div style={{ width: pct + "%", height: 4, background: col, borderRadius: 2 }}></div></div>
+                        <div style={{ flex: 1, height: 4, background: "var(--border)", borderRadius: 6 }}><div style={{ width: pct + "%", height: 4, background: col, borderRadius: 6 }}></div></div>
                       </div>
                     </div>
                   );
@@ -195,7 +195,7 @@ function Dep(p: DepProps) {
                 <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                   <span>{DTL[f.tp] || f.tp || "?"}</span>
                   {hasFile ? <span style={{ color: "var(--text-primary)" }}>{"\uD83D\uDCCE"}</span> : null}
-                  {f.auto ? <span title="Cree automatiquement a l'arrivee" style={{ fontSize: 9, background: "var(--info-bg)", color: "var(--info-text)", padding: "1px 6px", borderRadius: 4, fontWeight: 700, letterSpacing: 0.3 }}>{"AUTO"}</span> : null}
+                  {f.auto ? <span title="Cree automatiquement a l'arrivee" style={{ fontSize: 9, background: "var(--info-bg)", color: "var(--info-text)", padding: "1px 6px", borderRadius: 6, fontWeight: 700, letterSpacing: 0.3 }}>{"AUTO"}</span> : null}
                 </div>
                 {f.nf ? <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 1 }}>{"N° " + f.nf}</div> : null}
                 {f.ds ? <div style={{ fontSize: 10, color: "var(--text-muted)" }}>{f.ds}</div> : null}
@@ -209,9 +209,9 @@ function Dep(p: DepProps) {
               <div style={{ padding: "12px 12px", fontSize: 13, fontWeight: 800, color: "var(--danger)" }}>{fm(f.mt || 0)}</div>
               <div style={{ padding: "12px 8px", display: "flex", gap: 4, alignItems: "center" }}>
                 {f.status === "en_attente_facture" ? (
-                  <button onClick={function () { setMl({ t: "edep", fid: f.id }); }} title="Saisir le montant de la facture" style={{ background: "var(--info-bg)", color: "var(--info-text)", border: "none", padding: "6px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", minHeight: 32 }}>{"En attente"}</button>
+                  <button onClick={function () { setMl({ t: "edep", fid: f.id }); }} title="Saisir le montant de la facture" style={{ background: "var(--info-bg)", color: "var(--info-text)", border: "none", padding: "6px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", minHeight: 44 }}>{"En attente"}</button>
                 ) : (
-                  <button onClick={function () { toggleDepSt(f.id); }} style={{ background: f.s === "PAYE" ? "var(--success-light)" : "var(--warning-bg)", color: f.s === "PAYE" ? "var(--success-text)" : "var(--warning-text)", border: "none", padding: "6px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", minHeight: 32 }}>{f.s === "PAYE" ? "Paye" : "Impaye"}</button>
+                  <button onClick={function () { toggleDepSt(f.id); }} style={{ background: f.s === "PAYE" ? "var(--success-light)" : "var(--warning-bg)", color: f.s === "PAYE" ? "var(--success-text)" : "var(--warning-text)", border: "none", padding: "6px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", minHeight: 44 }}>{f.s === "PAYE" ? "Paye" : "Impaye"}</button>
                 )}
                 <button onClick={function () { setMl({ t: "edep", fid: f.id }); }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: "var(--text-secondary)" }}>{"\u270F\uFE0F"}</button>
                 {f.auto && f.status === "en_attente_facture" && ignoreDep ? (
@@ -219,8 +219,8 @@ function Dep(p: DepProps) {
                 ) : null}
                 {pendingDel === f.id ? (
                   <span style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                    <button onClick={function () { setPendingDel(null); deleteDep(f.id); }} style={{ background: "var(--danger)", color: "white", border: "none", borderRadius: 4, padding: "2px 6px", fontSize: 10, fontWeight: 700, cursor: "pointer" }}>{"Oui"}</button>
-                    <button onClick={function () { setPendingDel(null); }} style={{ background: "var(--bg-secondary)", border: "none", borderRadius: 4, padding: "2px 6px", fontSize: 10, cursor: "pointer" }}>{"Non"}</button>
+                    <button onClick={function () { setPendingDel(null); deleteDep(f.id); }} style={{ background: "var(--danger)", color: "white", border: "none", borderRadius: 6, padding: "2px 6px", fontSize: 10, fontWeight: 700, cursor: "pointer" }}>{"Oui"}</button>
+                    <button onClick={function () { setPendingDel(null); }} style={{ background: "var(--bg-secondary)", border: "none", borderRadius: 6, padding: "2px 6px", fontSize: 10, cursor: "pointer" }}>{"Non"}</button>
                   </span>
                 ) : (
                   <button onClick={function () { setPendingDel(f.id); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--danger)", fontSize: 12 }}>{"x"}</button>
@@ -234,7 +234,7 @@ function Dep(p: DepProps) {
                   <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{dn + " \u00B7 " + fd(f.dt)}</div>
                   {f.nf ? <div style={{ fontSize: 10, color: "var(--text-muted)" }}>{"N\u00B0 " + f.nf}</div> : null}
                 </div>
-                <button onClick={function () { toggleDepSt(f.id); }} style={{ background: f.s === "PAYE" ? "var(--success-light)" : "var(--warning-bg)", color: f.s === "PAYE" ? "var(--success-text)" : "var(--warning-text)", border: "none", padding: "6px 12px", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", minHeight: 32 }}>{f.s === "PAYE" ? "Paye" : "Impaye"}</button>
+                <button onClick={function () { toggleDepSt(f.id); }} style={{ background: f.s === "PAYE" ? "var(--success-light)" : "var(--warning-bg)", color: f.s === "PAYE" ? "var(--success-text)" : "var(--warning-text)", border: "none", padding: "6px 12px", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", minHeight: 44 }}>{f.s === "PAYE" ? "Paye" : "Impaye"}</button>
               </div>
               <div style={{ display: "flex", gap: 10, marginTop: 6, fontSize: 12 }}>
                 <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>{"HT " + fm(f.ht || f.mt || 0)}</span>
@@ -242,14 +242,14 @@ function Dep(p: DepProps) {
                 <span style={{ color: "var(--danger)", fontWeight: 800 }}>{"TTC " + fm(f.mt || 0)}</span>
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                <button onClick={function () { setMl({ t: "edep", fid: f.id }); }} style={{ background: "var(--bg-secondary)", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", color: "var(--text-tertiary)", minHeight: 36 }}>{"Modifier"}</button>
+                <button onClick={function () { setMl({ t: "edep", fid: f.id }); }} style={{ background: "var(--bg-secondary)", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", color: "var(--text-tertiary)", minHeight: 44 }}>{"Modifier"}</button>
                 {pendingDel === f.id ? (
                   <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                    <button onClick={function () { setPendingDel(null); deleteDep(f.id); }} style={{ background: "var(--danger)", color: "white", border: "none", borderRadius: 6, padding: "8px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", minHeight: 36 }}>{"Oui"}</button>
-                    <button onClick={function () { setPendingDel(null); }} style={{ background: "var(--bg-secondary)", border: "none", borderRadius: 6, padding: "8px 12px", fontSize: 12, cursor: "pointer", minHeight: 36 }}>{"Non"}</button>
+                    <button onClick={function () { setPendingDel(null); deleteDep(f.id); }} style={{ background: "var(--danger)", color: "white", border: "none", borderRadius: 6, padding: "8px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", minHeight: 44 }}>{"Oui"}</button>
+                    <button onClick={function () { setPendingDel(null); }} style={{ background: "var(--bg-secondary)", border: "none", borderRadius: 6, padding: "8px 12px", fontSize: 12, cursor: "pointer", minHeight: 44 }}>{"Non"}</button>
                   </span>
                 ) : (
-                  <button onClick={function () { setPendingDel(f.id); }} style={{ background: "var(--danger-bg)", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", color: "var(--danger)", minHeight: 36 }}>{"Suppr."}</button>
+                  <button onClick={function () { setPendingDel(f.id); }} style={{ background: "var(--danger-bg)", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", color: "var(--danger)", minHeight: 44 }}>{"Suppr."}</button>
                 )}
               </div>
             </div>

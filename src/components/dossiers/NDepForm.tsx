@@ -85,7 +85,7 @@ function NDepForm(p: NDepFormProps) {
       </div>
       {ht && ttc && parseFloat(ttc) > parseFloat(ht) ? <div style={{ background: "var(--warning-bg)", borderRadius: 8, padding: 8, marginBottom: 12, fontSize: 12, color: "var(--warning-text)" }}>{"Taxes: " + fm(parseFloat(ttc) - parseFloat(ht)) + " (" + ((parseFloat(ttc) / parseFloat(ht) - 1) * 100).toFixed(1) + "%)"}</div> : null}
       <div style={{ marginBottom: 14 }}>
-        <label style={{ background: uploading ? "var(--text-muted)" : "var(--bg-tertiary)", border: "2px dashed var(--border)", borderRadius: 10, padding: 14, display: "block", textAlign: "center", cursor: uploading ? "default" : "pointer" }}>
+        <label style={{ background: uploading ? "var(--text-muted)" : "var(--bg-tertiary)", border: "2px dashed var(--border)", borderRadius: 8, padding: 14, display: "block", textAlign: "center", cursor: uploading ? "default" : "pointer" }}>
           {fileInfo ? <span style={{ fontSize: 13, fontWeight: 600, color: "var(--success)" }}>{"\uD83D\uDCC4 " + fileInfo.fn}</span> : <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{uploading ? "Upload..." : "Joindre justificatif (PDF/Image)"}</span>}
           <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFile} style={{ display: "none" }} disabled={uploading} />
         </label>

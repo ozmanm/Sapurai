@@ -66,7 +66,7 @@ function DetView(p: DetViewProps) {
             <div style={{ fontSize: 22, fontWeight: 800 }}>{d.cl || "?"}</div>
             <div style={{ fontSize: 13, opacity: 0.8 }}>
               {"BL: " + (d.bl || "") + (d.cp ? " | " + d.cp : "") + " | " + (mt.length > 0 ? tcSum(mt) : "0 TC") + " | " + fd(d.da)}
-              {d.daSrc === "cma" ? <span title="Date d'arrivee renseignee automatiquement via l'API CMA-CGM" style={{ marginLeft: 6, background: "rgba(255,255,255,0.18)", padding: "1px 6px", borderRadius: 4, fontSize: 10, fontWeight: 700, letterSpacing: 0.3 }}>{"📡 CMA"}</span> : null}
+              {d.daSrc === "cma" ? <span title="Date d'arrivee renseignee automatiquement via l'API CMA-CGM" style={{ marginLeft: 6, background: "rgba(255,255,255,0.18)", padding: "1px 6px", borderRadius: 6, fontSize: 10, fontWeight: 700, letterSpacing: 0.3 }}>{"📡 CMA"}</span> : null}
             </div>
             {d.cr ? <div style={{ fontSize: 12, opacity: 0.7 }}>{"Destination: " + d.cr}</div> : null}
             {d.ct ? <div style={{ fontSize: 12, opacity: 0.7 }}>{"Tel: " + d.ct}</div> : null}
@@ -104,7 +104,7 @@ function DetView(p: DetViewProps) {
             {ce ? <button onClick={function () { setDm(!dm); }} style={{ background: "rgba(255,255,255,0.2)", color: "white", border: "none", borderRadius: 8, padding: "4px 8px", fontSize: 18, cursor: "pointer", lineHeight: 1 }}>{"\u22EE"}</button> : null}
           </div>
         </div>
-        {dm ? <div role="menu" style={{ position: "absolute", right: 12, top: 52, background: "var(--bg-primary)", border: "1px solid var(--border)", borderRadius: 10, boxShadow: "0 4px 16px rgba(0,0,0,.15)", zIndex: 50, minWidth: 180, overflow: "hidden" }}>
+        {dm ? <div role="menu" style={{ position: "absolute", right: 12, top: 52, background: "var(--bg-primary)", border: "1px solid var(--border)", borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,.15)", zIndex: 50, minWidth: 180, overflow: "hidden" }}>
           <ClickableDiv onClick={function () { setDm(false); p.setMl({ t: "edos", did: d.id, prev: { t: "det", did: d.id } }); setDm(false); }} label="Modifier le dossier" style={{ padding: "10px 14px", fontSize: 13, display: "flex", alignItems: "center", gap: 8, color: "var(--text-input)", borderBottom: "1px solid var(--border-light)" }}><span>{"\u270F\uFE0F"}</span>{"Modifier"}</ClickableDiv>
           <ClickableDiv onClick={function () { setDm(false); printDossier(d, p.tcs, p.dep, (p.db || {}).name || "SAPURAI"); }} label="Imprimer le dossier" style={{ padding: "10px 14px", fontSize: 13, display: "flex", alignItems: "center", gap: 8, color: "var(--text-input)", borderBottom: "1px solid var(--border-light)" }}><span>{"\uD83D\uDDA8\uFE0F"}</span>{"Imprimer"}</ClickableDiv>
           <ClickableDiv onClick={function () { setDm(false); pdfDossier(d, p.tcs, p.dep, p.db || {}); }} label="Telecharger le dossier en PDF" style={{ padding: "10px 14px", fontSize: 13, display: "flex", alignItems: "center", gap: 8, color: "var(--text-input)", borderBottom: "1px solid var(--border-light)" }}><span>{"\uD83D\uDCC4"}</span>{"Telecharger PDF"}</ClickableDiv>
@@ -179,7 +179,7 @@ function DetView(p: DetViewProps) {
                         fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums" as const,
                       }}>{done ? "✓" : String(i + 1)}</div>
                       {i < steps.length - 1 ? (
-                        <div style={{ flex: 1, height: 2, background: i + 1 <= current || isCurrent ? "var(--btn-primary-bg)" : "var(--border)", borderRadius: 1 }} />
+                        <div style={{ flex: 1, height: 2, background: i + 1 <= current || isCurrent ? "var(--btn-primary-bg)" : "var(--border)", borderRadius: 6 }} />
                       ) : null}
                     </div>
                     <div style={{ minWidth: 0 }}>
@@ -266,7 +266,7 @@ function DetView(p: DetViewProps) {
             else if (bvr <= 3) { badBg = "var(--warning-bg)"; badExp = "J-" + String(bvr); }
             else { badExp = "OK " + fd(d.bv); }
           }
-          return <ClickableDiv onClick={cycleBad} disabled={!ce} label="Cycler le statut BAD" style={{ background: badBg, padding: 10, borderRadius: 10, transition: "background 0.2s" }}>
+          return <ClickableDiv onClick={cycleBad} disabled={!ce} label="Cycler le statut BAD" style={{ background: badBg, padding: 10, borderRadius: 8, transition: "background 0.2s" }}>
             <div style={{ fontWeight: 700, fontSize: 11, display: "flex", justifyContent: "space-between", color: "var(--text-primary)" }}>{"BAD"}{ce ? <span style={{ fontSize: 9, color: "var(--text-tertiary)" }}>{"cliquer"}</span> : null}</div>
             <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{d.bs === "OBTENU" ? "Obtenu" : d.bs === "EN_COURS" ? "En cours" : "Non demandé"}</div>
             {badExp ? <div style={{ fontSize: 10, fontWeight: 700, color: (!anyAtPort) ? "var(--text-tertiary)" : badExp.indexOf("EXPIRE") >= 0 ? "var(--danger-text)" : badExp.indexOf("J-") >= 0 ? "var(--warning-text)" : "var(--success-text)" }}>{badExp}</div> : null}
@@ -274,14 +274,14 @@ function DetView(p: DetViewProps) {
           </ClickableDiv>;
         })()}
         {/* BAE — cliquable */}
-        <ClickableDiv onClick={cycleBae} disabled={!ce} label="Cycler le statut BAE" style={{ background: d.as2 === "OBTENU" ? "var(--success-light)" : d.as2 === "EN_COURS" ? "var(--warning-bg)" : "var(--danger-light)", padding: 10, borderRadius: 10, transition: "background 0.2s" }}>
+        <ClickableDiv onClick={cycleBae} disabled={!ce} label="Cycler le statut BAE" style={{ background: d.as2 === "OBTENU" ? "var(--success-light)" : d.as2 === "EN_COURS" ? "var(--warning-bg)" : "var(--danger-light)", padding: 10, borderRadius: 8, transition: "background 0.2s" }}>
           <div style={{ fontWeight: 700, fontSize: 11, display: "flex", justifyContent: "space-between", color: "var(--text-primary)" }}>{"BAE"}{ce ? <span style={{ fontSize: 9, color: "var(--text-tertiary)" }}>{"cliquer"}</span> : null}</div>
           <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{d.as2 === "OBTENU" ? "Obtenu" : d.as2 === "EN_COURS" ? "En cours" : "Non demandé"}</div>
           {d.nd ? <div style={{ fontSize: 10, color: "var(--text-tertiary)" }}>{"Decl: " + d.nd}</div> : null}
           {(editNd || (d.as2 === "OBTENU" && !d.nd)) && ce ? <input type="text" defaultValue={d.nd || ""} placeholder="N° declaration" onClick={function (e) { e.stopPropagation(); }} onBlur={function (e) { if (e.target.value) p.patchDos(d.id, { nd: e.target.value }); setEditNd(false); }} style={{ marginTop: 4, width: "100%", fontSize: 11, padding: "3px 6px", borderRadius: 6, border: "1px solid var(--border)", boxSizing: "border-box" }} /> : null}
         </ClickableDiv>
         {/* PREGATE — cliquable */}
-        <ClickableDiv onClick={function () { if (ce && !editPn) setEditPn(true); }} disabled={!ce || editPn} label="Editer le numero Pregate" style={{ background: d.pn ? "var(--success-light)" : anyAtPort ? "var(--warning-bg)" : "var(--bg-secondary)", padding: 10, borderRadius: 10, transition: "background 0.2s" }}>
+        <ClickableDiv onClick={function () { if (ce && !editPn) setEditPn(true); }} disabled={!ce || editPn} label="Editer le numero Pregate" style={{ background: d.pn ? "var(--success-light)" : anyAtPort ? "var(--warning-bg)" : "var(--bg-secondary)", padding: 10, borderRadius: 8, transition: "background 0.2s" }}>
           <div style={{ fontWeight: 700, fontSize: 11, display: "flex", justifyContent: "space-between", color: "var(--text-primary)" }}>{"PREGATE"}{ce && !d.pn ? <span style={{ fontSize: 9, color: "var(--text-tertiary)" }}>{"cliquer"}</span> : null}</div>
           {editPn && ce ? <div style={{ display: "flex", gap: 4, marginTop: 4 }} onClick={function (e) { e.stopPropagation(); }}>
             <input type="text" defaultValue={d.pn || ""} placeholder="N° pregate" autoFocus onBlur={function (e) { var v = e.target.value.trim(); p.patchDos(d.id, { pn: v }); setEditPn(false); if (v) p.nf("Pregate enregistre"); }} onKeyDown={function (e) { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} style={{ flex: 1, fontSize: 12, padding: "4px 6px", borderRadius: 6, border: "1px solid var(--border)" }} />
@@ -301,7 +301,7 @@ function DetView(p: DetViewProps) {
         var statutOk = isLouee ? d.gar_statut === "RECUPEREE" : d.gar_statut === "REMBOURSEE";
         var statutPerdu = isLouee ? d.gar_statut === "PERDUE" : d.gar_statut === "CONSERVEE";
         return (
-          <div style={{ background: statutOk ? "var(--success-bg)" : bg, border: "1px solid " + (statutOk ? "var(--success-border)" : bdr), borderRadius: 10, padding: 12, marginBottom: 14, fontSize: 12 }}>
+          <div style={{ background: statutOk ? "var(--success-bg)" : bg, border: "1px solid " + (statutOk ? "var(--success-border)" : bdr), borderRadius: 8, padding: 12, marginBottom: 14, fontSize: 12 }}>
             <div style={{ fontWeight: 700, color: txtH, marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
               {isLouee ? "Lettre louée — " + (d.gar_contact || "?") : "Vente lettre — " + (d.gar_contact || "?")}
               {/* eslint-disable-next-line no-restricted-syntax -- WhatsApp brand color */}
@@ -334,7 +334,7 @@ function DetView(p: DetViewProps) {
             var pcol = fr.rp > 5 ? "var(--success)" : fr.rp > 2 ? "var(--warning)" : fr.rp > 0 ? "var(--danger)" : "var(--danger-text)";
             var tcol = fr.rt > 7 ? "var(--success)" : fr.rt > 5 ? "var(--warning)" : fr.rt > 2 ? "var(--danger)" : "var(--danger-text)";
             return (
-              <div key={fr.tc.id} style={{ background: "var(--bg-tertiary)", borderRadius: 10, padding: 10, marginBottom: 6 }}>
+              <div key={fr.tc.id} style={{ background: "var(--bg-tertiary)", borderRadius: 8, padding: 10, marginBottom: 6 }}>
                 <div style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 12, marginBottom: 6 }}>{fr.tc.n || "?"}</div>
                 <div className="lt-grid2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <div style={{ border: "1px solid var(--border)", borderRadius: 6, paddingLeft: 8 }}>
@@ -422,7 +422,7 @@ function DetView(p: DetViewProps) {
                   <span style={{ color: "var(--success)" }}>{"Verse: "}<strong>{fm(verse)}</strong></span>
                   {reste !== null ? <span style={{ color: reste < 0 ? "var(--danger)" : reste === 0 ? "var(--success)" : "var(--warning)" }}>{"Reste: "}<strong>{fm(reste)}</strong></span> : null}
                 </div>
-                {tcDep.length > 0 ? <div style={{ marginTop: 4 }}>{tcDep.map(function (f) { return <div key={f.id} style={{ fontSize: 10, color: "var(--text-secondary)", display: "flex", justifyContent: "space-between", marginTop: 2 }}><span>{PLBL[f.ph] || (f.ds || "").split(" - ")[0]}</span><span style={{ fontWeight: 700 }}>{fm(f.mt || 0)}{" "}<span style={{ background: f.s === "PAYE" ? "var(--success-light)" : "var(--warning-bg)", color: f.s === "PAYE" ? "var(--success-text)" : "var(--warning-text)", padding: "0 4px", borderRadius: 3 }}>{f.s === "PAYE" ? "P" : "A"}</span></span></div>; })}</div> : null}
+                {tcDep.length > 0 ? <div style={{ marginTop: 4 }}>{tcDep.map(function (f) { return <div key={f.id} style={{ fontSize: 10, color: "var(--text-secondary)", display: "flex", justifyContent: "space-between", marginTop: 2 }}><span>{PLBL[f.ph] || (f.ds || "").split(" - ")[0]}</span><span style={{ fontWeight: 700 }}>{fm(f.mt || 0)}{" "}<span style={{ background: f.s === "PAYE" ? "var(--success-light)" : "var(--warning-bg)", color: f.s === "PAYE" ? "var(--success-text)" : "var(--warning-text)", padding: "0 4px", borderRadius: 6 }}>{f.s === "PAYE" ? "P" : "A"}</span></span></div>; })}</div> : null}
               </div>
             );
           })()}
@@ -488,15 +488,15 @@ function DetView(p: DetViewProps) {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
             <div><span style={{ fontWeight: 700, fontSize: 13 }}>{DTL[f.tp] || "?"}</span>{f.nf ? <span style={{ color: "var(--text-secondary)", fontSize: 11, marginLeft: 6 }}>{"N°" + f.nf}</span> : null}{f.fid ? <span style={{ color: "var(--text-primary)", marginLeft: 4 }}>{"\uD83D\uDCCE"}</span> : null}</div>
             {ce ? <div style={{ display: "flex", gap: 4 }}>
-              <button onClick={function () { p.setMl({ t: "edep", fid: f.id }); }} style={{ background: "var(--border)", border: "none", borderRadius: 4, padding: "2px 6px", fontSize: 10, cursor: "pointer", color: "var(--text-tertiary)" }}>{"\u270F\uFE0F"}</button>
-              <button onClick={function () { p.toggleDepSt(f.id); }} style={{ background: f.s === "PAYE" ? "var(--success-light)" : "var(--warning-bg)", color: f.s === "PAYE" ? "var(--success-text)" : "var(--warning-text)", border: "none", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 700, cursor: "pointer" }}>{f.s === "PAYE" ? "Paye" : "Impaye"}</button>
-            </div> : <span style={{ background: f.s === "PAYE" ? "var(--success-light)" : "var(--warning-bg)", color: f.s === "PAYE" ? "var(--success-text)" : "var(--warning-text)", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 700 }}>{f.s === "PAYE" ? "Paye" : "Impaye"}</span>}
+              <button onClick={function () { p.setMl({ t: "edep", fid: f.id }); }} style={{ background: "var(--border)", border: "none", borderRadius: 6, padding: "2px 6px", fontSize: 10, cursor: "pointer", color: "var(--text-tertiary)" }}>{"\u270F\uFE0F"}</button>
+              <button onClick={function () { p.toggleDepSt(f.id); }} style={{ background: f.s === "PAYE" ? "var(--success-light)" : "var(--warning-bg)", color: f.s === "PAYE" ? "var(--success-text)" : "var(--warning-text)", border: "none", padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: "pointer" }}>{f.s === "PAYE" ? "Paye" : "Impaye"}</button>
+            </div> : <span style={{ background: f.s === "PAYE" ? "var(--success-light)" : "var(--warning-bg)", color: f.s === "PAYE" ? "var(--success-text)" : "var(--warning-text)", padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700 }}>{f.s === "PAYE" ? "Paye" : "Impaye"}</span>}
           </div>
           {f.ds ? <div style={{ fontSize: 11, color: "var(--text-secondary)", marginBottom: 4 }}>{f.ds}</div> : null}
           <div className="lt-grid3" style={{ gap: 4 }}>
-            <div style={{ background: "var(--bg-primary)", borderRadius: 4, padding: "4px 6px" }}><div style={{ fontSize: 10, color: "var(--text-secondary)", fontWeight: 700 }}>{"HT"}</div><div style={{ fontSize: 12, fontWeight: 700 }}>{fm(f.ht || f.mt || 0)}</div></div>
-            <div style={{ background: tax > 0 ? "var(--warning-bg)" : "var(--bg-primary)", borderRadius: 4, padding: "4px 6px" }}><div style={{ fontSize: 10, color: "var(--text-secondary)", fontWeight: 700 }}>{"TAXES"}</div><div style={{ fontSize: 12, fontWeight: 700, color: tax > 0 ? "var(--warning)" : "var(--text-tertiary)" }}>{tax > 0 ? fm(tax) : "---"}</div></div>
-            <div style={{ background: "var(--danger-light)", borderRadius: 4, padding: "4px 6px" }}><div style={{ fontSize: 9, color: "var(--danger-text)", fontWeight: 700 }}>{"TTC"}</div><div style={{ fontSize: 12, fontWeight: 800, color: "var(--danger)" }}>{fm(f.mt || 0)}</div></div>
+            <div style={{ background: "var(--bg-primary)", borderRadius: 6, padding: "4px 6px" }}><div style={{ fontSize: 10, color: "var(--text-secondary)", fontWeight: 700 }}>{"HT"}</div><div style={{ fontSize: 12, fontWeight: 700 }}>{fm(f.ht || f.mt || 0)}</div></div>
+            <div style={{ background: tax > 0 ? "var(--warning-bg)" : "var(--bg-primary)", borderRadius: 6, padding: "4px 6px" }}><div style={{ fontSize: 10, color: "var(--text-secondary)", fontWeight: 700 }}>{"TAXES"}</div><div style={{ fontSize: 12, fontWeight: 700, color: tax > 0 ? "var(--warning)" : "var(--text-tertiary)" }}>{tax > 0 ? fm(tax) : "---"}</div></div>
+            <div style={{ background: "var(--danger-light)", borderRadius: 6, padding: "4px 6px" }}><div style={{ fontSize: 9, color: "var(--danger-text)", fontWeight: 700 }}>{"TTC"}</div><div style={{ fontSize: 12, fontWeight: 800, color: "var(--danger)" }}>{fm(f.mt || 0)}</div></div>
           </div>
         </div>;
       })}
@@ -561,7 +561,7 @@ function DetView(p: DetViewProps) {
           w.document.write(html);
           w.document.close();
           w.print();
-        }} style={{ background: "var(--btn-primary-bg)", color: "white", border: "none", borderRadius: 10, padding: "10px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{"\uD83D\uDDA8\uFE0F Exporter PDF"}</button>
+        }} style={{ background: "var(--btn-primary-bg)", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{"\uD83D\uDDA8\uFE0F Exporter PDF"}</button>
       </div>
     </div>
   );

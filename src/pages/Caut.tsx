@@ -52,23 +52,23 @@ function Caut(p: CautProps) {
 
       {/* Onglets cliquables — theme-aware : text-primary et bg-primary s'inversent ensemble */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 8, marginBottom: 16 }}>
-        <ClickableDiv onClick={function () { setTab("PERMANENTE"); }} label="Onglet cautions permanentes" style={{ background: tab === "PERMANENTE" ? "var(--text-primary)" : "var(--bg-primary)", borderRadius: 10, padding: 14, border: "1px solid " + (tab === "PERMANENTE" ? "var(--text-primary)" : "var(--border)"), textAlign: "center", transition: "all 0.2s" }}><div style={{ fontSize: 10, fontWeight: 700, color: tab === "PERMANENTE" ? "var(--bg-secondary)" : "var(--text-muted)" }}>{"PERMANENTES"}</div><div style={{ fontSize: 28, fontWeight: 600, fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em", color: tab === "PERMANENTE" ? "var(--bg-primary)" : "var(--text-primary)" }}>{String(permanentes.length)}</div></ClickableDiv>
-        <ClickableDiv onClick={function () { setTab("LOUEE"); }} label="Onglet cautions louees" style={{ background: tab === "LOUEE" ? "var(--text-primary)" : "var(--bg-primary)", borderRadius: 10, padding: 14, border: "1px solid " + (tab === "LOUEE" ? "var(--text-primary)" : "var(--border)"), textAlign: "center", transition: "all 0.2s" }}><div style={{ fontSize: 10, fontWeight: 700, color: tab === "LOUEE" ? "var(--bg-secondary)" : "var(--text-muted)" }}>{"LOUEES"}</div><div style={{ fontSize: 28, fontWeight: 600, fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em", color: tab === "LOUEE" ? "var(--bg-primary)" : "var(--warning)" }}>{String(louees.length)}</div>{lRecup.length > 0 ? <div style={{ fontSize: 11, color: tab === "LOUEE" ? "var(--danger-light)" : "var(--danger)", fontWeight: 600 }}>{String(lRecup.length) + " a recuperer"}</div> : null}</ClickableDiv>
-        <ClickableDiv onClick={function () { setTab("VENDUE"); }} label="Onglet ventes de lettre" style={{ background: tab === "VENDUE" ? "var(--text-primary)" : "var(--bg-primary)", borderRadius: 10, padding: 14, border: "1px solid " + (tab === "VENDUE" ? "var(--text-primary)" : "var(--border)"), textAlign: "center", transition: "all 0.2s" }}><div style={{ fontSize: 10, fontWeight: 700, color: tab === "VENDUE" ? "var(--bg-secondary)" : "var(--text-muted)" }}>{"VENTES LETTRE"}</div><div style={{ fontSize: 28, fontWeight: 600, fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em", color: tab === "VENDUE" ? "var(--bg-primary)" : "var(--purple)" }}>{String(vendues.length)}</div>{vRendre.length > 0 ? <div style={{ fontSize: 11, color: tab === "VENDUE" ? "var(--danger-light)" : "var(--danger)", fontWeight: 600 }}>{String(vRendre.length) + " a rembourser"}</div> : null}</ClickableDiv>
-        <div style={{ background: "var(--bg-primary)", borderRadius: 10, padding: 14, border: "1px solid var(--border)", textAlign: "center" }}><div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)" }}>{"CAUTIONS EN COURS"}</div><div style={{ fontSize: 16, fontWeight: 800, color: cautEnCours > 0 ? "var(--danger)" : "var(--success)" }}>{fm(cautEnCours)}</div></div>
+        <ClickableDiv onClick={function () { setTab("PERMANENTE"); }} label="Onglet cautions permanentes" style={{ background: tab === "PERMANENTE" ? "var(--text-primary)" : "var(--bg-primary)", borderRadius: 8, padding: 14, border: "1px solid " + (tab === "PERMANENTE" ? "var(--text-primary)" : "var(--border)"), textAlign: "center", transition: "background 0.2s ease-out, color 0.2s ease-out, border-color 0.2s ease-out" }}><div style={{ fontSize: 10, fontWeight: 700, color: tab === "PERMANENTE" ? "var(--bg-secondary)" : "var(--text-muted)" }}>{"PERMANENTES"}</div><div style={{ fontSize: 28, fontWeight: 600, fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em", color: tab === "PERMANENTE" ? "var(--bg-primary)" : "var(--text-primary)" }}>{String(permanentes.length)}</div></ClickableDiv>
+        <ClickableDiv onClick={function () { setTab("LOUEE"); }} label="Onglet cautions louees" style={{ background: tab === "LOUEE" ? "var(--text-primary)" : "var(--bg-primary)", borderRadius: 8, padding: 14, border: "1px solid " + (tab === "LOUEE" ? "var(--text-primary)" : "var(--border)"), textAlign: "center", transition: "background 0.2s ease-out, color 0.2s ease-out, border-color 0.2s ease-out" }}><div style={{ fontSize: 10, fontWeight: 700, color: tab === "LOUEE" ? "var(--bg-secondary)" : "var(--text-muted)" }}>{"LOUEES"}</div><div style={{ fontSize: 28, fontWeight: 600, fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em", color: tab === "LOUEE" ? "var(--bg-primary)" : "var(--warning)" }}>{String(louees.length)}</div>{lRecup.length > 0 ? <div style={{ fontSize: 11, color: tab === "LOUEE" ? "var(--danger-light)" : "var(--danger)", fontWeight: 600 }}>{String(lRecup.length) + " a recuperer"}</div> : null}</ClickableDiv>
+        <ClickableDiv onClick={function () { setTab("VENDUE"); }} label="Onglet ventes de lettre" style={{ background: tab === "VENDUE" ? "var(--text-primary)" : "var(--bg-primary)", borderRadius: 8, padding: 14, border: "1px solid " + (tab === "VENDUE" ? "var(--text-primary)" : "var(--border)"), textAlign: "center", transition: "background 0.2s ease-out, color 0.2s ease-out, border-color 0.2s ease-out" }}><div style={{ fontSize: 10, fontWeight: 700, color: tab === "VENDUE" ? "var(--bg-secondary)" : "var(--text-muted)" }}>{"VENTES LETTRE"}</div><div style={{ fontSize: 28, fontWeight: 600, fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em", color: tab === "VENDUE" ? "var(--bg-primary)" : "var(--purple)" }}>{String(vendues.length)}</div>{vRendre.length > 0 ? <div style={{ fontSize: 11, color: tab === "VENDUE" ? "var(--danger-light)" : "var(--danger)", fontWeight: 600 }}>{String(vRendre.length) + " a rembourser"}</div> : null}</ClickableDiv>
+        <div style={{ background: "var(--bg-primary)", borderRadius: 8, padding: 14, border: "1px solid var(--border)", textAlign: "center" }}><div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)" }}>{"CAUTIONS EN COURS"}</div><div style={{ fontSize: 16, fontWeight: 800, color: cautEnCours > 0 ? "var(--danger)" : "var(--success)" }}>{fm(cautEnCours)}</div></div>
       </div>
 
       {/* Financial summary */}
       {(totalCautionLouee > 0 || totalCautionVendue > 0) ? (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
-          {totalCautionLouee > 0 && tab === "LOUEE" ? <div style={{ background: "var(--warning-bg)", borderRadius: 10, padding: 12, border: "1px solid var(--warning)" }}>
+          {totalCautionLouee > 0 && tab === "LOUEE" ? <div style={{ background: "var(--warning-bg)", borderRadius: 8, padding: 12, border: "1px solid var(--warning)" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--warning-text)", marginBottom: 4 }}>{"Louees — Montants"}</div>
             <div style={{ display: "flex", gap: 16, fontSize: 12, color: "var(--warning-text)" }}>
               <span>{"Cautions : "}<strong>{fm(totalCautionLouee)}</strong></span>
               <span>{"Lettre : "}<strong>{fm(totalFraisLouee)}</strong></span>
             </div>
           </div> : null}
-          {totalCautionVendue > 0 && tab === "VENDUE" ? <div style={{ background: "var(--purple-bg)", borderRadius: 10, padding: 12, border: "1px solid var(--purple-border)" }}>
+          {totalCautionVendue > 0 && tab === "VENDUE" ? <div style={{ background: "var(--purple-bg)", borderRadius: 8, padding: 12, border: "1px solid var(--purple-border)" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--purple-text)", marginBottom: 4 }}>{"Ventes — Montants"}</div>
             <div style={{ display: "flex", gap: 16, fontSize: 12 }}>
               <span>{"Cautions : "}<strong>{fm(totalCautionVendue)}</strong></span>
@@ -80,7 +80,7 @@ function Caut(p: CautProps) {
 
       {/* Actions urgentes — Louees */}
       {lRecup.length > 0 && tab === "LOUEE" ? (
-        <div style={{ background: "var(--bg-primary)", borderRadius: 10, border: "1px solid var(--border)", padding: 14, marginBottom: 12 }}>
+        <div style={{ background: "var(--bg-primary)", borderRadius: 8, border: "1px solid var(--border)", padding: 14, marginBottom: 12 }}>
           <div style={{ fontWeight: 700, fontSize: 13, color: "var(--warning)", marginBottom: 8 }}>{"\u26A0 Cautions a recuperer (" + String(lRecup.length) + ")"}</div>
           {lRecup.map(function (d) { return <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid var(--border-light)" }}>
             <ClickableDiv onClick={function () { setMl({ t: "det", did: d.id }); }} label={"Ouvrir dossier " + (d.cl || "") + " " + (d.bl || "")} style={{ flex: 1 }}>
@@ -97,7 +97,7 @@ function Caut(p: CautProps) {
 
       {/* Actions urgentes — Vendues */}
       {vRendre.length > 0 && tab === "VENDUE" ? (
-        <div style={{ background: "var(--bg-primary)", borderRadius: 10, border: "1px solid var(--border)", padding: 14, marginBottom: 12 }}>
+        <div style={{ background: "var(--bg-primary)", borderRadius: 8, border: "1px solid var(--border)", padding: 14, marginBottom: 12 }}>
           <div style={{ fontWeight: 700, fontSize: 13, color: "var(--purple)", marginBottom: 8 }}>{"\u26A0 Cautions a rembourser (" + String(vRendre.length) + ")"}</div>
           {vRendre.map(function (d) { return <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid var(--border-light)" }}>
             <ClickableDiv onClick={function () { setMl({ t: "det", did: d.id }); }} label={"Ouvrir dossier " + (d.cl || "") + " " + (d.bl || "")} style={{ flex: 1 }}>
@@ -132,7 +132,7 @@ function Caut(p: CautProps) {
               </div>
               <div style={{ padding: "12px 12px", fontSize: 12, color: "var(--text-input)" }}>{d.cr || "---"}</div>
               <div style={{ padding: "12px 12px", fontSize: 12, color: "var(--text-input)" }}>{dtcs.length > 0 ? tcSum(dtcs) : "0 TC"}</div>
-              <div style={{ padding: "12px 8px" }}><span style={{ background: stBg, color: stCol, padding: "2px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700 }}>{stLbl}</span></div>
+              <div style={{ padding: "12px 8px" }}><span style={{ background: stBg, color: stCol, padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700 }}>{stLbl}</span></div>
             </div>
             <div className="lt-show-mobile" onClick={function () { setMl({ t: "det", did: d.id }); }} style={{ display: "none", padding: "10px 12px", borderBottom: "1px solid var(--border-light)", cursor: "pointer" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
@@ -140,7 +140,7 @@ function Caut(p: CautProps) {
                   <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text-primary)" }}>{(d.cl || "") + " — " + (d.bl || "")}</div>
                   <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{(d.cr || "") + " · " + tcSum(dtcs)}</div>
                 </div>
-                <span style={{ background: stBg, color: stCol, padding: "2px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700 }}>{stLbl}</span>
+                <span style={{ background: stBg, color: stCol, padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700 }}>{stLbl}</span>
               </div>
             </div>
           </div>;
@@ -171,7 +171,7 @@ function Caut(p: CautProps) {
                 <div style={{ padding: "12px 12px", fontSize: 12, fontWeight: 700 }}>{d.gar_caution > 0 ? fm(d.gar_caution) : "---"}</div>
                 <div style={{ padding: "12px 12px", fontSize: 12, color: "var(--text-tertiary)" }}>{d.gar_frais > 0 ? fm(d.gar_frais) : "---"}</div>
                 <div style={{ padding: "12px 12px", fontSize: 12, color: "var(--text-input)" }}>{dtcs.length > 0 ? tcSum(dtcs) : "0 TC"}</div>
-                <div style={{ padding: "12px 8px" }}><span style={{ background: stBg, color: stCol, padding: "2px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700 }}>{stLbl}</span></div>
+                <div style={{ padding: "12px 8px" }}><span style={{ background: stBg, color: stCol, padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700 }}>{stLbl}</span></div>
               </div>
               <div className="lt-show-mobile" onClick={function () { setMl({ t: "det", did: d.id }); }} style={{ display: "none", padding: "10px 12px", borderBottom: "1px solid var(--border-light)", cursor: "pointer" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
@@ -179,7 +179,7 @@ function Caut(p: CautProps) {
                     <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text-primary)" }}>{(d.cl || "") + " — " + (d.bl || "")}</div>
                     <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{(d.gar_contact || "") + " · " + fm(d.gar_caution || 0)}</div>
                   </div>
-                  <span style={{ background: stBg, color: stCol, padding: "2px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700 }}>{stLbl}</span>
+                  <span style={{ background: stBg, color: stCol, padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700 }}>{stLbl}</span>
                 </div>
               </div>
             </div>;
@@ -209,7 +209,7 @@ function Caut(p: CautProps) {
                 <div style={{ padding: "12px 12px", fontSize: 12, fontWeight: 700 }}>{d.gar_caution > 0 ? fm(d.gar_caution) : "---"}</div>
                 <div style={{ padding: "12px 12px", fontSize: 12, color: "var(--text-tertiary)" }}>{d.gar_frais > 0 ? fm(d.gar_frais) : "---"}</div>
                 <div style={{ padding: "12px 12px", fontSize: 12, color: "var(--text-input)" }}>{dtcs.length > 0 ? tcSum(dtcs) : "0 TC"}</div>
-                <div style={{ padding: "12px 8px" }}><span style={{ background: stBg, color: stCol, padding: "2px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700 }}>{stLbl}</span></div>
+                <div style={{ padding: "12px 8px" }}><span style={{ background: stBg, color: stCol, padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700 }}>{stLbl}</span></div>
               </div>
               <div className="lt-show-mobile" onClick={function () { setMl({ t: "det", did: d.id }); }} style={{ display: "none", padding: "10px 12px", borderBottom: "1px solid var(--border-light)", cursor: "pointer" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
@@ -217,7 +217,7 @@ function Caut(p: CautProps) {
                     <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text-primary)" }}>{(d.cl || "") + " — " + (d.bl || "")}</div>
                     <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{(d.gar_contact || "") + " · " + fm(d.gar_caution || 0)}</div>
                   </div>
-                  <span style={{ background: stBg, color: stCol, padding: "2px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700 }}>{stLbl}</span>
+                  <span style={{ background: stBg, color: stCol, padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700 }}>{stLbl}</span>
                 </div>
               </div>
             </div>;

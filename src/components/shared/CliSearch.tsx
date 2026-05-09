@@ -44,7 +44,7 @@ function CliSearch(p: CliSearchProps) {
   return (
     <div>
       <div style={{ marginBottom: 12, fontSize: 12, color: "var(--text-secondary)", textAlign: "center" }}>{"Saisissez un BL, un nom client, un email ou un numero WhatsApp"}</div>
-      <input autoFocus value={q} onChange={function (e) { sQ(e.target.value); }} placeholder="BL, client, email ou WhatsApp..." style={{ width: "100%", padding: "10px 14px", border: "2px solid var(--border)", borderRadius: 10, fontSize: 15, outline: "none", marginBottom: 16, boxSizing: "border-box", background: "var(--bg-secondary)", color: "var(--text-input)" }} />
+      <input autoFocus value={q} onChange={function (e) { sQ(e.target.value); }} placeholder="BL, client, email ou WhatsApp..." style={{ width: "100%", padding: "10px 14px", border: "2px solid var(--border)", borderRadius: 8, fontSize: 15, outline: "none", marginBottom: 16, boxSizing: "border-box", background: "var(--bg-secondary)", color: "var(--text-input)" }} />
       {q.length >= 2 && res.length === 0 ? <div style={{ textAlign: "center", padding: 30, color: "var(--text-muted)" }}>{"Rien"}</div> : null}
       {clientKeys.map(function (cl) {
         var group = clientMap[cl];

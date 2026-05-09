@@ -112,7 +112,7 @@ function DevisForm(p: DevisFormProps) {
         })}
       </div>
 
-      <div style={{ background: "var(--bg-primary)", border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden", marginBottom: 14 }}>
+      <div style={{ background: "var(--bg-primary)", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden", marginBottom: 14 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr 1fr 1fr 1fr 1.2fr", background: "var(--bg-tertiary)", padding: "8px 12px", gap: 6, fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase" }}>
           <span>{"TYPE"}</span><span style={{ textAlign: "right" }}>{"Location"}</span><span style={{ textAlign: "right" }}>{"Autres"}</span><span style={{ textAlign: "right" }}>{"DP World"}</span><span style={{ textAlign: "right" }}>{"Orbus"}</span><span style={{ textAlign: "right" }}>{"Mission"}</span><span style={{ textAlign: "right", fontWeight: 800, color: "var(--text-primary)" }}>{"TOTAL"}</span>
         </div>

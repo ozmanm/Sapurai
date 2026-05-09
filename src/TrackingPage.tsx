@@ -167,7 +167,7 @@ function TcTrackingCard(p: TcTrackingCardProps) {
                       height: 3,
                       background: si < currentIdx ? "var(--success)" : "var(--border)",
                       margin: "0 2px",
-                      borderRadius: 2,
+                      borderRadius: 6,
                       transition: "background 0.3s ease-out"
                     }}></div>
                   ) : null}

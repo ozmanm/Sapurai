@@ -62,7 +62,7 @@ function SyncReport(p: SyncReportProps) {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{(item.cl || "?") + " \u2014 " + (item.bl || "?")}</span>
                 {item.stubCount > 0 ? (
-                  <span style={{ fontSize: 10, background: "var(--warning-bg)", color: "var(--warning-text)", padding: "2px 8px", borderRadius: 4, fontWeight: 700, whiteSpace: "nowrap" }}>
+                  <span style={{ fontSize: 10, background: "var(--warning-bg)", color: "var(--warning-text)", padding: "2px 8px", borderRadius: 6, fontWeight: 700, whiteSpace: "nowrap" }}>
                     {"+" + String(item.stubCount) + " facture(s) en attente"}
                   </span>
                 ) : null}

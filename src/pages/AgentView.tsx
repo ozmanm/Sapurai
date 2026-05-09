@@ -128,14 +128,14 @@ function AgentView(p: AgentViewProps) {
         <div>
           <div style={{ fontSize: 16, fontWeight: 900, color: "var(--text-primary)", letterSpacing: 1 }}>
             {companyName}
-            {notifs.length > 0 ? <span style={{ marginLeft: 8, background: "var(--danger)", color: "white", borderRadius: 99, fontSize: 11, fontWeight: 700, padding: "1px 7px" }}>{String(notifs.length)}</span> : null}
+            {notifs.length > 0 ? <span style={{ marginLeft: 8, background: "var(--danger)", color: "white", borderRadius: 999, fontSize: 11, fontWeight: 700, padding: "1px 7px" }}>{String(notifs.length)}</span> : null}
           </div>
           <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 1 }}>
             {agentName || "Agent"}
             {globalTaches.length > 0 ? <span style={{ marginLeft: 6, color: "var(--text-secondary)" }}>{"\u00B7 " + globalTaches.map(function (t) { return TK_LBL[t] || t; }).join(", ")}</span> : null}
           </div>
         </div>
-        <button onClick={p.logout} style={{ background: "none", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", color: "var(--text-tertiary)", minHeight: 36 }}>{"Déconnexion"}</button>
+        <button onClick={p.logout} style={{ background: "none", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", color: "var(--text-tertiary)", minHeight: 44 }}>{"Déconnexion"}</button>
       </div>
 
       {/* Notifications banner */}
@@ -145,7 +145,7 @@ function AgentView(p: AgentViewProps) {
             <span style={{ fontSize: 13, fontWeight: 700, color: "var(--warning-text)" }}>{"\uD83D\uDD14 " + String(notifs.length) + " nouvelle(s) notification(s)"}</span>
             <div style={{ fontSize: 12, color: "var(--warning-text)", marginTop: 2 }}>{notifs[0].msg}</div>
           </div>
-          <button onClick={function () { if (markNotifsRead) markNotifsRead(); }} style={{ background: "var(--warning)", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", minHeight: 36, flexShrink: 0 }}>{"OK"}</button>
+          <button onClick={function () { if (markNotifsRead) markNotifsRead(); }} style={{ background: "var(--warning)", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", minHeight: 44, flexShrink: 0 }}>{"OK"}</button>
         </div>
       ) : null}
 
@@ -156,7 +156,7 @@ function AgentView(p: AgentViewProps) {
         </div>
 
         {dos.length === 0 ? (
-          <div style={{ background: "var(--bg-primary)", borderRadius: 14, padding: 32, textAlign: "center", border: "1px solid var(--border)" }}>
+          <div style={{ background: "var(--bg-primary)", borderRadius: 12, padding: 32, textAlign: "center", border: "1px solid var(--border)" }}>
             <div style={{ fontSize: 32, marginBottom: 10 }}>{"\u23F3"}</div>
             <div style={{ fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>{"En attente d'assignation"}</div>
             <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>{"Votre responsable vous assignera des dossiers depuis Parametres \u2192 Equipe \u2192 Gerer assignations. Vous serez notifie automatiquement."}</div>
@@ -176,7 +176,7 @@ function AgentView(p: AgentViewProps) {
           var totalPaye = dosDep.reduce(function (s: number, f: any) { return s + (f.s === 'PAYE' ? (f.mt || 0) : 0); }, 0);
 
           return (
-            <div key={d.id} style={{ background: "var(--bg-primary)", borderRadius: 14, padding: 16, marginBottom: 12, border: "1px solid " + (allDone ? "var(--success-border)" : "var(--border)"), boxShadow: "0 1px 4px var(--shadow)" }}>
+            <div key={d.id} style={{ background: "var(--bg-primary)", borderRadius: 12, padding: 16, marginBottom: 12, border: "1px solid " + (allDone ? "var(--success-border)" : "var(--border)"), boxShadow: "0 1px 4px var(--shadow)" }}>
               {/* Dossier header */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                 <div>
@@ -203,7 +203,7 @@ function AgentView(p: AgentViewProps) {
                         {(function () {
                           var bg = ST_BG[tc.st] || "var(--text-secondary)";
                           var txt = bg.startsWith("#") ? textColorFor(bg) : "white";
-                          return <span style={{ background: bg, color: txt, padding: "2px 7px", borderRadius: 5, fontSize: 10, fontWeight: 700 }}>{SL[tc.st] || tc.st}</span>;
+                          return <span style={{ background: bg, color: txt, padding: "2px 7px", borderRadius: 6, fontSize: 10, fontWeight: 700 }}>{SL[tc.st] || tc.st}</span>;
                         })()}
                       </div>
                     );
@@ -227,9 +227,9 @@ function AgentView(p: AgentViewProps) {
                             <div key={tk} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, background: "var(--bg-secondary)", borderRadius: 8, padding: "8px 10px" }}>
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{TK_LBL[tk] || tk}</div>
-                                <div style={{ display: "inline-block", marginTop: 2, fontSize: 10, fontWeight: 700, background: t.bg, color: t.col, border: "1px solid " + t.bd, borderRadius: 4, padding: "1px 7px" }}>{st.label}</div>
+                                <div style={{ display: "inline-block", marginTop: 2, fontSize: 10, fontWeight: 700, background: t.bg, color: t.col, border: "1px solid " + t.bd, borderRadius: 6, padding: "1px 7px" }}>{st.label}</div>
                               </div>
-                              <button onClick={function () { p.markTaskDone(d.id, iv.id, tk, !done); }} style={{ background: done ? "var(--success)" : "var(--bg-primary)", color: done ? "white" : "var(--text-input)", border: "1px solid " + (done ? "var(--success)" : "var(--border)"), borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", minHeight: 40, whiteSpace: "nowrap" as const, flexShrink: 0 }}>
+                              <button onClick={function () { p.markTaskDone(d.id, iv.id, tk, !done); }} style={{ background: done ? "var(--success)" : "var(--bg-primary)", color: done ? "white" : "var(--text-input)", border: "1px solid " + (done ? "var(--success)" : "var(--border)"), borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", minHeight: 44, whiteSpace: "nowrap" as const, flexShrink: 0 }}>
                                 {done ? "\u2713 Termine" : "Marquer fait"}
                               </button>
                             </div>

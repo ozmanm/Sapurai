@@ -42,12 +42,12 @@ export default function Setup(props: SetupProps) {
     } catch (e) { setErr(e.message); setLoading(false); }
   }
 
-  var boxStyle = { width: '90%', maxWidth: 420, background: 'var(--bg-primary)', borderRadius: 16, padding: '28px 24px', boxShadow: '0 4px 24px var(--shadow)' };
+  var boxStyle = { width: '90%', maxWidth: 420, background: 'var(--bg-primary)', borderRadius: 12, padding: '28px 24px', boxShadow: '0 4px 24px var(--shadow)' };
   // Primary hero : gradient dark permanent (non-inversible dark mode, meme pattern que Login btnPrimary)
-  var btnPrimary = { background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', borderRadius: 10, padding: '14px 24px', fontSize: 15, fontWeight: 700, cursor: 'pointer', width: '100%', opacity: loading ? 0.6 : 1 };
+  var btnPrimary = { background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', borderRadius: 8, padding: '14px 24px', fontSize: 15, fontWeight: 700, cursor: 'pointer', width: '100%', opacity: loading ? 0.6 : 1 };
   // Ghost outline, non-dominant
-  var btnGhost = { background: 'transparent', color: 'var(--text-primary)', border: '1.5px solid var(--border)', borderRadius: 10, padding: '12px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer', width: '100%' };
-  var inputStyle: CSSProperties = { width: '100%', padding: '12px 14px', border: '2px solid var(--border)', borderRadius: 10, fontSize: 15, outline: 'none', boxSizing: 'border-box', background: 'var(--bg-primary)', color: 'var(--text-input)' };
+  var btnGhost = { background: 'transparent', color: 'var(--text-primary)', border: '1.5px solid var(--border)', borderRadius: 8, padding: '12px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer', width: '100%' };
+  var inputStyle: CSSProperties = { width: '100%', padding: '12px 14px', border: '2px solid var(--border)', borderRadius: 8, fontSize: 15, outline: 'none', boxSizing: 'border-box', background: 'var(--bg-primary)', color: 'var(--text-input)' };
   var labelStyle = { fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', display: 'block' as const, marginBottom: 4 };
 
   // Stepper visuel handoff (Sprint D.2)
@@ -142,7 +142,7 @@ export default function Setup(props: SetupProps) {
         {mode === 'join' ? (
           <div>
             {inviteFromUrl ? (
-              <div style={{ background: 'var(--bg-tertiary)', borderRadius: 10, padding: 16, textAlign: 'center', marginBottom: 16 }}>
+              <div style={{ background: 'var(--bg-tertiary)', borderRadius: 8, padding: 16, textAlign: 'center', marginBottom: 16 }}>
                 <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>Code d'invitation</div>
                 <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: 4, color: 'var(--text-primary)' }}>{code}</div>
               </div>

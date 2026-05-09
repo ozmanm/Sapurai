@@ -151,11 +151,11 @@ function Chs(p: ChsProps) {
                   <div style={{ padding: "12px 12px" }}>
                     {missions > 0 ? (
                       <div>
-                        <span style={{ background: "var(--bg-tertiary)", color: "var(--info)", padding: "2px 8px", borderRadius: 10, fontSize: 11, fontWeight: 700 }}>{String(missions) + " en cours"}</span>
+                        <span style={{ background: "var(--bg-tertiary)", color: "var(--info)", padding: "2px 8px", borderRadius: 8, fontSize: 11, fontWeight: 700 }}>{String(missions) + " en cours"}</span>
                         {nearReturn.length > 0 ? <div style={{ fontSize: 10, color: "var(--warning)", fontWeight: 700, marginTop: 2 }}>{"\u26A0 14j+"}</div> : null}
                       </div>
                     ) : isRetour ? (
-                      <span style={{ background: "var(--warning-bg)", color: "var(--warning-text)", padding: "2px 8px", borderRadius: 10, fontSize: 11, fontWeight: 700 }}>{String(retourTcs.length) + " en retour"}</span>
+                      <span style={{ background: "var(--warning-bg)", color: "var(--warning-text)", padding: "2px 8px", borderRadius: 8, fontSize: 11, fontWeight: 700 }}>{String(retourTcs.length) + " en retour"}</span>
                     ) : (
                       <div>
                         <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{total > 0 ? String(total) + " total" : "---"}</span>
@@ -164,7 +164,7 @@ function Chs(p: ChsProps) {
                     )}
                   </div>
                   <div style={{ padding: "12px 12px", display: "flex", gap: 3, flexWrap: "wrap" }}>
-                    {c.tty && c.tty.length > 0 ? c.tty.map(function (ty) { return <span key={ty} style={{ background: "var(--bg-secondary)", color: "var(--text-tertiary)", padding: "1px 6px", borderRadius: 4, fontSize: 10, fontWeight: 600 }}>{ty}</span>; }) : <span style={{ fontSize: 11, color: "var(--danger)", fontWeight: 600 }}>{"! aucun"}</span>}
+                    {c.tty && c.tty.length > 0 ? c.tty.map(function (ty) { return <span key={ty} style={{ background: "var(--bg-secondary)", color: "var(--text-tertiary)", padding: "1px 6px", borderRadius: 6, fontSize: 10, fontWeight: 600 }}>{ty}</span>; }) : <span style={{ fontSize: 11, color: "var(--danger)", fontWeight: 600 }}>{"! aucun"}</span>}
                   </div>
                   <div style={{ padding: "12px 8px" }}>
                     {c.bl ? <span style={{ background: "var(--danger-bg)", color: "var(--danger)", padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700 }}>{"Blackliste"}</span>
@@ -173,7 +173,7 @@ function Chs(p: ChsProps) {
                       : <span style={{ background: "var(--bg-tertiary)", color: "var(--info)", padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700 }}>{"Occupe"}</span>}
                   </div>
                   <div style={{ padding: "12px 8px", display: "flex", gap: 4 }}>
-                    <button onClick={function () { setOpenCh(openCh === c.id ? null : c.id); }} title="Historique missions" style={{ background: openCh === c.id ? "var(--btn-primary-bg)" : "var(--bg-secondary)", color: openCh === c.id ? "var(--btn-primary-text)" : "var(--text-tertiary)", border: "none", cursor: "pointer", fontSize: 12, padding: "2px 7px", borderRadius: 4, fontWeight: 600 }}>{"\uD83D\uDCCB"}</button>
+                    <button onClick={function () { setOpenCh(openCh === c.id ? null : c.id); }} title="Historique missions" style={{ background: openCh === c.id ? "var(--btn-primary-bg)" : "var(--bg-secondary)", color: openCh === c.id ? "var(--btn-primary-text)" : "var(--text-tertiary)", border: "none", cursor: "pointer", fontSize: 12, padding: "2px 7px", borderRadius: 6, fontWeight: 600 }}>{"\uD83D\uDCCB"}</button>
                     <button onClick={function () {
                       var msg = "\uD83D\uDE9B INFOS CHAUFFEUR\n";
                       msg += "Nom: " + (c.nm || "?") + "\n";
@@ -209,12 +209,12 @@ function Chs(p: ChsProps) {
                       } else if (navigator.clipboard) {
                         navigator.clipboard.writeText(msg).then(function () { nf("Infos copiees - collez dans WhatsApp !"); });
                       }
-                    }} title="Partager aux agents" style={{ background: "var(--bg-secondary)", border: "none", cursor: "pointer", fontSize: 13, padding: "2px 6px", borderRadius: 4 }}>{"\uD83D\uDCE4"}</button>
+                    }} title="Partager aux agents" style={{ background: "var(--bg-secondary)", border: "none", cursor: "pointer", fontSize: 13, padding: "2px 6px", borderRadius: 6 }}>{"\uD83D\uDCE4"}</button>
                     {canEdit ? <button onClick={function () { setMl({ t: "ech", cid: c.id }); }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, padding: 2 }}>{"\u270F\uFE0F"}</button> : null}
                     {canEdit ? (pendingDel === c.id ? (
                       <span style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                        <button onClick={function () { setPendingDel(null); deleteCh(c.id); }} style={{ background: "var(--danger)", color: "white", border: "none", borderRadius: 4, padding: "2px 6px", fontSize: 10, fontWeight: 700, cursor: "pointer" }}>{"Oui"}</button>
-                        <button onClick={function () { setPendingDel(null); }} style={{ background: "var(--bg-secondary)", border: "none", borderRadius: 4, padding: "2px 6px", fontSize: 10, cursor: "pointer" }}>{"Non"}</button>
+                        <button onClick={function () { setPendingDel(null); deleteCh(c.id); }} style={{ background: "var(--danger)", color: "white", border: "none", borderRadius: 6, padding: "2px 6px", fontSize: 10, fontWeight: 700, cursor: "pointer" }}>{"Oui"}</button>
+                        <button onClick={function () { setPendingDel(null); }} style={{ background: "var(--bg-secondary)", border: "none", borderRadius: 6, padding: "2px 6px", fontSize: 10, cursor: "pointer" }}>{"Non"}</button>
                       </span>
                     ) : (
                       <button onClick={function () { setPendingDel(c.id); }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, padding: 2, color: "var(--danger)" }}>{"x"}</button>
@@ -242,7 +242,7 @@ function Chs(p: ChsProps) {
                     <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
                       {c.pm ? <span style={{ fontSize: 11, color: "var(--text-tertiary)" }}>{String(c.pm) + " kg"}</span> : null}
                       {c.pm && c.tty && c.tty.length > 0 ? <span style={{ color: "var(--border)" }}>{"\u2022"}</span> : null}
-                      {c.tty && c.tty.length > 0 ? c.tty.map(function (ty) { return <span key={ty} style={{ background: "var(--bg-secondary)", color: "var(--text-tertiary)", padding: "1px 5px", borderRadius: 4, fontSize: 10, fontWeight: 600 }}>{ty}</span>; }) : null}
+                      {c.tty && c.tty.length > 0 ? c.tty.map(function (ty) { return <span key={ty} style={{ background: "var(--bg-secondary)", color: "var(--text-tertiary)", padding: "1px 5px", borderRadius: 6, fontSize: 10, fontWeight: 600 }}>{ty}</span>; }) : null}
                     </div>
                     {canEdit ? <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       <button onClick={function () {

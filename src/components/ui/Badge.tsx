@@ -10,7 +10,7 @@ interface BadgeProps {
 
 var BASE = {
   display: 'inline-flex', alignItems: 'center',
-  padding: '2px 8px', borderRadius: 5,
+  padding: '2px 8px', borderRadius: 6,
   fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
 };
 

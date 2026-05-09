@@ -74,7 +74,7 @@ function SettingsForm(p: SettingsFormProps) {
             <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "var(--text-primary)" }}>{"Apparence"}</div>
             <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 12 }}>{"Theme clair ou sombre selon vos preferences."}</div>
             {p.toggleTheme ? (
-              <button onClick={p.toggleTheme} style={{ background: "var(--bg-secondary)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", minHeight: 48, width: "100%" }}>
+              <button onClick={p.toggleTheme} style={{ background: "var(--bg-secondary)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", minHeight: 48, width: "100%" }}>
                 <span style={{ fontSize: 20 }}>{p.theme === "dark" ? "\u2600\uFE0F" : "\uD83C\uDF19"}</span>
                 <div style={{ textAlign: "left" as const, flex: 1 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{p.theme === "dark" ? "Mode clair" : "Mode sombre"}</div>

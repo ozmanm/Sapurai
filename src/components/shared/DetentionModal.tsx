@@ -73,7 +73,7 @@ function DetentionModal(p: DetentionModalProps) {
 
   return (
     <div>
-      <div style={{ background: "var(--warning-bg)", border: "1px solid var(--warning-border)", borderRadius: 10, padding: 14, marginBottom: 14 }}>
+      <div style={{ background: "var(--warning-bg)", border: "1px solid var(--warning-border)", borderRadius: 8, padding: 14, marginBottom: 14 }}>
         <div style={{ fontWeight: 700, fontSize: 14, color: "var(--warning-text)", marginBottom: 6 }}>{"⚠ Détention conteneur détectée"}</div>
         <div style={{ fontSize: 13, color: "var(--text-primary)" }}>
           {"Le TC est resté "}<strong>{p.jours} jours</strong>{" hors port (franchise : "}<strong>{p.franchise}j</strong>{"). "}

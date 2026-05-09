@@ -99,7 +99,7 @@ function IntervenantsView(p: IntervenantsViewProps) {
         <button onClick={function () { setAdding(!adding); }} style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 8, padding: "3px 8px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{adding ? "x" : "+ Ajouter"}</button>
       </div>
 
-      {adding ? <div style={{ background: "var(--bg-tertiary)", borderRadius: 10, padding: 10, marginBottom: 8 }}>
+      {adding ? <div style={{ background: "var(--bg-tertiary)", borderRadius: 8, padding: 10, marginBottom: 8 }}>
         <div className="lt-grid2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
           <div><label style={LS}>{"Role"}</label><select value={role} onChange={function (e) { setRole(e.target.value); }} style={IS}>{ROLES.map(function (r) { return <option key={r.k} value={r.k}>{r.l}</option>; })}</select></div>
           <div><label style={LS}>{"Nom"}</label><input value={nm} onChange={function (e) { setNm(e.target.value); }} style={IS} maxLength={50} />{nmErr ? <div style={{ fontSize: 11, color: "var(--danger)", marginTop: 3, fontWeight: 500 }}>{nmErr}</div> : null}</div>
@@ -125,13 +125,13 @@ function IntervenantsView(p: IntervenantsViewProps) {
         return <div key={iv.id} style={{ padding: "7px 0", borderBottom: "1px solid var(--border-light)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div style={{ flex: 1 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", background: "var(--bg-secondary)", padding: "2px 6px", borderRadius: 4, marginRight: 6 }}>{RL[iv.role] || iv.role}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", background: "var(--bg-secondary)", padding: "2px 6px", borderRadius: 6, marginRight: 6 }}>{RL[iv.role] || iv.role}</span>
               <span style={{ fontWeight: 600, fontSize: 13 }}>{iv.nm}</span>
               {iv.tl ? <span style={{ color: "var(--text-secondary)", fontSize: 11, marginLeft: 6 }}>{iv.tl}</span> : null}
               {iv.notes ? <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 3, lineHeight: 1.4 }}>{iv.notes}</div> : null}
               {!isEditing && (iv.taches || []).length > 0 ? <div style={{ marginTop: 4 }}>{(iv.taches || []).map(function (tk: string) {
                 var done = (iv.tachesDone || []).indexOf(tk) >= 0;
-                return <span key={tk} style={{ background: done ? "var(--success-light)" : "var(--info-bg)", color: done ? "var(--success)" : "var(--info-text)", fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, marginRight: 3, textDecoration: done ? "line-through" : "none" }}>{TACHES.find(function (t) { return t.k === tk; })?.l || tk}</span>;
+                return <span key={tk} style={{ background: done ? "var(--success-light)" : "var(--info-bg)", color: done ? "var(--success)" : "var(--info-text)", fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 6, marginRight: 3, textDecoration: done ? "line-through" : "none" }}>{TACHES.find(function (t) { return t.k === tk; })?.l || tk}</span>;
               })}</div> : null}
               {!isEditing && (iv.taches || []).length === 0 ? <div style={{ marginTop: 4, fontSize: 11, color: "var(--text-muted)", fontStyle: "italic" }}>{"Aucune tache"}</div> : null}
             </div>

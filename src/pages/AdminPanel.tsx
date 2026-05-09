@@ -147,7 +147,7 @@ export default function AdminPanel({ user, logout }: AdminPanelProps) {
 
         {/* Error */}
         {err ? (
-          <div style={{ background: 'var(--danger-light)', color: 'var(--danger-text)', padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 16, border: '1px solid var(--danger-border)' }}>{err}</div>
+          <div style={{ background: 'var(--danger-light)', color: 'var(--danger-text)', padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 16, border: '1px solid var(--danger-border)' }}>{err}</div>
         ) : null}
 
         {/* Loading */}
@@ -297,7 +297,7 @@ export default function AdminPanel({ user, logout }: AdminPanelProps) {
         </div>
 
         {/* Firestore rules reminder */}
-        <div style={{ marginTop: 16, background: 'var(--warning-bg)', border: '1px solid var(--warning-border)', borderRadius: 10, padding: '12px 16px', fontSize: 12, color: 'var(--warning-text)' }}>
+        <div style={{ marginTop: 16, background: 'var(--warning-bg)', border: '1px solid var(--warning-border)', borderRadius: 8, padding: '12px 16px', fontSize: 12, color: 'var(--warning-text)' }}>
           <strong>Rappel Firestore Rules :</strong> Assurez-vous que votre UID est autorisé à lire toutes les companies dans les règles Firestore. Sinon les données n'apparaîtront pas.
         </div>
       </div>

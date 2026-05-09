@@ -131,7 +131,7 @@ export default function ScanBL(p: ScanBLProps) {
           <div style={{ fontSize: 36, marginBottom: 12 }}>{"\uD83D\uDCF7"}</div>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6, color: "var(--text-primary)" }}>{"Scannez votre BL"}</div>
           <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 16 }}>{"Prenez en photo ou uploadez le PDF du connaissement. L'IA extraira automatiquement les informations."}</div>
-          <label style={{ display: "inline-block", background: "var(--success)", color: "white", padding: "10px 24px", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+          <label style={{ display: "inline-block", background: "var(--success)", color: "white", padding: "10px 24px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
             {"\uD83D\uDCF7 Choisir image / PDF"}
             <input type="file" accept="image/*,.pdf" onChange={handleFile} style={{ display: "none" }} capture="environment" />
           </label>

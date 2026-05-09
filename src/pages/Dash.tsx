@@ -38,8 +38,8 @@ function Dash(p: DashProps) {
           description="Créez votre premier dossier de transit pour commencer le suivi de vos conteneurs, dépenses et franchises."
           action={canEdit ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 10, width: 320, maxWidth: "100%" }}>
-              <button onClick={function () { setMl({ t: "ndos" }); }} style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", border: "none", borderRadius: 10, padding: "12px 24px", fontSize: 14, fontWeight: 600, cursor: "pointer", minHeight: 48 }}>{"+ Créer un dossier"}</button>
-              <button onClick={function () { setMl({ t: "import" }); }} style={{ background: "transparent", color: "var(--text-primary)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 24px", fontSize: 13, fontWeight: 600, cursor: "pointer", minHeight: 48 }}>{"📂 Importer depuis Excel"}</button>
+              <button onClick={function () { setMl({ t: "ndos" }); }} style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", border: "none", borderRadius: 8, padding: "12px 24px", fontSize: 14, fontWeight: 600, cursor: "pointer", minHeight: 48 }}>{"+ Créer un dossier"}</button>
+              <button onClick={function () { setMl({ t: "import" }); }} style={{ background: "transparent", color: "var(--text-primary)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 24px", fontSize: 13, fontWeight: 600, cursor: "pointer", minHeight: 48 }}>{"📂 Importer depuis Excel"}</button>
             </div>
           ) : null}
         />
@@ -207,7 +207,7 @@ function Dash(p: DashProps) {
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{(g.dossier.cl || "?") + " \u2014 " + (g.dossier.bl || "?")}</span>
-                      <span style={{ fontSize: 10, background: isLate ? "var(--danger-light)" : "var(--info-bg)", color: isLate ? "var(--danger-text)" : "var(--info-text)", padding: "2px 8px", borderRadius: 4, fontWeight: 700, whiteSpace: "nowrap" }}>
+                      <span style={{ fontSize: 10, background: isLate ? "var(--danger-light)" : "var(--info-bg)", color: isLate ? "var(--danger-text)" : "var(--info-text)", padding: "2px 8px", borderRadius: 6, fontWeight: 700, whiteSpace: "nowrap" }}>
                         {String(g.invoices.length) + (g.invoices.length > 1 ? " factures" : " facture") + " \u00B7 " + String(g.maxAge) + "j"}
                       </span>
                     </div>
@@ -243,7 +243,7 @@ function Dash(p: DashProps) {
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 4 }}>
                       <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{(d.cl || "?") + " \u2014 " + (d.bl || "?")}</span>
-                      {reasons ? <span style={{ fontSize: 10, background: "var(--danger-light)", color: "var(--danger-text)", padding: "2px 8px", borderRadius: 4, fontWeight: 700, whiteSpace: "nowrap" }}>{reasons}</span> : null}
+                      {reasons ? <span style={{ fontSize: 10, background: "var(--danger-light)", color: "var(--danger-text)", padding: "2px 8px", borderRadius: 6, fontWeight: 700, whiteSpace: "nowrap" }}>{reasons}</span> : null}
                     </div>
                     {d.ratingComment ? <div style={{ fontSize: 12, color: "var(--text-secondary)", fontStyle: "italic" }}>{"\u00AB " + d.ratingComment + " \u00BB"}</div> : null}
                   </ClickableDiv>
@@ -261,10 +261,10 @@ function Dash(p: DashProps) {
         <div style={{ background: "var(--bg-primary)", borderRadius: 12, padding: 14, border: "1px solid var(--border)" }}>
           <div style={{ fontWeight: 800, fontSize: 12, color: "var(--text-secondary)", marginBottom: 10, letterSpacing: 0.5, textTransform: "uppercase" }}>{"Actions rapides"}</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            {canEdit ? <ClickableDiv onClick={function () { setMl({ t: "ndos" }); }} label="Nouveau dossier" style={{ background: "var(--bg-tertiary)", borderRadius: 10, padding: 12, textAlign: "center" }}><div style={{ fontSize: 22 }}>{"+"}</div><div style={{ fontWeight: 700, fontSize: 11, color: "var(--text-primary)" }}>{"Dossier"}</div></ClickableDiv> : null}
-            <ClickableDiv onClick={function () { setMl({ t: "cli" }); }} label="Nouveau client" style={{ background: "var(--bg-tertiary)", borderRadius: 10, padding: 12, textAlign: "center" }}><div style={{ fontSize: 22 }}>{"\uD83D\uDCDE"}</div><div style={{ fontWeight: 700, fontSize: 11 }}>{"Client"}</div></ClickableDiv>
-            {canEdit ? <ClickableDiv onClick={function () { setMl({ t: "nch" }); }} label="Nouveau chauffeur" style={{ background: "var(--bg-tertiary)", borderRadius: 10, padding: 12, textAlign: "center" }}><div style={{ fontSize: 22 }}>{"\uD83D\uDE9B"}</div><div style={{ fontWeight: 700, fontSize: 11 }}>{"Chauffeur"}</div></ClickableDiv> : null}
-            {canEdit ? <ClickableDiv onClick={function () { setMl({ t: "ndep" }); }} label="Nouvelle depense" style={{ background: "var(--bg-tertiary)", borderRadius: 10, padding: 12, textAlign: "center" }}><div style={{ fontSize: 22 }}>{"\uD83D\uDCB0"}</div><div style={{ fontWeight: 700, fontSize: 11 }}>{"Dépense"}</div></ClickableDiv> : null}
+            {canEdit ? <ClickableDiv onClick={function () { setMl({ t: "ndos" }); }} label="Nouveau dossier" style={{ background: "var(--bg-tertiary)", borderRadius: 8, padding: 12, textAlign: "center" }}><div style={{ fontSize: 22 }}>{"+"}</div><div style={{ fontWeight: 700, fontSize: 11, color: "var(--text-primary)" }}>{"Dossier"}</div></ClickableDiv> : null}
+            <ClickableDiv onClick={function () { setMl({ t: "cli" }); }} label="Nouveau client" style={{ background: "var(--bg-tertiary)", borderRadius: 8, padding: 12, textAlign: "center" }}><div style={{ fontSize: 22 }}>{"\uD83D\uDCDE"}</div><div style={{ fontWeight: 700, fontSize: 11 }}>{"Client"}</div></ClickableDiv>
+            {canEdit ? <ClickableDiv onClick={function () { setMl({ t: "nch" }); }} label="Nouveau chauffeur" style={{ background: "var(--bg-tertiary)", borderRadius: 8, padding: 12, textAlign: "center" }}><div style={{ fontSize: 22 }}>{"\uD83D\uDE9B"}</div><div style={{ fontWeight: 700, fontSize: 11 }}>{"Chauffeur"}</div></ClickableDiv> : null}
+            {canEdit ? <ClickableDiv onClick={function () { setMl({ t: "ndep" }); }} label="Nouvelle depense" style={{ background: "var(--bg-tertiary)", borderRadius: 8, padding: 12, textAlign: "center" }}><div style={{ fontSize: 22 }}>{"\uD83D\uDCB0"}</div><div style={{ fontWeight: 700, fontSize: 11 }}>{"Dépense"}</div></ClickableDiv> : null}
           </div>
           {/* Banner urgences retire : info deja visible via le badge "X urgence(s)" en haut a droite */}
           <button onClick={function () { pdfBilan({ dos: dos, tcs: tcs, dep: dep, urgences: urgences, alertes: p.alertes || [], companyName: p.companyName || "SAPURAI" }); }} style={{ marginTop: 10, width: "100%", background: "var(--bg-tertiary)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", color: "var(--text-tertiary)" }}>{"\uD83D\uDCC4 Telecharger bilan PDF"}</button>

@@ -12,7 +12,7 @@ interface OnboardingModalProps {
 function OnboardingModal(p: OnboardingModalProps) {
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div style={{ background: "var(--bg-primary)", borderRadius: 20, maxWidth: 420, width: "100%", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.3)" }}>
+      <div style={{ background: "var(--bg-primary)", borderRadius: 999, maxWidth: 420, width: "100%", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.3)" }}>
 
         {/* Header */}
         <div style={{ background: "var(--btn-primary-bg)", padding: "28px 28px 24px", textAlign: "center" }}>

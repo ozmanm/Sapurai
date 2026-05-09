@@ -201,7 +201,7 @@ export default function TeamPanel(p: TeamPanelProps) {
           <div>
             {p.members.map(function (m: any) {
               var isMe = m.uid === p.currentUid;
-              return <div key={m.uid} style={{ background: 'var(--bg-primary)', borderRadius: 10, padding: 14, marginBottom: 8, border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              return <div key={m.uid} style={{ background: 'var(--bg-primary)', borderRadius: 8, padding: 14, marginBottom: 8, border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{m.name || m.email}{isMe ? ' (vous)' : ''}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{m.email}</div>
@@ -220,7 +220,7 @@ export default function TeamPanel(p: TeamPanelProps) {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
                       {m.taches.map(function (tk: string) {
                         var lbl = TACHES_LIST.find(function (t) { return t.k === tk; });
-                        return <span key={tk} style={{ background: 'var(--info-bg)', color: 'var(--info-text)', padding: '2px 7px', borderRadius: 4, fontSize: 10, fontWeight: 700 }}>{lbl ? lbl.l : tk}</span>;
+                        return <span key={tk} style={{ background: 'var(--info-bg)', color: 'var(--info-text)', padding: '2px 7px', borderRadius: 6, fontSize: 10, fontWeight: 700 }}>{lbl ? lbl.l : tk}</span>;
                       })}
                     </div>
                   ) : null}
@@ -367,12 +367,12 @@ export default function TeamPanel(p: TeamPanelProps) {
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{String(invResponsabilites.length) + '/300'}</div>
               </div>
             ) : null}
-            <button onClick={genCode} style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', width: '100%' }}>Generer un code</button>
+            <button onClick={genCode} style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', width: '100%' }}>Generer un code</button>
 
             {invCode ? (
               <div style={{ marginTop: 16, textAlign: 'center' }}>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 6 }}>{"Code d'invitation pour " + invEmail + " (valable 7 jours)"}</div>
-                <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: 6, color: 'var(--text-primary)', background: 'var(--bg-secondary)', borderRadius: 10, padding: '14px 20px', fontFamily: 'monospace' }}>{invCode}</div>
+                <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: 6, color: 'var(--text-primary)', background: 'var(--bg-secondary)', borderRadius: 8, padding: '14px 20px', fontFamily: 'monospace' }}>{invCode}</div>
                 <button onClick={function () { navigator.clipboard.writeText(invCode).then(function () { setMsg('Code copie !'); }).catch(function () { setMsg('Erreur copie \u2014 copiez manuellement'); }); }} style={{ marginTop: 10, background: 'var(--success)', color: 'white', border: 'none', borderRadius: 8, padding: '8px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Copier</button>
               </div>
             ) : null}
@@ -398,7 +398,7 @@ export default function TeamPanel(p: TeamPanelProps) {
                 <option value="admin">Admin</option>
               </select>
             </div>
-            <button onClick={addByEmail} style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', width: '100%' }}>Generer lien d'invitation</button>
+            <button onClick={addByEmail} style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', width: '100%' }}>Generer lien d'invitation</button>
             {addLink ? (
               <div style={{ marginTop: 16 }}>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 6 }}>Partagez ce lien par WhatsApp ou SMS — il expire dans 7 jours :</div>
@@ -413,7 +413,7 @@ export default function TeamPanel(p: TeamPanelProps) {
       {/* Modale d'edition assignations agent existant */}
       {editingMember ? (
         <div onClick={function () { if (!editSaving) setEditingMember(null); }} style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8 }}>
-          <div onClick={function (e) { e.stopPropagation(); }} style={{ background: 'var(--bg-primary)', borderRadius: 14, width: '100%', maxWidth: 640, maxHeight: '94vh', overflow: 'auto', padding: 20 }}>
+          <div onClick={function (e) { e.stopPropagation(); }} style={{ background: 'var(--bg-primary)', borderRadius: 12, width: '100%', maxWidth: 640, maxHeight: '94vh', overflow: 'auto', padding: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <div>
                 <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{"Assignations \u2014 " + (editingMember.name || editingMember.email)}</h2>

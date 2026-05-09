@@ -27,7 +27,7 @@ function TrancheForm(p: TrancheFormProps) {
 
   return (
     <div>
-      <div style={{ background: "var(--info-bg)", padding: 14, borderRadius: 10, marginBottom: 14 }}>
+      <div style={{ background: "var(--info-bg)", padding: 14, borderRadius: 8, marginBottom: 14 }}>
         <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>{(tc.n || "?") + " \u2014 " + (tc.ch || "?")}</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
           <div style={{ textAlign: "center" }}>
@@ -59,7 +59,7 @@ function TrancheForm(p: TrancheFormProps) {
                 </div>
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                   <span style={{ fontWeight: 800, color: "var(--success)" }}>{fm(t.mt || 0)}</span>
-                  <span style={{ background: t.s === "PAYE" ? "var(--success-light)" : "var(--warning-bg)", color: t.s === "PAYE" ? "var(--success-text)" : "var(--warning-text)", padding: "1px 6px", borderRadius: 4, fontSize: 10, fontWeight: 700 }}>{t.s === "PAYE" ? "Paye" : "Att"}</span>
+                  <span style={{ background: t.s === "PAYE" ? "var(--success-light)" : "var(--warning-bg)", color: t.s === "PAYE" ? "var(--success-text)" : "var(--warning-text)", padding: "1px 6px", borderRadius: 6, fontSize: 10, fontWeight: 700 }}>{t.s === "PAYE" ? "Paye" : "Att"}</span>
                 </div>
               </div>
             );

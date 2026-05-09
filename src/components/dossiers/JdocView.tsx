@@ -85,7 +85,7 @@ function JdocView(p: JdocViewProps) {
           {!preview.loading && preview.data ? <div style={{ marginTop: 8, textAlign: "center" }}><a href={preview.data} download={"document"} style={{ color: "var(--text-primary)", fontSize: 13, fontWeight: 600 }}>{"Telecharger"}</a></div> : null}
         </div>
       ) : null}
-      <div style={{ marginBottom: 14, background: "var(--bg-tertiary)", borderRadius: 10, padding: 12 }}>
+      <div style={{ marginBottom: 14, background: "var(--bg-tertiary)", borderRadius: 8, padding: 12 }}>
         <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>{(d.cl || "") + " - " + (d.bl || "")}</div>
         <div style={{ display: "flex", gap: 8, alignItems: "end", flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: 120 }}><label style={LS}>{"Type"}</label><select value={tp} onChange={function (e) { setTp(e.target.value); }} style={IS}>{DTYPES.map(function (t) { return <option key={t} value={t}>{t}</option>; })}</select></div>

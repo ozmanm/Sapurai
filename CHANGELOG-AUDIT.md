@@ -1,7 +1,15 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-05-08 (135 taches)
+> Derniere mise a jour : 2026-05-08 (136 taches)
+
+---
+
+## FAIT — Sprint 32 : Page Conteneurs — Recherche TC + durees port/transit + dropdown tri
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 136 | **3 ameliorations metier page Conteneurs** | `src/pages/Tcs.tsx` | Demande utilisateur pour rendre la page Conteneurs plus utile au quotidien. (1) **Filtre "Filtrer par client" remplace par "Recherche par n° TC"** : `qrCl` (filter dossier.cl) supprime au profit de `qrTc` (search direct dans `tc.n`, uppercase auto, fontFamily mono). Beaucoup plus utile : retrouver instantanement un n° TC parmi 76 TC affiches plutot que filtrer par client (deja faisable via page Dossiers). Placeholder explicite "Rechercher un n° TC (ex: MEDU482...)". (2) **Durees metier port + transit affichees pour chaque TC** : nouveau helper `tcDurations(tc, d)` qui calcule `portDays` (jours arrivee navire -> chargement camion via `d.da` -> `tc.dsp`) et `transitDays` (jours chargement -> retour vide via `tc.dsp` -> `tc.dr`). Etats `portInProgress` / `transitInProgress` quand le TC est encore au port ou en transit (calcul depuis aujourd'hui, suffix `j+`). Helper `tcDurationsLabel(dur)` pour format compact "8j P · 12j T" (ou "5j+ P" si en cours). Affichage dans 4 vues : (a) **Vue Kanban** : 4e ligne dans chaque card sous le type/franchise, font mono compact 10px. (b) **Vue Table desktop** : nouvelle ligne sous le n° TC dans la cellule Conteneur (mono 10px, text-muted). (c) **Vue Mobile row** : nouvelle ligne apres "type · poids · chauffeur" (mono 10px). (d) **Panel deplie** : 4e card "DUREE" dans la grille Details (passage `1fr 1fr 1fr` -> `1fr 1fr 1fr 1fr`), affichage detaille "8j au port" + "12j transit" en mono 11px, fallback "---" si aucune date dispo. (3) **Dropdown tri explicite** ajoutee a cote des inputs de recherche : 7 options (Priorite urgences, Date arrivee recent/ancien, Client A-Z/Z-A, N° TC A-Z, Poids lourd-leger). Mobile-friendly et coherent avec les colonnes cliquables desktop conservees. Bandeau "Tri par X" redondant retire (la dropdown rend le tri actif explicite). **Verifications** : 286/286 tests, build 11.86s, lint 0 erreur. **Effet metier** : (a) recherche TC instantanee (cas frequent : agent au port qui cherche son TC dans une liste de 50+), (b) visualisation des durees critiques pour anticiper surestaries (TC qui passe 10j+ au port = signal alerte) et detentions (TC qui traine 20j+ en transit = probleme), (c) tri controlable mobile sans clic sur header tableau. |
 
 ---
 

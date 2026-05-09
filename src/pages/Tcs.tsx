@@ -7,6 +7,46 @@ import Pagination from '../components/ui/Pagination.tsx';
 
 interface TcsProps { [key: string]: any; }
 
+// Sprint 32 : calcule les durees metier d'un TC.
+// portDays : jours au port (arrivee navire -> chargement camion).
+// transitDays : jours en transit (chargement camion -> retour vide).
+// portInProgress : true si TC encore au port (calcul depuis aujourd'hui).
+// transitInProgress : true si TC encore en transit (calcul depuis aujourd'hui).
+function tcDurations(tc: any, d: any) {
+  var todayMs = new Date().setHours(0, 0, 0, 0);
+  var arrivalMs = d && d.da ? new Date(d.da).setHours(0, 0, 0, 0) : null;
+  var dspMs = tc.dsp ? new Date(tc.dsp).setHours(0, 0, 0, 0) : null;
+  var drMs = tc.dr ? new Date(tc.dr).setHours(0, 0, 0, 0) : null;
+
+  var portDays: number | null = null;
+  var portInProgress = false;
+  if (arrivalMs && dspMs) {
+    portDays = Math.max(0, Math.floor((dspMs - arrivalMs) / 86400000));
+  } else if (arrivalMs && (tc.st === "PORT" || tc.st === "ATTENDU")) {
+    portDays = Math.max(0, Math.floor((todayMs - arrivalMs) / 86400000));
+    portInProgress = true;
+  }
+
+  var transitDays: number | null = null;
+  var transitInProgress = false;
+  if (dspMs && drMs) {
+    transitDays = Math.max(0, Math.floor((drMs - dspMs) / 86400000));
+  } else if (dspMs && tc.st !== "PORT" && tc.st !== "ATTENDU" && tc.st !== "DISPATCHE") {
+    transitDays = Math.max(0, Math.floor((todayMs - dspMs) / 86400000));
+    transitInProgress = true;
+  }
+
+  return { portDays, portInProgress, transitDays, transitInProgress };
+}
+
+// Sprint 32 : format compact pour affichage en row : "8j P / 12j T".
+function tcDurationsLabel(dur: ReturnType<typeof tcDurations>): string {
+  var parts: string[] = [];
+  if (dur.portDays !== null) parts.push(String(dur.portDays) + (dur.portInProgress ? "j+" : "j") + " P");
+  if (dur.transitDays !== null) parts.push(String(dur.transitDays) + (dur.transitInProgress ? "j+" : "j") + " T");
+  return parts.length > 0 ? parts.join(" · ") : "";
+}
+
 function Tcs(p: TcsProps) {
   var tcs = p.tcs;
   var dos = p.dos;
@@ -21,7 +61,7 @@ function Tcs(p: TcsProps) {
   var tcFranchise = p.tcFranchise;
 
   var [qrCh, setQrCh] = useState("");
-  var [qrCl, setQrCl] = useState("");
+  var [qrTc, setQrTc] = useState("");
   var [sortBy, setSortBy] = useState("priorite");
   var [sortDir, setSortDir] = useState("asc");
   // Sprint B.2 — vue Kanban en alternative au tableau
@@ -35,10 +75,7 @@ function Tcs(p: TcsProps) {
   var filtered = tcs.filter(function (tc) {
     if (qr && tc.st !== qr) return false;
     if (qrCh && (!tc.ch || tc.ch.toLowerCase().indexOf(qrCh.toLowerCase()) < 0)) return false;
-    if (qrCl) {
-      var d = dos.find(function (x) { return x.id === tc.did; });
-      if (!d || !d.cl || d.cl.toLowerCase().indexOf(qrCl.toLowerCase()) < 0) return false;
-    }
+    if (qrTc && (!tc.n || tc.n.toUpperCase().indexOf(qrTc.toUpperCase()) < 0)) return false;
     return true;
   }).slice().sort(function (a, b) {
     // Tri par colonne si actif
@@ -91,20 +128,26 @@ function Tcs(p: TcsProps) {
         <button onClick={function () { setQr(""); }} style={{ background: !qr ? "var(--btn-primary-bg)" : "transparent", color: !qr ? "var(--btn-primary-text)" : "var(--text-tertiary)", border: !qr ? "none" : "1px solid var(--border)", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{"Tous (" + String(tcs.length) + ")"}</button>
         {PL.map(function (s) { var n = tcs.filter(function (c) { return c.st === s; }).length; return <button key={s} onClick={function () { setQr(qr === s ? "" : s); }} style={{ background: qr === s ? "var(--btn-primary-bg)" : "transparent", color: qr === s ? "var(--btn-primary-text)" : "var(--text-tertiary)", border: qr === s ? "none" : "1px solid var(--border)", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{(SL[s] || s) + " (" + String(n) + ")"}</button>; })}
       </div>
-      <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         <div>
-          <input value={qrCl} onChange={function (e) { setQrCl(e.target.value); }} placeholder={"Filtrer par client..."} style={{ padding: "7px 12px", border: "1px solid var(--border)", borderRadius: 8, fontSize: 13, width: "100%", maxWidth: 200, outline: "none", boxSizing: "border-box" }} />
-          {qrCl ? <button onClick={function () { setQrCl(""); }} style={{ marginLeft: 4, background: "none", border: "none", cursor: "pointer", fontSize: 12, color: "var(--text-muted)" }}>{"x"}</button> : null}
+          <input value={qrTc} onChange={function (e) { setQrTc(e.target.value.toUpperCase()); }} placeholder={"Rechercher un n° TC (ex: MEDU482...)"} style={{ padding: "7px 12px", border: "1px solid var(--border)", borderRadius: 8, fontSize: 13, width: "100%", maxWidth: 240, outline: "none", boxSizing: "border-box", fontFamily: "var(--font-mono)" }} />
+          {qrTc ? <button onClick={function () { setQrTc(""); }} style={{ marginLeft: 4, background: "none", border: "none", cursor: "pointer", fontSize: 12, color: "var(--text-muted)" }}>{"x"}</button> : null}
         </div>
         <div>
           <input value={qrCh} onChange={function (e) { setQrCh(e.target.value); }} placeholder={"Filtrer par chauffeur..."} style={{ padding: "7px 12px", border: "1px solid var(--border)", borderRadius: 8, fontSize: 13, width: "100%", maxWidth: 200, outline: "none", boxSizing: "border-box" }} />
           {qrCh ? <button onClick={function () { setQrCh(""); }} style={{ marginLeft: 4, background: "none", border: "none", cursor: "pointer", fontSize: 12, color: "var(--text-muted)" }}>{"x"}</button> : null}
         </div>
+        {/* Sprint 32 : dropdown tri explicite (mobile-friendly) */}
+        <select value={sortBy + ":" + sortDir} onChange={function (e) { var parts = e.target.value.split(":"); setSortBy(parts[0]); setSortDir(parts[1]); }} aria-label="Trier les conteneurs" style={{ padding: "7px 12px", border: "1px solid var(--border)", borderRadius: 8, fontSize: 13, background: "var(--bg-primary)", color: "var(--text-primary)", cursor: "pointer", outline: "none" }}>
+          <option value="priorite:asc">Tri : Priorité (urgences)</option>
+          <option value="da:desc">Tri : Date arrivée (récent)</option>
+          <option value="da:asc">Tri : Date arrivée (ancien)</option>
+          <option value="cl:asc">Tri : Client (A → Z)</option>
+          <option value="cl:desc">Tri : Client (Z → A)</option>
+          <option value="n:asc">Tri : N° TC (A → Z)</option>
+          <option value="po:desc">Tri : Poids (lourd → léger)</option>
+        </select>
       </div>
-      {sortBy !== "priorite" ? <div style={{ background: "var(--info-bg)", border: "1px solid var(--info-border)", borderRadius: 8, padding: "6px 12px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: 11, color: "var(--info)", fontWeight: 600 }}>{"Tri par : " + ({ n: "Conteneur", cl: "Client", da: "Arrivee", po: "Poids", st: "Statut" }[sortBy] || sortBy) + " (" + (sortDir === "asc" ? "croissant" : "decroissant") + ")"}</span>
-        <button onClick={function () { setSortBy("priorite"); setSortDir("asc"); }} style={{ background: "none", border: "none", color: "var(--info)", fontSize: 11, fontWeight: 700, cursor: "pointer", textDecoration: "underline" }}>{"Revenir au tri par priorite"}</button>
-      </div> : null}
       {/* Vue Kanban — Sprint B.2 — 5 colonnes par statut handoff */}
       {view === "kanban" ? (function () {
         var KCOLS: Array<{ key: string; lbl: string; statuts: string[] }> = [
@@ -139,6 +182,8 @@ function Tcs(p: TcsProps) {
                         durLbl = fr.lbl + " " + (fr.val > 0 ? "J-" + String(fr.val) : "+" + String(Math.abs(fr.val)) + "j");
                         durColor = fr.col === "red" || fr.col === "black" ? "var(--danger)" : fr.col === "orange" ? "var(--warning-text)" : "var(--success-text)";
                       }
+                      var dur = tcDurations(tc, d);
+                      var durTxt = tcDurationsLabel(dur);
                       return (
                         <div key={tc.id} role="button" tabIndex={0} onClick={function () { setMl({ t: "tctimeline", tcid: tc.id }); }} onKeyDown={function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setMl({ t: "tctimeline", tcid: tc.id }); } }} style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-light)", borderRadius: 6, padding: "8px 10px", cursor: "pointer", display: "flex", flexDirection: "column" as const, gap: 4 }}>
                           <div style={{ fontSize: 12, fontWeight: 600, fontFamily: "var(--font-mono)", color: "var(--text-primary)", overflow: "hidden" as const, textOverflow: "ellipsis" as const, whiteSpace: "nowrap" as const }}>{tc.n || "?"}</div>
@@ -147,6 +192,7 @@ function Tcs(p: TcsProps) {
                             <span style={{ fontSize: 10, fontWeight: 600, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)" }}>{tc.ty || "?"}</span>
                             {durLbl ? <span style={{ fontSize: 10, fontWeight: 600, color: durColor, fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums" as const }}>{durLbl}</span> : null}
                           </div>
+                          {durTxt ? <div style={{ fontSize: 10, fontWeight: 600, color: "var(--text-secondary)", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums" as const }}>{durTxt}</div> : null}
                         </div>
                       );
                     })}
@@ -190,6 +236,7 @@ function Tcs(p: TcsProps) {
               <div style={{ padding: "12px 12px" }}>
                 <div style={{ fontFamily: "var(--font-mono)", fontWeight: 800, fontSize: 13, color: "var(--text-primary)" }}>{tc.n || "?"}{fr ? <span style={{ marginLeft: 6, background: ABG[fr.col], color: ACOL[fr.col], padding: "2px 6px", borderRadius: 6, fontSize: 10, fontWeight: 700, fontFamily: "system-ui" }}>{fr.lbl + " " + (fr.val > 0 ? "J-" + String(fr.val) : "+" + String(Math.abs(fr.val)) + "j")}</span> : null}</div>
                 {tc.ch ? <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 1 }}>{"\u2192 " + tc.ch}</div> : null}
+                {(function () { var dt = tcDurationsLabel(tcDurations(tc, d)); return dt ? <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums" as const, marginTop: 2 }}>{dt}</div> : null; })()}
               </div>
               <div style={{ padding: "12px 12px" }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-input)" }}>{d.cl || "?"}</div>
@@ -210,6 +257,7 @@ function Tcs(p: TcsProps) {
                   <div style={{ fontFamily: "var(--font-mono)", fontWeight: 800, fontSize: 13, color: "var(--text-primary)" }}>{tc.n || "?"}{fr ? <span style={{ marginLeft: 6, background: ABG[fr.col], color: ACOL[fr.col], padding: "2px 6px", borderRadius: 6, fontSize: 10, fontWeight: 700, fontFamily: "system-ui" }}>{fr.lbl + " " + (fr.val > 0 ? "J-" + String(fr.val) : "+" + String(Math.abs(fr.val)) + "j")}</span> : null}</div>
                   <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{(d.cl || "") + " \u00B7 " + (d.bl || "")}</div>
                   <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{(d.da ? fd(d.da) : "") + " \u00B7 " + (tc.ty || "") + (tc.po ? " \u00B7 " + String(Math.round(tc.po / 1000)) + "t" : "") + (tc.ch ? " \u00B7 " + tc.ch : "")}</div>
+                  {(function () { var dt = tcDurationsLabel(tcDurations(tc, d)); return dt ? <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums" as const, marginTop: 2 }}>{dt}</div> : null; })()}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ background: SB[tc.st] || "var(--bg-secondary)", color: SC[tc.st] || "var(--text-secondary)", padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700 }}>{SL[tc.st] || tc.st}</span>
@@ -263,8 +311,8 @@ function Tcs(p: TcsProps) {
                   </div>;
                 })}
               </div>
-              {/* Details grid */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 10 }}>
+              {/* Details grid + duree (Sprint 32) */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6, marginBottom: 10 }}>
                 <div style={{ background: "var(--bg-primary)", borderRadius: 8, padding: "8px 10px", border: "1px solid var(--border)" }}>
                   <div style={{ fontSize: 9, color: "var(--text-muted)", fontWeight: 700 }}>{"CLIENT"}</div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>{d.cl || "?"}</div>
@@ -280,6 +328,24 @@ function Tcs(p: TcsProps) {
                   <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>{d.cp || "---"}</div>
                   {d.cr ? <div style={{ fontSize: 10, color: "var(--text-secondary)" }}>{d.cr}</div> : null}
                 </div>
+                {(function () {
+                  var dur = tcDurations(tc, d);
+                  if (dur.portDays === null && dur.transitDays === null) {
+                    return (
+                      <div style={{ background: "var(--bg-primary)", borderRadius: 8, padding: "8px 10px", border: "1px solid var(--border)" }}>
+                        <div style={{ fontSize: 9, color: "var(--text-muted)", fontWeight: 700 }}>{"DUREE"}</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)" }}>{"---"}</div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div style={{ background: "var(--bg-primary)", borderRadius: 8, padding: "8px 10px", border: "1px solid var(--border)" }}>
+                      <div style={{ fontSize: 9, color: "var(--text-muted)", fontWeight: 700 }}>{"DUREE"}</div>
+                      {dur.portDays !== null ? <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-primary)", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums" as const }}>{String(dur.portDays) + (dur.portInProgress ? "j+ " : "j ") + "au port"}</div> : null}
+                      {dur.transitDays !== null ? <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-primary)", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums" as const, marginTop: 2 }}>{String(dur.transitDays) + (dur.transitInProgress ? "j+ " : "j ") + "transit"}</div> : null}
+                    </div>
+                  );
+                })()}
               </div>
               {/* Editable dates */}
               {canEdit ? <div style={{ marginBottom: 10 }}>
@@ -310,7 +376,7 @@ function Tcs(p: TcsProps) {
             </div> : null}
           </div>;
         })}
-        {filtered.length === 0 ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>{qrCh || qrCl ? "Aucun conteneur pour ce filtre" : "Aucun conteneur"}</div> : null}
+        {filtered.length === 0 ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>{qrCh || qrTc ? "Aucun conteneur pour ce filtre" : "Aucun conteneur"}</div> : null}
         <div style={{ background: "var(--bg-tertiary)", padding: "8px 12px", fontSize: 11, color: "var(--text-muted)", borderTop: "1px solid var(--border)" }}>
           {String(filtered.length) + " conteneur(s) \u00B7 " + String(tcs.filter(function (t) { return t.st === "ATTENDU"; }).length) + " attendu(s) \u00B7 " + String(tcs.filter(function (t) { return t.st === "PORT"; }).length) + " au port \u00B7 " + String(tcs.filter(function (t) { return t.st === "DISPATCHE" || t.st === "TRANSIT"; }).length) + " en route"}
         </div>

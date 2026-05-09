@@ -1,7 +1,15 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-05-07 (133 taches)
+> Derniere mise a jour : 2026-05-07 (134 taches)
+
+---
+
+## FAIT — Sprint 30 : Contexte impeccable officiel (PRODUCT.md + DESIGN.md + sidecar)
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 134 | **Officialisation contexte design (skill impeccable)** | `PRODUCT.md` (CREE), `DESIGN.md` (CREE), `.impeccable/design.json` (CREE) | Suite a `/impeccable teach` + `/impeccable document` : creation des 3 fichiers de contexte officiel pour aligner les futures commandes impeccable (audit, critique, polish, bolder, etc.) sur le brand reel Sapurai. **PRODUCT.md** (6.7 KB) : stratégique, format teach.md strict. Register=`product`, users (transitaires Dakar B2B, profil reticent au changement, multi-device, Sahel 4G), product purpose (anticiper surestaries, sync DPWorld+CMA, tracking client), brand personality "Fiable. Robuste. Anticipateur.", tone rassurant pas revolutionnaire, anti-pattern principal "si l'utilisateur doit apprendre Sapurai >5 min c'est rate", 6 design principles strategiques (source verifiee, armateur fait foi, anticiper pas constater, le client voit sans appeler, desktop ET mobile parite, friction zero), a11y WCAG AA + offline critique + low-end Android. **DESIGN.md** (20 KB) : visuel, format Google Stitch (frontmatter YAML + 6 sections). Frontmatter : 11 colors descriptives (cream-office, ink-primary, green-sapurai, red-surestarie, amber-warehouse...), 6 typography roles (display/headline/title/body/label/mono-id), 4 rounded (sm/md/lg/pill), 6 spacing, 12 components (button-primary/ghost/success/export-outline, card-primary/section, input-text, badge-success/danger/amber, pill-toggle). 6 sections markdown : Overview avec Creative North Star "The Field Terminal" (terminal de terrain, pas SaaS premium), Colors avec 4 roles + 3 Named Rules (Cream-First, Sémantique Réservée, Pas de #000), Typography avec 3 Named Rules (Identifier Mono, Uppercase Label, 65-75ch Body), Elevation avec 2 Named Rules (Flat-By-Default, Pas de Glassmorphism), Components (buttons/cards/badges/inputs/nav/stepper/logo), Do's and Don'ts (10 Do's + 13 Don'ts forceful, citent les anti-patterns Sprint 28). **.impeccable/design.json sidecar** (7 KB, schemaVersion 2) : 11 colorMeta avec tonal ramps 8 steps, 6 typographyMeta avec purposes, 5 shadows tokens semantiques, 3 motion tokens (ease-out-quart, transition-state, transition-card), 3 breakpoints, 9 components avec HTML/CSS self-contained drop-in (Primary Button, Ghost Button, Success Button, Export Outline, Card Primary, Mono Identifier, Status Badge, Input Text, Sapurai Logo SVG inline). narrative complet (northStar, overview, keyCharacteristics, 8 rules, dos/donts) pour rendering panel impeccable. **Pas de modification code source** : pure documentation. Tests 286/286 inchanges. **Effet attendu** : les futurs `/impeccable audit/critique/polish/bolder/etc.` charge automatiquement ces 3 fichiers et calibre ses recommandations sur le brand reel (palette creme, mono identifiers, vert/rouge/ambre semantiques, pas de gradients hors-systeme). |
 
 ---
 

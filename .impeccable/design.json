@@ -1,0 +1,271 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-07T00:00:00.000Z",
+  "title": "Design System: Sapurai",
+  "extensions": {
+    "colorMeta": {
+      "cream-office": {
+        "role": "neutral",
+        "displayName": "Crème du Bureau",
+        "canonical": "#f5f1e8",
+        "tonalRamp": ["#1c1a14", "#3d3a32", "#5a554b", "#737067", "#9a9489", "#c9c2b0", "#e0d8c4", "#f5f1e8"]
+      },
+      "cream-section": {
+        "role": "neutral",
+        "displayName": "Crème Section",
+        "canonical": "#efe9d6",
+        "tonalRamp": ["#1c1a14", "#3d3a32", "#5a554b", "#7a7665", "#a39d8b", "#c9c2b0", "#dcd5c0", "#efe9d6"]
+      },
+      "ink-primary": {
+        "role": "primary",
+        "displayName": "Encre Quasi-Noire",
+        "canonical": "#0a0a09",
+        "tonalRamp": ["#0a0a09", "#1c1a14", "#3d3a32", "#525048", "#737067", "#9a9489", "#c9c2b0", "#e0d8c4"]
+      },
+      "ink-secondary": {
+        "role": "neutral",
+        "displayName": "Encre Secondaire",
+        "canonical": "#3d3a32",
+        "tonalRamp": ["#0a0a09", "#1c1a14", "#3d3a32", "#525048", "#737067", "#9a9489", "#c9c2b0", "#e0d8c4"]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Encre Atténuée",
+        "canonical": "#737067",
+        "tonalRamp": ["#0a0a09", "#1c1a14", "#3d3a32", "#525048", "#737067", "#9a9489", "#c9c2b0", "#e0d8c4"]
+      },
+      "taupe-border": {
+        "role": "neutral",
+        "displayName": "Taupe Discret",
+        "canonical": "#d6d0c0",
+        "tonalRamp": ["#525048", "#737067", "#9a9489", "#b3aa97", "#c9c2b0", "#d6d0c0", "#e0d8c4", "#ebe5d3"]
+      },
+      "green-sapurai": {
+        "role": "secondary",
+        "displayName": "Vert Sapurai",
+        "canonical": "#15803d",
+        "tonalRamp": ["#04230f", "#0a3d1c", "#11592a", "#15803d", "#1f9d4d", "#3eba63", "#7dd49a", "#d8efd8"]
+      },
+      "red-surestarie": {
+        "role": "secondary",
+        "displayName": "Rouge Surestarie",
+        "canonical": "#c0392b",
+        "tonalRamp": ["#3d0e0a", "#5a1612", "#7d1f1a", "#c0392b", "#d65a4d", "#e58476", "#f5b7b0", "#fde7e3"]
+      },
+      "amber-warehouse": {
+        "role": "secondary",
+        "displayName": "Ambre Magasinage",
+        "canonical": "#a86a17",
+        "tonalRamp": ["#2a1a05", "#4a300d", "#7d4e0d", "#a86a17", "#c4862c", "#d6a05c", "#f5c98a", "#fbeacd"]
+      },
+      "blue-info": {
+        "role": "tertiary",
+        "displayName": "Bleu Info",
+        "canonical": "#1e40af",
+        "tonalRamp": ["#0a1430", "#13245a", "#1a328a", "#1e40af", "#3656c4", "#6b86d6", "#bfdbfe", "#dbeafe"]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface Blanche",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#1c1a14", "#3d3a32", "#737067", "#a39d8b", "#c9c2b0", "#e0d8c4", "#f5f1e8", "#ffffff"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Titres de pages principaux (Accueil KPIs, headings sections principales). Volume rare."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Titres de sections, h1 de pages secondaires (TrackingPage client name)."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Titres de cards, valeurs principales (BL number, nom client dans liste)."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Texte courant des cards, descriptions, paragraphes informatifs."
+      },
+      "label": {
+        "displayName": "Label uppercase",
+        "purpose": "Labels de sections au-dessus de groupes (CLIENT, TRANSPORT, URGENCES). Signature visuelle métier."
+      },
+      "mono-id": {
+        "displayName": "Mono Identifier",
+        "purpose": "Tous les identifiants à l'écran : BL, n° conteneur, plaque, montant FCFA, n° voyage. Spec absolue."
+      }
+    },
+    "shadows": [
+      {
+        "name": "ambient-card",
+        "value": "0 1px 3px rgba(10,10,9,0.08)",
+        "purpose": "Cards primaires au repos (TC card, info dossier, voyage timeline). Discret, ne crie pas."
+      },
+      {
+        "name": "hover-lift",
+        "value": "0 14px 30px -12px rgba(10,10,9,0.18)",
+        "purpose": "Cards interactives au hover. Combiné avec translateY(-3px)."
+      },
+      {
+        "name": "modal-elevated",
+        "value": "0 24px 60px -20px rgba(0,0,0,0.3)",
+        "purpose": "Modals, dropdowns, mock dashboard de la landing."
+      },
+      {
+        "name": "cta-glow-dark",
+        "value": "0 12px 24px -8px rgba(10,10,9,0.4)",
+        "purpose": "Boutons primary au hover (translateY -2px + glow)."
+      },
+      {
+        "name": "cta-glow-success",
+        "value": "0 12px 24px -8px rgba(22,163,74,0.5)",
+        "purpose": "Boutons success au hover."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out-quart",
+        "value": "cubic-bezier(0.2, 0.7, 0.3, 1)",
+        "purpose": "Easing principal pour fade-up, transitions de cards, animations Landing."
+      },
+      {
+        "name": "transition-state",
+        "value": "background 0.2s ease-out, color 0.2s ease-out, border-color 0.2s ease-out",
+        "purpose": "Transitions standards pour buttons toggles (rating reasons, tabs)."
+      },
+      {
+        "name": "transition-card",
+        "value": "background 0.3s ease-out, box-shadow 0.3s ease-out",
+        "purpose": "Hover lift sur cards. Jamais 'all'."
+      }
+    ],
+    "breakpoints": [
+      { "name": "mobile-narrow", "value": "480px" },
+      { "name": "tablet", "value": "900px" },
+      { "name": "desktop", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button (CTA dominant)",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "CTA principal de l'app et de la landing. Encre quasi-noire pleine, texte clair.",
+      "html": "<button class=\"ds-btn-primary\">Dispatcher</button>",
+      "css": ".ds-btn-primary { background: #0a0a09; color: #ffffff; padding: 10px 16px; border-radius: 8px; border: none; font-family: 'Inter', system-ui, sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; min-height: 44px; transition: transform 0.15s ease-out, box-shadow 0.15s ease-out; } .ds-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -8px rgba(10,10,9,0.4); } .ds-btn-primary:focus-visible { outline: 2px solid #15803d; outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button (secondary outline)",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "CTA secondaire, transparent + border. Pour annuler ou actions non-dominantes.",
+      "html": "<button class=\"ds-btn-ghost\">Annuler</button>",
+      "css": ".ds-btn-ghost { background: transparent; color: #0a0a09; padding: 10px 16px; border: 1px solid #d6d0c0; border-radius: 8px; font-family: 'Inter', system-ui, sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; min-height: 44px; transition: background 0.2s ease-out; } .ds-btn-ghost:hover { background: #f0eada; }"
+    },
+    {
+      "name": "Success Button (vert métier)",
+      "kind": "button",
+      "refersTo": "button-success",
+      "description": "Action métier positive (Dispatcher, Valider, Créer compte). Vert sémantique.",
+      "html": "<button class=\"ds-btn-success\">Dispatcher</button>",
+      "css": ".ds-btn-success { background: #15803d; color: #ffffff; padding: 10px 16px; border-radius: 8px; border: none; font-family: 'Inter', system-ui, sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; min-height: 44px; transition: background 0.15s ease-out, transform 0.15s ease-out; } .ds-btn-success:hover { background: #11592a; transform: translateY(-2px); box-shadow: 0 12px 24px -8px rgba(22,163,74,0.5); }"
+    },
+    {
+      "name": "Export Outline Button",
+      "kind": "button",
+      "refersTo": "button-export-outline",
+      "description": "Pattern Sapurai pour Excel/PDF (Sprint 24). Blanc + border + flèche colorée selon export.",
+      "html": "<button class=\"ds-btn-export\"><span class=\"ds-arrow-success\">↓</span>Excel</button>",
+      "css": ".ds-btn-export { background: #ffffff; color: #0a0a09; padding: 10px 14px; border: 1px solid #d6d0c0; border-radius: 8px; font-family: 'Inter', system-ui, sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; min-height: 44px; display: inline-flex; align-items: center; gap: 4px; } .ds-arrow-success { color: #15803d; font-weight: 700; }"
+    },
+    {
+      "name": "Card Primary (white surface on cream)",
+      "kind": "card",
+      "refersTo": "card-primary",
+      "description": "Card blanche qui ressort du fond crème. Cards info dossier, TC, voyage.",
+      "html": "<article class=\"ds-card-primary\"><div class=\"ds-card-label\">Client</div><div class=\"ds-card-value\">MAHAMADOU DIALLO</div></article>",
+      "css": ".ds-card-primary { background: #ffffff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(10,10,9,0.08); transition: transform 0.25s ease-out, box-shadow 0.25s ease-out; } .ds-card-primary:hover { transform: translateY(-3px); box-shadow: 0 14px 30px -12px rgba(10,10,9,0.18); } .ds-card-label { font-size: 11px; font-weight: 700; color: #3d3a32; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; } .ds-card-value { font-size: 14px; font-weight: 700; color: #0a0a09; }"
+    },
+    {
+      "name": "Mono Identifier Display",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Affichage d'un identifiant métier (BL, conteneur, montant). Spec absolue : JetBrains Mono.",
+      "html": "<span class=\"ds-mono-id\">SWA0447921</span>",
+      "css": ".ds-mono-id { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; font-weight: 600; color: #0a0a09; letter-spacing: 0; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Status Badge (success)",
+      "kind": "chip",
+      "refersTo": "badge-success",
+      "description": "Badge sémantique de statut métier. Variants identiques pour danger/amber/info.",
+      "html": "<span class=\"ds-badge-success\">📡 CMA</span>",
+      "css": ".ds-badge-success { background: #d8efd8; color: #15803d; padding: 3px 8px; border-radius: 4px; font-family: 'Inter', system-ui, sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; display: inline-block; } .ds-badge-danger { background: #fde7e3; color: #c0392b; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; } .ds-badge-amber { background: #fbeacd; color: #a86a17; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }"
+    },
+    {
+      "name": "Input Text",
+      "kind": "input",
+      "refersTo": "input-text",
+      "description": "Champ texte standard. Crème input fond + border, focus encre.",
+      "html": "<input type=\"text\" class=\"ds-input\" placeholder=\"BL...\" />",
+      "css": ".ds-input { background: #f0eada; color: #3d3a32; padding: 10px 12px; border: 1px solid #d6d0c0; border-radius: 8px; font-family: 'Inter', system-ui, sans-serif; font-size: 14px; min-height: 44px; transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out; outline: none; box-sizing: border-box; width: 100%; } .ds-input:focus { border-color: #0a0a09; box-shadow: 0 0 0 3px rgba(10,10,9,0.08); }"
+    },
+    {
+      "name": "Sapurai Logo (S route + ambre dots)",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Logo signature : carré arrondi noir, S tracé comme route avec pointillés ambre. Identité unique.",
+      "html": "<span class=\"ds-sapurai-logo\" aria-label=\"Sapurai\"><svg width=\"32\" height=\"32\" viewBox=\"0 0 56 60\" fill=\"none\" aria-hidden=\"true\"><rect width=\"56\" height=\"60\" rx=\"12\" fill=\"#0a0a09\"/><path d=\"M 42 12 C 42 12, 14 12, 14 22 C 14 30, 42 30, 42 38 C 42 48, 14 48, 14 48\" stroke=\"#ffffff\" stroke-width=\"8\" stroke-linecap=\"round\" fill=\"none\"/><path d=\"M 42 12 C 42 12, 14 12, 14 22 C 14 30, 42 30, 42 38 C 42 48, 14 48, 14 48\" stroke=\"#fbbf24\" stroke-width=\"1.4\" stroke-linecap=\"round\" fill=\"none\" stroke-dasharray=\"2.2 3.5\"/></svg><span>Sapurai</span></span>",
+      "css": ".ds-sapurai-logo { display: inline-flex; align-items: center; gap: 6px; font-family: 'Inter', system-ui, sans-serif; font-size: 14px; font-weight: 700; letter-spacing: -0.01em; color: #0a0a09; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Field Terminal",
+    "overview": "Sapurai est un terminal de terrain pour transitaires. Crème comme un cahier de bureau bien tenu, encre noire pour la lecture, JetBrains Mono pour les identifiants critiques (BL, conteneurs, montants), accents vert et rouge réservés aux signaux métier. Le système assume une esthétique d'outil de travail sérieux, pas de SaaS premium ; pas de gradients fluides, pas de glassmorphism, pas de palette néon. La page que tu regardes doit ressembler à un cahier de transit moderne, pas à un dashboard tech-bro.",
+    "keyCharacteristics": [
+      "Palette crème + encre + accents sémantiques minimaux (vert / rouge / ambre)",
+      "JetBrains Mono partout où l'utilisateur lit un identifiant",
+      "Plat par défaut, ombres réservées aux états interactifs et modals",
+      "Border radius 8 (boutons, badges) et 12 (cards) uniquement",
+      "Espacements 4 / 8 / 12 / 16 / 20 / 28 pour le rythme",
+      "Mode sombre fonctionnel mais nice-to-have, lisibilité prime sur l'effet stylé"
+    ],
+    "rules": [
+      { "name": "The Cream-First Rule", "body": "Le fond du body est toujours la crème. Le blanc pur est réservé aux cards qui doivent ressortir.", "section": "colors" },
+      { "name": "The Sémantique Réservée Rule", "body": "Vert, rouge, ambre sont uniquement des signaux métier. Pas de bouton 'Sauvegarder' en vert décoratif.", "section": "colors" },
+      { "name": "The Pas de #000 Rule", "body": "Jamais #000 ni #fff purs. L'encre est #0a0a09, la surface blanche réservée aux cards primaires.", "section": "colors" },
+      { "name": "The Identifier Mono Rule", "body": "Tout identifiant copiable (BL, conteneur, plaque, montant) en JetBrains Mono. Spec absolue.", "section": "typography" },
+      { "name": "The Uppercase Label Rule", "body": "Labels de section uppercase Inter 700 11px letter-spacing 0.05em. Cohérent partout.", "section": "typography" },
+      { "name": "The 65-75ch Body Rule", "body": "Texte courant ne dépasse jamais 75 caractères de large. Cap à 600px max-width.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Surfaces plates au repos. Ombres uniquement en réponse à un état (hover, focus, modal).", "section": "elevation" },
+      { "name": "The Pas de Glassmorphism Rule", "body": "backdrop-filter: blur interdit comme effet décoratif. Aucun usage légitime.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do utiliser --font-mono pour chaque identifiant à l'écran (BL, conteneur, montant, plaque). Sans exception.",
+      "Do garder le vert/rouge/ambre strictement sémantiques (succès/alarme/vigilance).",
+      "Do appliquer le pattern 'background soft + text saturé' sur les badges sémantiques.",
+      "Do réserver les ombres aux états interactifs et aux modals.",
+      "Do documenter chaque exception au système avec eslint-disable + raison.",
+      "Do afficher le provenance badge sur chaque donnée à source externe (CMA, DPWorld, manuel).",
+      "Do respecter les 3 niveaux de border-radius : 6, 8, 12, 999. Aucune autre valeur.",
+      "Do utiliser des labels uppercase 11px Inter 700 letter-spacing 0.05em pour titrer les sections."
+    ],
+    "donts": [
+      "Don't utiliser #000 ou #fff purs. L'encre est #0a0a09, la surface blanche #ffffff réservée aux cards.",
+      "Don't introduire une palette arc-en-ciel pour différencier des étapes (cf. critique Sprint 28 KATI rouge alarme).",
+      "Don't copier les gradients dark-slate de Linear/Stripe. Sapurai utilise --btn-primary-bg plein.",
+      "Don't imbriquer des cards (card-in-card). Anti-pattern explicite.",
+      "Don't abuser des emojis décoratifs. Garder uniquement les emojis sémantiques (✓, ⚠, sentiment, brand).",
+      "Don't appliquer backdrop-filter: blur (glassmorphism).",
+      "Don't utiliser des border-side-stripe (border-left 4px) comme accent.",
+      "Don't appliquer background-clip: text pour des dégradés de texte.",
+      "Don't afficher 'SAPURAI' comme fallback de marque. Le client doit voir son transitaire ou neutre.",
+      "Don't créer de nouveaux composants UI quand un existant fait le travail.",
+      "Don't mettre une transition 'all'. Toujours préciser propriétés et easing.",
+      "Don't oublier prefers-reduced-motion.",
+      "Don't faire un onboarding lourd. Règle d'or : 5 minutes max."
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+name = "scan-bl-proxy"
+main = "worker.js"
+compatibility_date = "2026-04-01"
+
+# Workers AI binding (gratuit jusqu'a 10 000 neurons / jour)
+# Le binding "AI" est expose dans env.AI cote worker.js
+[ai]
+binding = "AI"
+
+# Variable optionnelle pour switcher de modele sans redeployer le code :
+#   wrangler secret put SCAN_MODEL
+# Valeurs possibles :
+#   @cf/llava-hf/llava-1.5-7b-hf       (defaut, stable pour OCR documents)
+#   @cf/meta/llama-3.2-11b-vision-instruct  (plus recent, plus verbeux)
+#   @cf/unum/uform-gen2-qwen-500m      (rapide, moins precis)

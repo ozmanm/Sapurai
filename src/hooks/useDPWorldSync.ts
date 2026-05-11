@@ -8,6 +8,20 @@ import type { Dossier, Conteneur, Depense } from '../types.js';
  * le refactor E.
  */
 
+/**
+ * Indique si une compagnie maritime decharge a Dakar via le terminal DPWorld.
+ * Les armateurs RO-RO (Grimaldi) ont leur propre terminal et ne sont pas
+ * indexes dans DPWorld -> sync inutile et bruyante.
+ *
+ * Si tu identifies d'autres armateurs non-DPWorld a Dakar, ajoute-les a la liste.
+ */
+function isDPWorldEligibleCarrier(cp: string | undefined | null): boolean {
+  if (!cp) return true;  // par defaut on tente la sync
+  var c = String(cp).toUpperCase();
+  if (c.indexOf('GRIMALDI') >= 0) return false;
+  return true;
+}
+
 export interface DPWorldSyncDeps {
   db: any;
   sv: (data: any) => void;
@@ -45,6 +59,9 @@ export default function useDPWorldSync(p: DPWorldSyncDeps) {
   async function syncDPWorld(dosId: string): Promise<void> {
     var d = dos.find(function (x) { return x.id === dosId; });
     if (!d || !d.bl) { nf("Pas de BL pour ce dossier", "error"); return; }
+    // Skip silencieux des armateurs non-DPWorld (Grimaldi RO-RO etc.).
+    // Tous les transitaires savent que ces BLs ne sont pas dans DPWorld.
+    if (!isDPWorldEligibleCarrier(d.cp)) return;
     // Q1 : skip sync si tous les TC sont deja sortis du port (DPWorld n'a plus
     // d'info utile une fois le TC charge). Economise les appels API et la
     // latence utilisateur.
@@ -92,8 +109,10 @@ export default function useDPWorldSync(p: DPWorldSyncDeps) {
 
   async function syncAllDPWorld(): Promise<void> {
     // Q1 : exclut aussi les dossiers dont tous les TC sont deja sortis du port
+    // + exclut les armateurs non-DPWorld (Grimaldi RO-RO)
     var actifs = dos.filter(function (d) {
       if (!d.bl || d.st === "CLOTURE" || d.st === "ARCHIVE") return false;
+      if (!isDPWorldEligibleCarrier(d.cp)) return false;
       var dtcs = tcs.filter(function (t) { return t.did === d.id; });
       if (dtcs.length === 0) return true;  // pas de TC encore : on tente quand meme
       // Skip si tous les TC ont quitte le port

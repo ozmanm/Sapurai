@@ -1,30 +1,19 @@
-// src/ScanBL.jsx
-// Scanner BL avec Gemini API (gratuit) - extrait les infos du connaissement
+// src/ScanBL.tsx
+// Scanner BL via pipeline OCR Tesseract + Llama 3.1 text-only (Sprint 33 v2).
+// Avant : Gemini 2.0 Flash (desactive Sprint 27 cause quota Senegal).
+// Sprint 33 v1 : LLaVA / Llama Vision (modeles vision hallucinent les codes alphanumeriques).
+// Sprint 33 v2 : pipeline hybride - Tesseract.js fait l'OCR brut (precis sur le texte imprime),
+//   Llama 3.1 8B text-only structure le texte en JSON (excellent en suivi d'instructions).
 import { useState } from 'react';
 import type { ChangeEvent } from 'react';
 
-var GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
-
-var PROMPT = `Tu es un assistant specialise dans le transit maritime. Analyse cette image/document de connaissement (Bill of Lading / BL) et extrais les informations suivantes au format JSON strict.
-
-Reponds UNIQUEMENT avec du JSON, sans aucun texte avant ou apres, sans backticks:
-{
-  "bl": "numero du BL",
-  "client": "nom du destinataire/consignee/notify party",
-  "compagnie": "compagnie maritime / armateur",
-  "date_arrivee": "date ETA au format YYYY-MM-DD si disponible",
-  "contact": "telephone si visible",
-  "conteneurs": [
-    { "numero": "XXXX1234567", "type": "20GP ou 40HC etc", "poids": "en kg" }
-  ]
-}
-
-Si une information n'est pas visible, mets une chaine vide. Pour les conteneurs, extrais tous ceux visibles. Le type doit etre parmi: 20GP, 40GP, 40HC, 20RF, 40RF.`;
+// URL du Worker scan-bl-proxy (deploye via wrangler).
+var SCAN_URL = "https://scan-bl-proxy.ozmanm10.workers.dev/scan";
 
 interface ScanBLProps {
-  apiKey: string;
   onResult: (data: any) => void;
 }
+
 type ScanPreview = {
   bl?: string;
   client?: string;
@@ -34,76 +23,233 @@ type ScanPreview = {
   conteneurs?: Array<{ numero?: string; type?: string; poids?: string | number }>;
 };
 
+type ScanStage = "idle" | "pdf" | "ocr" | "ai";
+
 export default function ScanBL(p: ScanBLProps) {
-  var [loading, setLoading] = useState(false);
+  var [stage, setStage] = useState<ScanStage>("idle");
   var [err, setErr] = useState("");
   var [preview, setPreview] = useState<ScanPreview | null>(null);
+  // Cumul progress Tesseract (0-100)
+  var [ocrProgress, setOcrProgress] = useState(0);
+  var loading = stage !== "idle";
+
+  /**
+   * Convertit la 1ere page d'un PDF en canvas via pdfjs-dist (lazy load).
+   * Retourne le canvas pour pouvoir le passer directement a Tesseract (evite un round-trip JPEG).
+   */
+  async function pdfToCanvas(file: File): Promise<HTMLCanvasElement> {
+    var pdfjsLib: any = await import('pdfjs-dist');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+      'pdfjs-dist/build/pdf.worker.min.mjs',
+      import.meta.url,
+    ).toString();
+
+    var arrayBuffer = await file.arrayBuffer();
+    var pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    var page = await pdf.getPage(1);
+
+    // Echelle 3x pour OCR fiable (BL souvent en petits caracteres)
+    var viewport = page.getViewport({ scale: 3 });
+    var canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    var ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error("canvas 2d context indisponible");
+
+    await page.render({ canvasContext: ctx, viewport: viewport, canvas: canvas }).promise;
+    return canvas;
+  }
+
+  /**
+   * Lance Tesseract OCR sur un canvas/blob/dataURL. Langues : anglais + francais
+   * (les BL maritimes utilisent souvent les deux : "Consignee" / "Consignataire").
+   */
+  async function runOcr(source: HTMLCanvasElement | string): Promise<string> {
+    var tesseract: any = await import('tesseract.js');
+    var result = await tesseract.recognize(source, 'eng+fra', {
+      logger: function (m: any) {
+        if (m && m.status === 'recognizing text' && typeof m.progress === 'number') {
+          setOcrProgress(Math.round(m.progress * 100));
+        }
+      },
+    });
+    return (result && result.data && result.data.text) || '';
+  }
 
   function handleFile(e: ChangeEvent<HTMLInputElement>) {
     var file = e.target.files && e.target.files[0];
     if (!file) return;
 
-    var apiKey = p.apiKey;
-    if (!apiKey) {
-      setErr("Cle API Gemini requise. Allez dans Parametres pour la configurer.");
-      return;
-    }
-
     setErr("");
-    setLoading(true);
     setPreview(null);
+    setOcrProgress(0);
 
-    var reader = new FileReader();
-    reader.onload = function (ev) {
-      var dataUrl = typeof ev.target?.result === "string" ? ev.target.result : "";
-      var base64 = dataUrl.split(",")[1];
-      var mimeType = file.type || "image/jpeg";
-
-      // Handle PDF
-      if (file.name.toLowerCase().endsWith(".pdf")) {
-        mimeType = "application/pdf";
-      }
-
-      callGemini(apiKey, base64, mimeType);
-    };
-    reader.readAsDataURL(file);
+    var isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    runPipeline(file, isPdf).catch(function (ex: any) {
+      setErr("Erreur scan : " + (ex && ex.message ? ex.message : "inconnue"));
+      setStage("idle");
+    });
   }
 
-  async function callGemini(apiKey, base64, mimeType) {
+  async function runPipeline(file: File, isPdf: boolean) {
+    var source: HTMLCanvasElement | string;
+    if (isPdf) {
+      setStage("pdf");
+      source = await pdfToCanvas(file);
+    } else {
+      // Image directe : on la passe a Tesseract via dataURL
+      source = await new Promise<string>(function (resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function (ev) {
+          var d = typeof ev.target?.result === "string" ? ev.target.result : "";
+          resolve(d);
+        };
+        reader.onerror = function () { reject(new Error("lecture image impossible")); };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    setStage("ocr");
+    var ocrText = await runOcr(source);
+    if (!ocrText || ocrText.trim().length < 20) {
+      throw new Error("OCR n'a rien lu sur cette image. Verifie la qualite du scan.");
+    }
+
+    setStage("ai");
+    await callWorker(ocrText);
+  }
+
+  async function callWorker(ocrText: string) {
     try {
-      var response = await fetch(GEMINI_URL, {
+      var response = await fetch(SCAN_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { text: PROMPT },
-              { inline_data: { mime_type: mimeType, data: base64 } }
-            ]
-          }]
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: ocrText }),
       });
 
-      if (!response.ok) {
-        var errText = await response.text();
-        throw new Error("API error " + response.status + ": " + errText.slice(0, 200));
+      var json: any = null;
+      try {
+        json = await response.json();
+      } catch (_) {
+        throw new Error("reponse non-JSON du Worker (HTTP " + response.status + ")");
       }
 
-      var data = await response.json();
-      var text = "";
-      if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-        text = data.candidates[0].content.parts.map(function (p) { return p.text || ""; }).join("");
+      if (!response.ok || !json || !json.ok) {
+        var detail = (json && (json.error || json.detail)) || ("HTTP " + response.status);
+        // Si le Worker a renvoye le `raw` du modele (cas non-JSON), l'inclure pour debug
+        if (json && json.raw) {
+          detail = String(detail) + " — Reponse modele : " + String(json.raw).slice(0, 300);
+        }
+        throw new Error(String(detail).slice(0, 600));
       }
 
-      // Clean and parse JSON
-      text = text.replace(/```json/g, "").replace(/```/g, "").trim();
-      var parsed = JSON.parse(text);
-      setPreview(parsed);
-      setLoading(false);
-    } catch (ex) {
-      setErr("Erreur: " + ex.message);
-      setLoading(false);
+      // Normalise les poids et les numeros de conteneurs des l'affichage preview
+      // (avant c'etait fait dans applyData() au clic, mais l'utilisateur voyait
+      // "7000000 kg" aberrant). Lambda safe-no-op si data manquant.
+      var data = json.data || {};
+      if (Array.isArray(data.conteneurs)) {
+        data.conteneurs = data.conteneurs.map(function (c: any) {
+          return {
+            numero: String(c.numero || "").toUpperCase().replace(/\s/g, ""),
+            type: c.type || "",
+            poids: normalizeWeight(c.poids),
+          };
+        });
+      }
+      // Post-processing metier : corrige les confusions OCR connues selon la compagnie
+      data = applyCarrierHeuristics(data);
+      setPreview(data);
+      // Debug : raw model response (a retirer une fois Sprint 33 stable)
+      if (json.raw) {
+        console.log("[ScanBL] raw model response:", json.raw);
+      }
+      if (json.ocrText) {
+        console.log("[ScanBL] OCR text (first 500 chars):", String(json.ocrText).slice(0, 500));
+      }
+      setStage("idle");
+    } catch (ex: any) {
+      setErr("Erreur scan : " + (ex && ex.message ? ex.message : "inconnue"));
+      setStage("idle");
     }
+  }
+
+  /**
+   * Post-processing metier des donnees extraites, basee sur la compagnie identifiee.
+   * Corrige les confusions OCR connues (Tesseract confond S/5, O/0, I/1, B/8) que
+   * l'on peut deduire du pattern de numerotation de chaque armateur.
+   *
+   * Patterns connus :
+   *  - GRIMALDI : BL commence TOUJOURS par "S" suivi de 9 chiffres (ex: S329270640)
+   *  - MSC      : BL commence par "MEDU" + lettres + chiffres (ex: MEDUKQ914799)
+   *  - CMA CGM  : prefixe 3 lettres (LHV, CHN, etc.) + 7 chiffres
+   */
+  function applyCarrierHeuristics(data: any): any {
+    if (!data || typeof data !== 'object') return data;
+    var carrier = String(data.compagnie || "").toUpperCase();
+    var bl = String(data.bl || "");
+
+    // GRIMALDI : si BL commence par un chiffre, c'est forcement un "S" mal lu
+    if (carrier.indexOf("GRIMALDI") >= 0 && bl.length >= 9 && /^\d/.test(bl)) {
+      data.bl = "S" + bl.slice(1);
+    }
+
+    return data;
+  }
+
+  /**
+   * Normalise un poids texte (potentiellement avec separateurs FR/US/espaces/unite)
+   * en entier kg. Heuristique pour distinguer format US (1,234.56) vs EU (1.234,56).
+   * Garde-fou : si > 35 000 kg, c'est aberrant pour 1 conteneur → on tente sans le
+   * dernier groupe de separateurs (Llama renvoie souvent "7000,000" = 7000 kg).
+   */
+  function normalizeWeight(raw: any): string {
+    var s = String(raw || "").trim();
+    if (!s) return "";
+    // Vire l'unite "kg", "kgs.", "kilos", etc.
+    s = s.replace(/\s*(kgs?\.?|kilos?|kg)\s*$/i, "").trim();
+    // Vire espaces
+    s = s.replace(/\s/g, "");
+    if (!s) return "";
+
+    // Detection format : si dernier separateur a 3 chiffres apres → c'est un sep. de milliers
+    var lastDot = s.lastIndexOf(".");
+    var lastComma = s.lastIndexOf(",");
+    var n: number;
+    if (lastDot < 0 && lastComma < 0) {
+      n = parseFloat(s);
+    } else if (lastComma > lastDot) {
+      // virgule en dernier → format EU (1.234,56) ou US trompeur (7000,000)
+      // si exactement 3 chiffres apres la virgule, c'est un separateur de milliers
+      var afterComma = s.slice(lastComma + 1);
+      if (afterComma.length === 3 && /^\d+$/.test(afterComma)) {
+        // "7000,000" → 7000000 ? Mais aberrant → on traite comme separateur de milliers
+        n = parseFloat(s.replace(/[.,]/g, ""));
+      } else {
+        // 1.234,56 → 1234.56
+        n = parseFloat(s.replace(/\./g, "").replace(",", "."));
+      }
+    } else {
+      // point en dernier → format US (1,234.56) ou simple decimal
+      var afterDot = s.slice(lastDot + 1);
+      if (afterDot.length === 3 && /^\d+$/.test(afterDot) && s.indexOf(",") < 0) {
+        // "7000.000" → 7000 (decimales nulles) ou 7000000 ? On prend la lecture entiere
+        n = parseFloat(s.replace(/,/g, ""));
+      } else {
+        n = parseFloat(s.replace(/,/g, ""));
+      }
+    }
+
+    if (isNaN(n)) return "";
+
+    // Garde-fou : si > 35t, on a probablement mal lu les separateurs.
+    // Tentative : diviser par 1000 (cas 7000000 → 7000).
+    if (n > 35000) {
+      var divided = n / 1000;
+      if (divided <= 35000 && divided >= 1000) n = divided;
+      else return "";  // vraiment aberrant, on vide
+    }
+
+    return String(Math.round(n));
   }
 
   function applyData() {
@@ -117,7 +263,7 @@ export default function ScanBL(p: ScanBLProps) {
       tcs: (preview.conteneurs || []).map(function (c) {
         var ty = (c.type || "20GP").toUpperCase().replace(/[^A-Z0-9]/g, "");
         if (["20GP", "40GP", "40HC", "20RF", "40RF"].indexOf(ty) < 0) ty = "20GP";
-        return { n: (c.numero || "").toUpperCase(), ty: ty, po: String(c.poids || "").replace(/[^0-9]/g, "") };
+        return { n: (c.numero || "").toUpperCase(), ty: ty, po: normalizeWeight(c.poids) };
       })
     });
   }
@@ -128,11 +274,11 @@ export default function ScanBL(p: ScanBLProps) {
 
       {!loading && !preview ? (
         <div style={{ textAlign: "center", padding: "20px 10px" }}>
-          <div style={{ fontSize: 36, marginBottom: 12 }}>{"\uD83D\uDCF7"}</div>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>{"📷"}</div>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6, color: "var(--text-primary)" }}>{"Scannez votre BL"}</div>
-          <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 16 }}>{"Prenez en photo ou uploadez le PDF du connaissement. L'IA extraira automatiquement les informations."}</div>
-          <label style={{ display: "inline-block", background: "var(--success)", color: "white", padding: "10px 24px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-            {"\uD83D\uDCF7 Choisir image / PDF"}
+          <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 16 }}>{"Prenez en photo ou uploadez le PDF du connaissement (page 1). L'IA extraira automatiquement les informations."}</div>
+          <label style={{ display: "inline-block", background: "var(--success)", color: "white", padding: "10px 24px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", minHeight: 44 }}>
+            {"📷 Choisir image / PDF"}
             <input type="file" accept="image/*,.pdf" onChange={handleFile} style={{ display: "none" }} capture="environment" />
           </label>
         </div>
@@ -140,16 +286,27 @@ export default function ScanBL(p: ScanBLProps) {
 
       {loading ? (
         <div style={{ textAlign: "center", padding: "30px 10px" }}>
-          <div style={{ fontSize: 36, marginBottom: 12, animation: "spin 1s linear infinite" }}>{"\u2699\uFE0F"}</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-tertiary)" }}>{"Analyse du document en cours..."}</div>
-          <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 6 }}>{"L'IA lit votre BL et extrait les informations"}</div>
+          <div style={{ fontSize: 36, marginBottom: 12, animation: "spin 1s linear infinite" }}>{"⚙️"}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-tertiary)" }}>
+            {stage === "pdf" ? "Conversion PDF en image..." : null}
+            {stage === "ocr" ? ("Lecture OCR du document... " + ocrProgress + "%") : null}
+            {stage === "ai" ? "Structuration des informations..." : null}
+          </div>
+          <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 6 }}>
+            {stage === "pdf" ? "Rendu de la 1ere page" : null}
+            {stage === "ocr" ? "Lecture des caracteres (peut prendre 10-20s sur mobile)" : null}
+            {stage === "ai" ? "Llama extrait les champs structures" : null}
+          </div>
           <style>{"@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }"}</style>
         </div>
       ) : null}
 
       {preview ? (
         <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--success)", marginBottom: 12 }}>{"\u2705 Informations extraites :"}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--success)", marginBottom: 6 }}>{"✅ Informations extraites :"}</div>
+          <div style={{ fontSize: 11, color: "var(--text-secondary)", background: "var(--warning-bg, #fff8e1)", borderRadius: 6, padding: "6px 10px", marginBottom: 12, border: "1px dashed var(--border)" }}>
+            {"⚠️ Verifie chaque champ avant de valider. L'OCR peut confondre certains caracteres (S/5, O/0, I/1, B/8) ou inclure du texte parasite."}
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
             <div style={{ background: "var(--bg-tertiary)", borderRadius: 8, padding: "8px 10px" }}>
               <div style={{ fontSize: 10, color: "var(--text-secondary)", fontWeight: 700 }}>{"BL"}</div>
@@ -181,8 +338,8 @@ export default function ScanBL(p: ScanBLProps) {
             </div>
           ) : null}
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            <button onClick={function () { setPreview(null); setLoading(false); }} style={{ background: "transparent", border: "2px solid var(--border)", borderRadius: 8, padding: "8px 16px", fontWeight: 600, cursor: "pointer", fontSize: 12, color: "var(--text-primary)" }}>{"Rescanner"}</button>
-            <button onClick={applyData} style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", border: "none", borderRadius: 8, padding: "8px 20px", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>{"Utiliser ces donnees"}</button>
+            <button onClick={function () { setPreview(null); setLoading(false); }} style={{ background: "transparent", border: "2px solid var(--border)", borderRadius: 8, padding: "8px 16px", fontWeight: 600, cursor: "pointer", fontSize: 12, color: "var(--text-primary)", minHeight: 44 }}>{"Rescanner"}</button>
+            <button onClick={applyData} style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", border: "none", borderRadius: 8, padding: "8px 20px", fontWeight: 700, cursor: "pointer", fontSize: 13, minHeight: 44 }}>{"Utiliser ces donnees"}</button>
           </div>
         </div>
       ) : null}

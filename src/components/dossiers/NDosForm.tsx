@@ -48,11 +48,13 @@ function NDosForm(p: NDosFormProps) {
   // Chantier 1 — bouton "Recuperer ETA via CMA" : appel API a la demande
   var [etaLoading, setEtaLoading] = useState(false);
   var [daSrcState, setDaSrcState] = useState<'manual' | 'cma' | undefined>(i && i.daSrc ? i.daSrc : undefined);
-  // Sprint 26 : Scan BL via Gemini Vision (reactive, gate beta + cle Gemini configuree)
-  // Sprint 27 : desactive temporairement (region Senegal hors free tier Gemini, billing
-  // non active). Pour reactiver : retirer le `false &&` ci-dessous quand billing OK.
+  // Sprint 26 : Scan BL via Gemini Vision (gate beta + cle Gemini)
+  // Sprint 27 : desactive (Senegal hors free tier Gemini)
+  // Sprint 33 : reactive via Cloudflare Workers AI (LLaVA 1.5 7B, 10k neurons/jour gratuits)
+  //   - Plus besoin d apiKey cote front : le Worker gere l AI via binding interne
+  //   - Gate beta conserve : seule isBetaCompany(c_mocpodna9egt) voit le bouton
   var [showScan, setShowScan] = useState(false);
-  var canScan = false && isBetaCompany(p.companyId) && !p.init && !!p.apiKey;
+  var canScan = isBetaCompany(p.companyId) && !p.init;
   var initTcs = sc && sc.tcs && sc.tcs.length > 0 ? sc.tcs : (p.initTcs || []).map(function (c) { return { n: c.n || "", ty: c.ty || "20GP", po: c.po || "" }; });
   var [tc, sTc] = useState(initTcs.length > 0 ? initTcs : [{ n: "", ty: "20GP", po: "" }]);
 
@@ -140,7 +142,7 @@ function NDosForm(p: NDosFormProps) {
       ) : null}
       {showScan ? (
         <div style={{ marginBottom: 14 }}>
-          <ScanBL apiKey={p.apiKey} onResult={function (r: any) { sBl(r.bl || ""); sCl(r.cl || ""); sCp(r.cp || ""); if (r.cr) sCr(r.cr); if (r.da) sDa(r.da); if (r.ct) sCt(r.ct); if (r.tcs && r.tcs.length > 0) sTc(r.tcs); setShowScan(false); p.nf("BL scanne avec succes !"); }} />
+          <ScanBL onResult={function (r: any) { sBl(r.bl || ""); sCl(r.cl || ""); sCp(r.cp || ""); if (r.cr) sCr(r.cr); if (r.da) sDa(r.da); if (r.ct) sCt(r.ct); if (r.tcs && r.tcs.length > 0) sTc(r.tcs); setShowScan(false); p.nf("BL scanne avec succes !"); }} />
           <Btn variant="ghost" size="sm" onClick={function () { setShowScan(false); }} style={{ marginTop: 8 }}>{"Annuler le scan"}</Btn>
         </div>
       ) : null}

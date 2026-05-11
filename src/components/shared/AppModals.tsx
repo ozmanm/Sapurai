@@ -4,6 +4,7 @@ import Overlay from './Overlay.tsx';
 import ErrorBound from './ErrorBound.tsx';
 import ImportExcel from '../../ImportExcel.tsx';
 import ScanBL from '../../ScanBL.tsx';
+import { isBetaCompany } from '../../constants/featureFlags';
 import NChForm from '../chauffeurs/NChForm.tsx';
 import DispForm from '../conteneurs/DispForm.tsx';
 import TrancheForm from '../conteneurs/TrancheForm.tsx';
@@ -117,8 +118,8 @@ function AppModals(p: AppModalsProps) {
       {ml && ml.t === "jdoc" ? <Overlay close={function () { setMl(null); }} title="Documents justificatifs" w={600}><JdocView did={ml.did} dos={dos} sv={sv} db={db} nf={nf} setMl={setMl} companyId={companyId} /></Overlay> : null}
       {ml && ml.t === "pregate" ? <Overlay close={function () { setMl(null); }} title="Pregate - Facture DP World payee" w={420}><PregateInput did={ml.did} dos={dos} sv={sv} db={db} nf={nf} setMl={setMl} /></Overlay> : null}
       {ml && ml.t === "import" ? <Overlay close={function () { setMl(null); }} title="Importer depuis Excel/CSV" w={820}><ImportExcel bulkImport={bulkImport} dos={dos} tcs={tcs} onClose={function () { setMl(null); }} /></Overlay> : null}
-      {/* Sprint 26 : modal scan reactive, garde sur cle Gemini configuree */}
-      {ml && ml.t === "scan" && cfg.geminiKey ? <Overlay close={function () { setMl(null); }} title="Scanner un BL" w={520}><ScanBL apiKey={cfg.geminiKey} onResult={function (r: any) { setMl({ t: "ndos", scan: r }); }} /></Overlay> : null}
+      {/* Sprint 33 : modal scan via Cloudflare Workers AI, gate beta company uniquement */}
+      {ml && ml.t === "scan" && isBetaCompany(companyId) ? <Overlay close={function () { setMl(null); }} title="Scanner un BL" w={520}><ScanBL onResult={function (r: any) { setMl({ t: "ndos", scan: r }); }} /></Overlay> : null}
       {ml && ml.t === "settings" ? <Overlay close={function () { setMl(null); }} title="Paramètres" w={720}><SettingsForm cfg={cfg} sv={sv} db={db} nf={nf} onClose={function () { setMl(null); }} theme={p.theme} toggleTheme={p.toggleTheme} teamProps={p.teamProps} /></Overlay> : null}
       {ml && ml.t === "syncreport" && ml.report ? <Overlay close={function () { setMl(null); }} title="Rapport de synchronisation DPWorld" w={720}><SyncReport report={ml.report} setMl={setMl} onClose={function () { setMl(null); }} /></Overlay> : null}
       {ml && ml.t === "tctimeline" && ml.tcid ? (function () {

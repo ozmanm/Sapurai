@@ -57,6 +57,19 @@ export interface Conteneur {
   gar_recup?: boolean;     // caution recuperee pour ce TC ?
   gar_recup_dt?: string;   // date de recuperation (ISO court)
   gar_recup_note?: string; // note libre (ex: "perdu chez X", "soldee par detention")
+
+  // Lot 1 — Sync DPWorld par TC : verite armateur (ne pas confondre avec tc.st)
+  dpwAta?: string;         // ATA navire (ISO YYYY-MM-DD, par TC)
+  dpwDischarge?: string;   // date dechargement effectif du navire
+  dpwTimeIn?: string;      // entree terminal port
+  dpwTimeOut?: string;     // sortie terminal port (= chargement camion)
+  dpwVisitState?: '1ARRIVED' | '2LOADED' | '3DEPARTED' | string;
+  dpwSyncedAt?: string;    // timestamp ISO dernier sync OK
+  dpwConflict?: {          // conflit detecte local vs DPWorld
+    type: 'STATUS_MISMATCH' | 'MISSING_DSP' | 'NOT_FOUND';
+    note: string;
+    at: string;
+  } | null;
 }
 
 export interface Dossier {
@@ -242,6 +255,37 @@ export interface Chauffeur {
   tty?: string[];          // types TC acceptes (20GP, 40HC...)
   bl?: boolean;            // blackliste
   blr?: string;            // raison blacklist
+}
+
+// Sprint 34 — Super-admin profile stocke dans /superAdmins/{uid}
+// Seed manuel via Firebase Console. isSuperAdmin() firestore rules valide via cette collection.
+export interface SuperAdminProfile {
+  email: string;
+  createdAt: string;
+  role: 'owner' | 'admin';
+}
+
+// Sprint 34 — Statut d'abonnement d'une entreprise
+export type BillingStatus = 'trial' | 'active' | 'past_due' | 'suspended';
+
+// Sprint 34 — Plan d'abonnement
+export type PlanType = 'trial' | 'standard' | 'pro';
+
+// Sprint 34 — Methode de paiement
+export type PaymentMethod = 'manual' | 'wave' | 'bank_transfer' | 'cash' | 'stripe';
+
+// Sprint 34 — Profil billing stocke dans /companies/{companyId}/billing/profile
+// Ecriture super-admin uniquement. Lecture par membres de la company.
+export interface BillingProfile {
+  billingStatus: BillingStatus;
+  plan: PlanType;
+  trialEndsAt?: string;
+  subscriptionEndsAt?: string;
+  lastPaymentAt?: string;
+  paymentMethod: PaymentMethod;
+  internalNotes?: string;
+  updatedAt: string;
+  updatedBy: string;
 }
 
 export interface Config {

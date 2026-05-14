@@ -22,7 +22,7 @@
 // - useConteneurActions  : dispatch + advance + updateTcDate + helpers (humanPhrase, tcFranchise)
 // - useChauffeurActions  : CRUD chauffeurs
 // - useDepenseActions    : CRUD depenses + toggleDepSt (pattern return-value)
-// - useDPWorldSync       : syncDPWorld + syncAllDPWorld
+// - useDPWorldSync       : syncDPWorld + syncAllDPWorld + syncTcDPWorld
 // - useImportActions     : bulkImport
 
 import { useEffect } from 'react';
@@ -170,6 +170,7 @@ export default function useAppLogic({ db, sv, ml, setMl, sendNotif }: UseAppLogi
     // DPWorld
     syncDPWorld: dpworldSync.syncDPWorld,
     syncAllDPWorld: dpworldSync.syncAllDPWorld,
+    syncTcDPWorld: dpworldSync.syncTcDPWorld,
 
     // CMA-CGM (sync uniquement par dossier — pas de Sync All a cause du quota 20/h)
     syncCMA: cmaSync.syncCMA,

@@ -443,6 +443,9 @@ function DetView(p: DetViewProps) {
                   p.editTcInfo(tc.id, { n: newN, ty: newTy, po: parseFloat(newPoStr) || 0 });
                 }} style={{ background: "var(--info-bg)", color: "var(--info-text)", border: "1px solid var(--info-border)", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{"✏️ Modifier infos"}</button>
               ) : null}
+              {p.syncTcDPWorld ? (
+                <button onClick={function () { p.syncTcDPWorld(tc.id); }} title="Synchroniser ce TC avec DPWorld" style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{"\uD83D\uDD04 Resync DPWorld"}</button>
+              ) : null}
               {p.deleteTc && tc.st !== "TRANSIT" && tc.st !== "KATI" && tc.st !== "BAMAKO" && tc.st !== "RETURNED" ? (
                 <button onClick={function () { if (confirm("Supprimer le conteneur " + (tc.n || "?") + " du dossier ? Les depenses liees seront aussi supprimees.")) p.deleteTc(tc.id); }} style={{ background: "var(--danger-bg)", color: "var(--danger)", border: "1px solid var(--danger-border)", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{"Supprimer ce TC"}</button>
               ) : null}

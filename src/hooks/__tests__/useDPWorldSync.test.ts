@@ -283,3 +283,129 @@ describe('syncAllDPWorld — batch', function () {
     expect(syncReportCall).toBeUndefined();
   });
 });
+
+describe('syncDPWorld — Lot 1 predicat individuel', function () {
+  beforeEach(function () {
+    vi.mocked(fetchDPWorld).mockReset();
+  });
+
+  it('NE skip PAS les TC DISPATCHE sans dpwSyncedAt (verifie DPWorld)', async function () {
+    var s = setupHook({
+      dos: [{ id: 'd1', bl: 'BL1', cl: 'CL', st: 'ACTIF' }],
+      tcs: [{ id: 'tc1', did: 'd1', n: 'MSCU1', st: 'DISPATCHE', dsp: '2026-04-15' }],
+    });
+    vi.mocked(fetchDPWorld).mockResolvedValue({
+      success: true,
+      data: [{ id: 'MSCU1', visitState: '2LOADED', timeOut: '2026-04-15T14:00:00Z' }],
+    });
+
+    await act(async function () {
+      await s.hook.current.syncDPWorld('d1');
+    });
+
+    // Doit avoir interroge DPWorld malgre le statut DISPATCHE local
+    expect(vi.mocked(fetchDPWorld)).toHaveBeenCalledWith('BL1');
+    expect(s.saves.length).toBe(1);
+  });
+
+  it('skip les TC avec dpwVisitState=3DEPARTED et dpwTimeOut', async function () {
+    var s = setupHook({
+      dos: [{ id: 'd1', bl: 'BL1', cl: 'CL', st: 'ACTIF', da: '2026-01-01' }],
+      tcs: [{ id: 'tc1', did: 'd1', n: 'MSCU1', st: 'DISPATCHE', dsp: '2026-04-15', dpwVisitState: '3DEPARTED', dpwTimeOut: '2026-04-15', dpwSyncedAt: '2026-01-01T00:00:00Z' }],
+    });
+    vi.mocked(fetchDPWorld).mockResolvedValue({
+      success: true,
+      data: [{ id: 'MSCU1', visitState: '3DEPARTED', timeOut: '2026-04-15T14:00:00Z' }],
+    });
+
+    await act(async function () {
+      await s.hook.current.syncDPWorld('d1');
+    });
+
+    // TC confirme par DPWorld → skip → pas d'appel API
+    expect(vi.mocked(fetchDPWorld)).not.toHaveBeenCalled();
+    expect(s.saves.length).toBe(0);
+  });
+
+  it('detecte et persiste STATUS_MISMATCH', async function () {
+    var s = setupHook({
+      dos: [{ id: 'd1', bl: 'BL1', cl: 'CL', st: 'ACTIF' }],
+      tcs: [{ id: 'tc1', did: 'd1', n: 'MSCU1', st: 'DISPATCHE', dsp: '2026-04-15' }],
+    });
+    vi.mocked(fetchDPWorld).mockResolvedValue({
+      success: true,
+      data: [{ id: 'MSCU1', visitState: '1ARRIVED' }],  // DPWorld dit pas sorti
+    });
+
+    await act(async function () {
+      await s.hook.current.syncDPWorld('d1');
+    });
+
+    expect(s.saves.length).toBe(1);
+    var savedTc = s.saves[0].tcs[0];
+    expect(savedTc.dpwConflict).toBeDefined();
+    expect(savedTc.dpwConflict.type).toBe('STATUS_MISMATCH');
+  });
+});
+
+describe('syncTcDPWorld — chirurgical TC', function () {
+  beforeEach(function () {
+    vi.mocked(fetchDPWorld).mockReset();
+  });
+
+  it('sync un TC individuel par son numero', async function () {
+    var s = setupHook({
+      dos: [{ id: 'd1', bl: 'BL1', cl: 'CL', st: 'ACTIF' }],
+      tcs: [{ id: 'tc1', did: 'd1', n: 'MEDU123', st: 'ATTENDU' }],
+    });
+    vi.mocked(fetchDPWorld).mockResolvedValue({
+      success: true,
+      data: [{ id: 'MEDU123', timeIn: '2026-04-10T08:00:00Z' }],
+    });
+
+    await act(async function () {
+      await s.hook.current.syncTcDPWorld('tc1');
+    });
+
+    expect(vi.mocked(fetchDPWorld)).toHaveBeenCalledWith('MEDU123');
+    expect(s.saves.length).toBe(1);
+    expect(s.saves[0].tcs[0].st).toBe('PORT');
+    expect(s.saves[0].tcs[0].dpwTimeIn).toBe('2026-04-10');
+  });
+
+  it('force sync meme si TC deja confirme DPWorld', async function () {
+    var s = setupHook({
+      dos: [{ id: 'd1', bl: 'BL1', cl: 'CL', st: 'ACTIF' }],
+      tcs: [{ id: 'tc1', did: 'd1', n: 'MEDU123', st: 'DISPATCHE', dsp: '2026-04-15', dpwVisitState: '3DEPARTED', dpwTimeOut: '2026-04-15', dpwSyncedAt: '2026-01-01T00:00:00Z' }],
+    });
+    vi.mocked(fetchDPWorld).mockResolvedValue({
+      success: true,
+      data: [{ id: 'MEDU123', visitState: '3DEPARTED', timeOut: '2026-04-15T14:00:00Z' }],
+    });
+
+    await act(async function () {
+      await s.hook.current.syncTcDPWorld('tc1', { force: true });
+    });
+
+    expect(vi.mocked(fetchDPWorld)).toHaveBeenCalled();
+    expect(s.saves.length).toBe(1);
+  });
+
+  it('persiste NOT_FOUND si TC absent de la reponse', async function () {
+    var s = setupHook({
+      dos: [{ id: 'd1', bl: 'BL1', cl: 'CL', st: 'ACTIF' }],
+      tcs: [{ id: 'tc1', did: 'd1', n: 'INCONNU', st: 'ATTENDU' }],
+    });
+    vi.mocked(fetchDPWorld).mockResolvedValue({
+      success: true,
+      data: [{ id: 'AUTRE', timeIn: '2026-04-10T08:00:00Z' }],
+    });
+
+    await act(async function () {
+      await s.hook.current.syncTcDPWorld('tc1');
+    });
+
+    expect(s.saves.length).toBe(1);
+    expect(s.saves[0].tcs[0].dpwConflict.type).toBe('NOT_FOUND');
+  });
+});

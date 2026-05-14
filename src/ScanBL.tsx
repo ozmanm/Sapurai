@@ -338,7 +338,7 @@ export default function ScanBL(p: ScanBLProps) {
             </div>
           ) : null}
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            <button onClick={function () { setPreview(null); setLoading(false); }} style={{ background: "transparent", border: "2px solid var(--border)", borderRadius: 8, padding: "8px 16px", fontWeight: 600, cursor: "pointer", fontSize: 12, color: "var(--text-primary)", minHeight: 44 }}>{"Rescanner"}</button>
+            <button onClick={function () { setPreview(null); setStage("idle"); }} style={{ background: "transparent", border: "2px solid var(--border)", borderRadius: 8, padding: "8px 16px", fontWeight: 600, cursor: "pointer", fontSize: 12, color: "var(--text-primary)", minHeight: 44 }}>{"Rescanner"}</button>
             <button onClick={applyData} style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", border: "none", borderRadius: 8, padding: "8px 20px", fontWeight: 700, cursor: "pointer", fontSize: 13, minHeight: 44 }}>{"Utiliser ces donnees"}</button>
           </div>
         </div>

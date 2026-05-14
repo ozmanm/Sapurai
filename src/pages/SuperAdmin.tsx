@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, getDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, getDoc, doc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase.js';
+import type { BillingStatus, PlanType } from '../types.js';
 
 interface SuperAdminProps { user: any; logout: () => void; }
 
@@ -32,6 +33,8 @@ interface BillingInfo {
   lastPaymentAt?: string;
   paymentMethod?: string;
   internalNotes?: string;
+  updatedAt?: string;
+  updatedBy?: string;
 }
 
 export default function SuperAdmin({ user, logout }: SuperAdminProps) {
@@ -44,6 +47,77 @@ export default function SuperAdmin({ user, logout }: SuperAdminProps) {
   var [billing, setBilling] = useState<Record<string, BillingInfo>>({});
   var [geminiKey, setGeminiKey] = useState('');
   var [expandedBilling, setExpandedBilling] = useState<string | null>(null);
+  // Sprint 36 : edition inline du billing profile (notes + actions plan/trial/suspension)
+  var [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
+  var [saving, setSaving] = useState<Record<string, boolean>>({});
+
+  /**
+   * Met a jour le BillingProfile d'une company. Cree le profile s'il n'existe pas.
+   * Set automatiquement updatedAt + updatedBy (super-admin courant).
+   * Refresh le state local pour affichage immediat.
+   */
+  async function updateBilling(companyId: string, updates: Record<string, any>): Promise<void> {
+    setSaving(function (prev) { return Object.assign({}, prev, { [companyId]: true }); });
+    try {
+      var current = billing[companyId] || {};
+      // Defauts si le profile n'existe pas encore
+      var base = {
+        billingStatus: (current.billingStatus || 'trial') as BillingStatus,
+        plan: (current.plan || 'trial') as PlanType,
+        paymentMethod: (current.paymentMethod || 'manual') as PaymentMethod,
+      };
+      var merged = Object.assign({}, base, current, updates, {
+        updatedAt: new Date().toISOString(),
+        updatedBy: (user && user.email) || 'super-admin',
+      });
+      await setDoc(doc(db, 'companies', companyId, 'billing', 'profile'), merged, { merge: true });
+      setBilling(function (prev) { return Object.assign({}, prev, { [companyId]: merged as BillingInfo }); });
+    } catch (e: any) {
+      setErr('Erreur mise a jour billing : ' + (e && e.message ? e.message : 'inconnue'));
+    }
+    setSaving(function (prev) { return Object.assign({}, prev, { [companyId]: false }); });
+  }
+
+  /**
+   * Prolonge la duree d'essai de N jours a partir d'aujourd'hui (reset le statut a trial).
+   */
+  function extendTrial(companyId: string, days: number): void {
+    var newEnd = new Date();
+    newEnd.setDate(newEnd.getDate() + days);
+    updateBilling(companyId, { billingStatus: 'trial', trialEndsAt: newEnd.toISOString().split('T')[0] });
+  }
+
+  /**
+   * Toggle suspension (avec confirmation pour la mise en suspension).
+   */
+  function toggleSuspend(companyId: string, currentlySuspended: boolean): void {
+    if (!currentlySuspended) {
+      // Suspendre : confirmation
+      var name = (companies.find(function (c) { return c.id === companyId; }) || {}).name || companyId;
+      // eslint-disable-next-line no-alert
+      if (!window.confirm("Suspendre l'acces de \"" + name + "\" ? L'utilisateur ne pourra plus ecrire dans Firestore.")) return;
+      updateBilling(companyId, { billingStatus: 'suspended' });
+    } else {
+      // Reactiver : pas de confirmation, on remet en trial (le super-admin peut ensuite changer le plan)
+      updateBilling(companyId, { billingStatus: 'trial' });
+    }
+  }
+
+  /**
+   * Enregistre les notes internes saisies dans la textarea.
+   */
+  function saveNotes(companyId: string): void {
+    var draft = notesDraft[companyId];
+    if (draft === undefined) return;
+    updateBilling(companyId, { internalNotes: draft }).then(function () {
+      // Clear le draft une fois sauvegarde
+      setNotesDraft(function (prev) {
+        var next = Object.assign({}, prev);
+        delete next[companyId];
+        return next;
+      });
+    });
+  }
 
   async function load() {
     setLoading(true);
@@ -241,20 +315,163 @@ export default function SuperAdmin({ user, logout }: SuperAdminProps) {
                         </div>
                       </div>
 
-                      {/* Billing detail */}
-                      {showBilling && billingLines ? (
-                        <div style={{ borderTop: '1px solid var(--border)', padding: '12px 18px', background: 'var(--bg-tertiary)' }}>
-                          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6, fontWeight: 600 }}>Abonnement</div>
-                          {billingLines.map(function (line, i) {
-                            return <div key={i} style={{ fontSize: 12, color: 'var(--text-primary)', fontFamily: 'monospace', padding: '2px 0' }}>{line}</div>;
-                          })}
-                        </div>
-                      ) : showBilling ? (
-                        <div style={{ borderTop: '1px solid var(--border)', padding: '12px 18px', background: 'var(--bg-tertiary)' }}>
-                          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6, fontWeight: 600 }}>Abonnement</div>
-                          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Aucune information de facturation (profil billing par défaut)</div>
-                        </div>
-                      ) : null}
+                      {/* Billing detail + actions (Sprint 36) */}
+                      {showBilling ? (function () {
+                        var b = billing[c.id] || {};
+                        var currentPlan = (b.plan || 'trial') as PlanType;
+                        var currentStatus = (b.billingStatus || 'trial') as BillingStatus;
+                        var isSuspended = currentStatus === 'suspended';
+                        var draftValue = notesDraft[c.id];
+                        var notesValue = draftValue !== undefined ? draftValue : (b.internalNotes || '');
+                        var hasUnsavedNotes = draftValue !== undefined && draftValue !== (b.internalNotes || '');
+                        var isSaving = !!saving[c.id];
+                        return (
+                          <div style={{ borderTop: '1px solid var(--border)', padding: '14px 18px', background: 'var(--bg-tertiary)' }}>
+                            {/* Infos en lecture */}
+                            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 8, fontWeight: 600 }}>Abonnement</div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8, marginBottom: 14 }}>
+                              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                                Fin essai : <span style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>{b.trialEndsAt || '---'}</span>
+                              </div>
+                              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                                Maj : <span style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>{b.updatedAt ? b.updatedAt.split('T')[0] : '---'}</span>
+                                {b.updatedBy ? <span style={{ color: 'var(--text-muted)' }}> par {b.updatedBy}</span> : null}
+                              </div>
+                            </div>
+
+                            {/* Actions Plan */}
+                            <div style={{ marginBottom: 12 }}>
+                              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6, fontWeight: 600 }}>Plan</div>
+                              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                {(['trial', 'standard', 'pro'] as PlanType[]).map(function (planOption) {
+                                  var isActive = currentPlan === planOption;
+                                  return (
+                                    <button
+                                      key={planOption}
+                                      disabled={isSaving || isActive}
+                                      onClick={function () { updateBilling(c.id, { plan: planOption }); }}
+                                      style={{
+                                        background: isActive ? 'var(--btn-primary-bg)' : 'var(--bg-primary)',
+                                        color: isActive ? 'var(--btn-primary-text)' : 'var(--text-primary)',
+                                        border: '1px solid ' + (isActive ? 'var(--btn-primary-bg)' : 'var(--border)'),
+                                        borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600,
+                                        cursor: isActive || isSaving ? 'default' : 'pointer',
+                                        opacity: isSaving && !isActive ? 0.5 : 1,
+                                        minHeight: 32,
+                                      }}>
+                                      {planOption}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Actions Trial */}
+                            <div style={{ marginBottom: 12 }}>
+                              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6, fontWeight: 600 }}>Prolonger essai</div>
+                              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                {[14, 30].map(function (days) {
+                                  return (
+                                    <button
+                                      key={days}
+                                      disabled={isSaving}
+                                      onClick={function () { extendTrial(c.id, days); }}
+                                      style={{
+                                        background: 'var(--bg-primary)', color: 'var(--text-primary)',
+                                        border: '1px solid var(--border)', borderRadius: 6,
+                                        padding: '5px 12px', fontSize: 12, fontWeight: 600,
+                                        cursor: isSaving ? 'default' : 'pointer',
+                                        opacity: isSaving ? 0.5 : 1,
+                                        minHeight: 32,
+                                      }}>
+                                      +{days}j
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Action Suspension */}
+                            <div style={{ marginBottom: 12 }}>
+                              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6, fontWeight: 600 }}>Acces</div>
+                              <button
+                                disabled={isSaving}
+                                onClick={function () { toggleSuspend(c.id, isSuspended); }}
+                                style={{
+                                  background: isSuspended ? 'var(--success)' : 'var(--danger)',
+                                  color: 'white',
+                                  border: 'none', borderRadius: 6,
+                                  padding: '6px 16px', fontSize: 12, fontWeight: 700,
+                                  cursor: isSaving ? 'default' : 'pointer',
+                                  opacity: isSaving ? 0.5 : 1,
+                                  minHeight: 32,
+                                }}>
+                                {isSuspended ? 'Reactiver' : 'Suspendre'}
+                              </button>
+                            </div>
+
+                            {/* Notes internes */}
+                            <div>
+                              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6, fontWeight: 600 }}>Notes internes</div>
+                              <textarea
+                                value={notesValue}
+                                onChange={function (e) {
+                                  var v = e.target.value;
+                                  setNotesDraft(function (prev) { return Object.assign({}, prev, { [c.id]: v }); });
+                                }}
+                                placeholder="Note libre (contact commercial, remarques, etc.)"
+                                rows={3}
+                                style={{
+                                  width: '100%',
+                                  background: 'var(--bg-primary)',
+                                  color: 'var(--text-primary)',
+                                  border: '1px solid var(--border)',
+                                  borderRadius: 6,
+                                  padding: '8px 10px',
+                                  fontSize: 12,
+                                  fontFamily: 'var(--font-sans)',
+                                  resize: 'vertical',
+                                  boxSizing: 'border-box',
+                                }}
+                              />
+                              {hasUnsavedNotes ? (
+                                <div style={{ marginTop: 6, display: 'flex', gap: 6 }}>
+                                  <button
+                                    disabled={isSaving}
+                                    onClick={function () { saveNotes(c.id); }}
+                                    style={{
+                                      background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)',
+                                      border: 'none', borderRadius: 6,
+                                      padding: '5px 14px', fontSize: 12, fontWeight: 700,
+                                      cursor: isSaving ? 'default' : 'pointer',
+                                      opacity: isSaving ? 0.5 : 1,
+                                      minHeight: 32,
+                                    }}>
+                                    {isSaving ? 'Enregistrement...' : 'Enregistrer'}
+                                  </button>
+                                  <button
+                                    onClick={function () {
+                                      setNotesDraft(function (prev) {
+                                        var next = Object.assign({}, prev);
+                                        delete next[c.id];
+                                        return next;
+                                      });
+                                    }}
+                                    style={{
+                                      background: 'transparent', color: 'var(--text-tertiary)',
+                                      border: '1px solid var(--border)', borderRadius: 6,
+                                      padding: '5px 14px', fontSize: 12, fontWeight: 600,
+                                      cursor: 'pointer',
+                                      minHeight: 32,
+                                    }}>
+                                    Annuler
+                                  </button>
+                                </div>
+                              ) : null}
+                            </div>
+                          </div>
+                        );
+                      })() : null}
 
                       {/* Members */}
                       {isExpanded ? (

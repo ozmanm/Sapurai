@@ -1,7 +1,45 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-05-09 (137 taches)
+> Derniere mise a jour : 2026-05-13 (148 taches)
+
+---
+
+## FAIT — Sprint 36 : Super-admin actions manuelles (plan, trial, suspension, notes)
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 151 | **Sprint 36 — Actions super-admin sur BillingProfile** | `src/pages/SuperAdmin.tsx` | Demande utilisateur : "pour un debut je veux quelque chose de simple sans la gestion des paiements car n'ayant pas de client payant juste des beta testeurs". Extension du panel "Abonnement" en lecture seule (Sprint 35) avec actions inline pour le super-admin. **Actions disponibles** : (a) **Changer plan** : 3 boutons radio trial / standard / pro, le bouton actif est mis en surbrillance, click ecrit immediat dans `/companies/{id}/billing/profile`. (b) **Prolonger essai** : boutons +14j et +30j qui calculent `trialEndsAt = today + N` (format ISO YYYY-MM-DD) et remettent `billingStatus: 'trial'`. (c) **Suspendre / Reactiver** : bouton rouge "Suspendre" avec `window.confirm()` de securisation (rappel : la suspension bloque les writes Firestore via la rule `isCompanyActive()` Sprint 34D), bouton vert "Reactiver" sans confirmation qui remet `billingStatus: 'trial'`. (d) **Notes internes** : textarea 3 lignes editable inline, draft local dans `notesDraft[companyId]`, bouton "Enregistrer" + "Annuler" qui apparaissent seulement quand le contenu a change. **Fonction core `updateBilling(companyId, updates)`** : merge avec le profil existant + defauts (`billingStatus: 'trial'`, `plan: 'trial'`, `paymentMethod: 'manual'`) si pas de profile, set automatique `updatedAt: now` + `updatedBy: user.email` (super-admin courant), `setDoc(..., merged, { merge: true })` puis refresh local du state `billing` pour affichage immediat sans round-trip. State `saving[companyId]` pour disable les boutons pendant l'ecriture et eviter les double-clicks. Affichage en haut du panel : `trialEndsAt`, derniere maj (date + email). **Scope volontairement reduit** : pas de gestion paiement (`lastPaymentAt`, `paymentMethod`, `subscriptionEndsAt`), pas d'audit trail dedie, pas de modal custom (window.confirm natif suffit en mono-super-admin). Si besoin futur : ajout sous-collection `/companies/{id}/billing/log/{logId}` ou Stripe webhook. **Verifications** : build 13.63s, lint 0 erreur (673 warnings non-bloquants), 306/306 tests. **Effet metier** : le super-admin peut desormais gerer le cycle de vie beta des entreprises (changer leur plan, prolonger les essais, suspendre/reactiver l'acces, prendre des notes commerciales) directement depuis l'UI Sapurai, sans console Firebase. Aligne avec la phase actuelle "beta testers, pas de paiement" et extensible quand un vrai modele commercial sera valide. |
+
+---
+
+## FAIT — Sprint 35 : Super-admin lecture seule
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 150 | **Nettoyage UID hardcode** | `firestore.rules` | Suppression definitive de `T9IfzQNpaCTnl0D3qOKC1D7MmCs2` des regles Firestore. `isSuperAdmin()` ne verifie plus que `/superAdmins/{uid}`. |
+| 149 | **Routing super-admin via Firestore** | `src/main.tsx` | Remplacement de `VITE_SUPER_ADMIN_UID` (env var) par la verification du doc `/superAdmins/{uid}` dans Firestore. Nouveau composant `AuthGate` qui verifie le statut super-admin apres auth, affiche SuperAdmin ou AuthenticatedApp. Cache en memoire (`SUPER_ADMIN_CACHE`). |
+| 148 | **Page SuperAdmin lecture seule** | `src/pages/SuperAdmin.tsx` (CREE) | Nouvelle page remplacant l'ancien AdminPanel. KPIs (actives/essai/suspendues/total). Liste entreprises avec nom, ID, statut (badge couleur), plan, nombre dossiers/TC/chauffeurs/depenses, derniere activite. Panel "Abonnement" depliable affichant billing profile. Panel "Membres" depliable avec avatar, nom, email, role, date d'arrivee. Lecture seule : pas de toggle status, pas de suppression, pas de modification. Cle Gemini affichee en read-only. |
+| 147 | **Auto-lecture /superAdmins/{uid}** | `firestore.rules` | Regle `allow read: if isSuperAdmin() || (isAuth() && request.auth.uid == uid)` pour permettre a un utilisateur de verifier son propre statut super-admin sans droits super-admin preexistants. |
+
+---
+
+## FAIT — Sprint 34 : Securite Firestore + super-admins + billing + suspension
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 143 | **34A — Migration isSuperAdmin() vers /superAdmins/{uid}** | `firestore.rules` | `isSuperAdmin()` ne checke plus seulement un UID hardcode (`T9IfzQNpaCTnl0D3qOKC1D7MmCs2`), mais d'abord l'existence d'un document dans `/superAdmins/{uid}`. L'UID hardcode reste en fallback temporaire pour la migration, sera supprime au Sprint 35. Helpers ajoutes : `isAuth()`, `isMember(companyId)`, `memberHasRole(companyId, roles)`. |
+| 144 | **34B — Collection /superAdmins + type associé** | `firestore.rules`, `src/types.ts` | Nouveau match `/superAdmins/{uid}` avec `allow read, write: if isSuperAdmin()` (seed manuel Firebase Console). Nouveau type `SuperAdminProfile` dans types.ts : `{ email, createdAt, role: 'owner' | 'admin' }`. |
+| 145 | **34C — Types billing + sous-collection + migration** | `firestore.rules`, `src/types.ts`, `scripts/migrate-billing-legacy.mjs` (CREE) | Types ajoutes : `BillingStatus` (trial/active/past_due/suspended), `PlanType` (trial/standard/pro), `PaymentMethod` (manual/wave/bank_transfer/cash/stripe), `BillingProfile` complet. Nouveau match `/companies/{companyId}/billing/{billingDoc}` : lecture par membres + super-admin, ecriture super-admin uniquement. Script de migration `scripts/migrate-billing-legacy.mjs` (--dry supporte) pour initialiser les companies legacy en `trial` + 30j. |
+| 146 | **34D — Suspension bloquante dans les rules** | `firestore.rules` | Helper `isCompanyActive(companyId)` verifie que `billingStatus != 'suspended'` (ou billing absent = actif). Applique a tous les writes sauf super-admin : companies (update/delete), members (create/update/delete), notifications (create/update), invites (create/delete), top-level invites (create), tracking (write), files (create/update/delete). Rating public non-authentifie reste autorise (pas de suspension check). |
+
+---
+
+## FAIT — Lot 1 : Fiabilisation Sync DPWorld (par TC, conflits, predicat individuel)
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 138 | **Lot 1 — Fiabilisation Sync DPWorld par TC** | `src/types.ts`, `src/services/dpworld.ts`, `src/services/__tests__/dpworld.test.ts`, `src/hooks/useDPWorldSync.ts`, `src/hooks/__tests__/useDPWorldSync.test.ts`, `src/hooks/useAppLogic.ts`, `src/components/shared/AppModals.tsx`, `src/components/dossiers/DetView.tsx`, `src/App.tsx`, `CHANGELOG-AUDIT.md` | Correction du bug racine : l'app ne verifiait pas DPWorld si tous les TC etaient localement marques `DISPATCHE/TRANSIT/KATI/BAMAKO/RETURNED`. Le predicat de skip sync utilisait `tc.st` local au lieu de la verite DPWorld confirmee. **1. Champs dpw\* sur Conteneur** (`types.ts`) : `dpwAta`, `dpwDischarge`, `dpwTimeIn`, `dpwTimeOut`, `dpwVisitState`, `dpwSyncedAt`, `dpwConflict`. Stockage de la verite armateur par TC, independamment du statut metier. **2. Split du mapping DPWorld** (`services/dpworld.ts`) : `mapTcDPWorld(tc, dpTc)` pour un TC individuel (transition directe ATTENDU→DISPATCHE si timeOut+3DEPARTED, pas de regression de statut), `mapDossierDPWorld(dpData, dos)` pour les champs dossier (da, bs, bv, as2, bd, pn), `detectTcConflict(tc, dpTc)` pour detecter STATUS_MISMATCH / MISSING_DSP / NOT_FOUND. `DPWorldPatches` enrichi d'un champ `conflicts[]` remonte dans le flux sync. **3. Nouveau predicat `needsDPWorldSync`** (`useDPWorldSync.ts`) : base uniquement sur `tc.dpwVisitState`, `tc.dpwTimeOut`, `tc.dpwConflict`, `tc.dpwSyncedAt`. Plus jamais de reference a `tc.st`. Le skip global "TC deja sortis du port" est supprime. **4. Nouvelle action `syncTcDPWorld(tcid, opts?)** : synchronisation chirurgicale d'un TC individuel par son numero (requete API par TC). Disponible dans l'UI via bouton "🔄 Resync DPWorld" par TC dans `DetView.tsx`. Option `{ force: true }` pour ignorer le predicat. **5. Detection et persistance des conflits** : `STATUS_MISMATCH` (local sorti mais DPWorld pas 3DEPARTED), `MISSING_DSP` (DISPATCHE sans dsp), `NOT_FOUND` (TC absent de la reponse DPWorld). Stockes dans `tc.dpwConflict` et effaces automatiquement quand le conflit est resolu. **6. UI** : bouton "Resync TC" ajoute dans `DetView.tsx` par TC, prop `syncTcDPWorld` passee via `AppModals.tsx`. Tests : 306/306 verts. Build : OK. Lint : 0 erreur. **Effet metier** : un TC localement DISPATCHE mais non confirme par DPWorld est desormais re-synchronisable, detecte comme conflit, et peut etre reset. Plus de blocage silencieux "TC deja sortis du port — sync DPWorld inutile". |
 
 ---
 

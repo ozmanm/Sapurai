@@ -3,7 +3,8 @@ import type { CSSProperties } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, useParams } from 'react-router-dom';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from './firebase.js';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from './firebase.js';
 import useData from './useData.js';
 import useFCM from './hooks/useFCM.ts';
 import { PageSkeleton } from './components/ui/Skeleton.tsx';
@@ -11,15 +12,24 @@ import './styles/theme.css';
 import './styles/layout.css';
 import './styles/print.css';
 
-var SUPER_ADMIN_UID = import.meta.env.VITE_SUPER_ADMIN_UID || '';
+var SUPER_ADMIN_CACHE: string | null = null;
 
-const Login       = lazy(() => import('./Login.tsx'));
-const Landing     = lazy(() => import('./Landing.tsx'));
-const Setup       = lazy(() => import('./Setup.tsx'));
-const App         = lazy(() => import('./App.tsx'));
-const TeamPanel   = lazy(() => import('./TeamPanel.tsx'));
+async function isSuperAdmin(uid: string): Promise<boolean> {
+  if (SUPER_ADMIN_CACHE === uid) return true;
+  try {
+    var snap = await getDoc(doc(db, 'superAdmins', uid));
+    if (snap.exists()) { SUPER_ADMIN_CACHE = uid; return true; }
+  } catch (_e) { /* pas super-admin */ }
+  return false;
+}
+
+const Login        = lazy(() => import('./Login.tsx'));
+const Landing      = lazy(() => import('./Landing.tsx'));
+const Setup        = lazy(() => import('./Setup.tsx'));
+const App          = lazy(() => import('./App.tsx'));
+const TeamPanel    = lazy(() => import('./TeamPanel.tsx'));
 const TrackingPage = lazy(() => import('./TrackingPage.tsx'));
-const AdminPanel  = lazy(() => import('./pages/AdminPanel.tsx'));
+const SuperAdmin   = lazy(() => import('./pages/SuperAdmin.tsx'));
 
 // Global error boundary — prevents blank pages
 interface GEBProps { children?: React.ReactNode }
@@ -91,10 +101,26 @@ function AuthRoot() {
     var directLogin = !!params.get('invite') || params.get('login') === '1';
     return directLogin ? <Login /> : <Landing />;
   }
-  if (user.uid === SUPER_ADMIN_UID) {
+  return <AuthGate user={user} />;
+}
+
+function AuthGate({ user }: { user: any }) {
+  var [checking, setChecking] = useState(true);
+  var [superAdmin, setSuperAdmin] = useState(false);
+
+  useEffect(function () {
+    isSuperAdmin(user.uid).then(function (isSA) {
+      setSuperAdmin(isSA);
+      setChecking(false);
+    });
+  }, [user.uid]);
+
+  if (checking) return SPLASH;
+
+  if (superAdmin) {
     return (
       <Suspense fallback={SPLASH}>
-        <AdminPanel user={user} logout={function () { signOut(auth); }} />
+        <SuperAdmin user={user} logout={function () { signOut(auth); }} />
       </Suspense>
     );
   }

@@ -1,0 +1,318 @@
+import { useState, useEffect } from 'react';
+import { collection, getDocs, getDoc, doc } from 'firebase/firestore';
+import { db } from '../firebase.js';
+
+interface SuperAdminProps { user: any; logout: () => void; }
+
+interface CompanyRow {
+  id: string;
+  name?: string;
+  cfg?: { name?: string };
+  dos?: any[];
+  tcs?: any[];
+  chs?: any[];
+  dep?: any[];
+  logs?: Array<{ d?: string; a?: string; }>;
+  [key: string]: any;
+}
+
+interface MemberRow {
+  uid: string;
+  name?: string;
+  email?: string;
+  role?: string;
+  joinedAt?: string;
+}
+
+interface BillingInfo {
+  billingStatus?: string;
+  plan?: string;
+  trialEndsAt?: string;
+  subscriptionEndsAt?: string;
+  lastPaymentAt?: string;
+  paymentMethod?: string;
+  internalNotes?: string;
+}
+
+export default function SuperAdmin({ user, logout }: SuperAdminProps) {
+  var [companies, setCompanies] = useState<CompanyRow[]>([]);
+  var [loading, setLoading] = useState(true);
+  var [err, setErr] = useState('');
+  var [expanded, setExpanded] = useState<string | null>(null);
+  var [members, setMembers] = useState<Record<string, MemberRow[]>>({});
+  var [loadingMembers, setLoadingMembers] = useState<string | null>(null);
+  var [billing, setBilling] = useState<Record<string, BillingInfo>>({});
+  var [geminiKey, setGeminiKey] = useState('');
+  var [expandedBilling, setExpandedBilling] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setErr('');
+    try {
+      var snap = await getDocs(collection(db, 'companies'));
+      var list: CompanyRow[] = [];
+      snap.forEach(function (d) { list.push(Object.assign({ id: d.id }, d.data())); });
+      list.sort(function (a, b) { return (a.name || a.id).localeCompare(b.name || b.id); });
+      setCompanies(list);
+
+      // Load billing profiles in parallel
+      var billingMap: Record<string, BillingInfo> = {};
+      await Promise.all(list.map(async function (c) {
+        try {
+          var bSnap = await getDoc(doc(db, 'companies', c.id, 'billing', 'profile'));
+          if (bSnap.exists()) billingMap[c.id] = bSnap.data() as BillingInfo;
+        } catch (_e) { /* pas de billing */ }
+      }));
+      setBilling(billingMap);
+
+      var globalSnap = await getDoc(doc(db, 'config', 'global'));
+      if (globalSnap.exists()) setGeminiKey(globalSnap.data().geminiKey || '');
+    } catch (e) {
+      setErr('Erreur de chargement : ' + e.message);
+    }
+    setLoading(false);
+  }
+
+  useEffect(function () { load(); }, []);
+
+  async function toggleMembers(companyId: string) {
+    if (expanded === companyId) { setExpanded(null); return; }
+    setExpanded(companyId);
+    if (members[companyId]) return;
+    setLoadingMembers(companyId);
+    try {
+      var snap = await getDocs(collection(db, 'companies', companyId, 'members'));
+      var list: MemberRow[] = [];
+      snap.forEach(function (m) { list.push(Object.assign({ uid: m.id }, m.data())); });
+      list.sort(function (a, b) { return (a.name || a.email || '').localeCompare(b.name || b.email || ''); });
+      setMembers(function (prev) { return Object.assign({}, prev, { [companyId]: list }); });
+    } catch (e) {
+      setErr('Erreur chargement membres : ' + e.message);
+    }
+    setLoadingMembers(null);
+  }
+
+  var total = companies.length;
+  var suspended = companies.filter(function (c) {
+    var b = billing[c.id];
+    return b && b.billingStatus === 'suspended';
+  }).length;
+  var trial = companies.filter(function (c) {
+    var b = billing[c.id];
+    return !b || b.billingStatus === 'trial';
+  }).length;
+  var active = total - suspended - trial;
+
+  function statusBadge(cId: string) {
+    var b = billing[cId];
+    var st = b ? b.billingStatus : 'trial';
+    var plan = b ? b.plan : 'trial';
+    var colors: Record<string, { bg: string; fg: string }> = {
+      trial: { bg: 'var(--info-bg)', fg: 'var(--info-text)' },
+      active: { bg: 'var(--success-light)', fg: 'var(--success)' },
+      past_due: { bg: 'var(--warning-bg)', fg: 'var(--warning-text)' },
+      suspended: { bg: 'var(--danger-light)', fg: 'var(--danger)' },
+    };
+    var c = colors[st] || { bg: 'var(--bg-secondary)', fg: 'var(--text-muted)' };
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+        <span style={{ background: c.bg, color: c.fg, padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>
+          {st === 'trial' ? 'Essai' : st === 'active' ? 'Actif' : st === 'past_due' ? 'Impayé' : 'Suspendu'}
+        </span>
+        <span style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)', padding: '2px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600, fontFamily: 'monospace' }}>
+          {plan}
+        </span>
+      </span>
+    );
+  }
+
+  function billingInfo(cId: string) {
+    var b = billing[cId];
+    if (!b) return null;
+    var lines: string[] = [];
+    if (b.trialEndsAt) lines.push('Fin essai : ' + b.trialEndsAt);
+    if (b.subscriptionEndsAt) lines.push('Fin abonnement : ' + b.subscriptionEndsAt);
+    if (b.lastPaymentAt) lines.push('Dernier paiement : ' + b.lastPaymentAt);
+    if (b.paymentMethod) lines.push('Méthode : ' + b.paymentMethod);
+    if (b.internalNotes) lines.push('Notes : ' + b.internalNotes);
+    return lines.length > 0 ? lines : null;
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg-secondary)', fontFamily: 'var(--font-sans)' }}>
+      <div style={{ background: 'var(--bg-primary)', borderBottom: '1px solid var(--border)', padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 100 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span style={{ fontSize: 18, fontWeight: 900, letterSpacing: 2, color: 'var(--text-primary)' }}>SAPURAI</span>
+          <span style={{ background: 'var(--purple)', color: 'white', fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 6, letterSpacing: 1 }}>SUPER-ADMIN</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{user.email}</span>
+          <button onClick={logout} style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Déconnexion</button>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px' }}>
+        {err ? (
+          <div style={{ background: 'var(--danger-light)', color: 'var(--danger-text)', padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 16, border: '1px solid var(--danger-border)' }}>{err}</div>
+        ) : null}
+
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-muted)', fontSize: 13 }}>Chargement...</div>
+        ) : (
+          <>
+            <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)' }}>Entreprises</div>
+                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 3 }}>
+                  {total} totale{total !== 1 ? 's' : ''}
+                </div>
+              </div>
+              <button onClick={load} style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                Actualiser
+              </button>
+            </div>
+
+            {/* KPIs */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, marginBottom: 20 }}>
+              {[
+                { label: 'Actives', value: active, color: 'var(--success)' },
+                { label: 'Essai', value: trial, color: 'var(--info-text)' },
+                { label: 'Suspendues', value: suspended, color: 'var(--danger)' },
+                { label: 'Total entreprises', value: total, color: 'var(--text-primary)' },
+              ].map(function (kpi) {
+                return (
+                  <div key={kpi.label} style={{ background: 'var(--bg-primary)', borderRadius: 12, padding: '16px 18px', border: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: kpi.color, marginBottom: 4 }}>{kpi.value}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{kpi.label}</div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {companies.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-muted)', fontSize: 13 }}>Aucune entreprise trouvée</div>
+            ) : (
+              <div>
+                {companies.map(function (c) {
+                  var dosCount = (c.dos || []).length;
+                  var tcsCount = (c.tcs || []).length;
+                  var chsCount = (c.chs || []).length;
+                  var depCount = (c.dep || []).length;
+                  var logs = c.logs || [];
+                  var lastLog = logs.length > 0 ? logs[logs.length - 1] : null;
+                  var isExpanded = expanded === c.id;
+                  var memberList = members[c.id] || [];
+                  var isLoadingM = loadingMembers === c.id;
+                  var billingLines = billingInfo(c.id);
+                  var showBilling = expandedBilling === c.id;
+
+                  return (
+                    <div key={c.id} style={{ background: 'var(--bg-primary)', borderRadius: 12, marginBottom: 8, border: '1px solid var(--border)' }}>
+                      <div style={{ padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                            <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>{c.name || '(sans nom)'}</span>
+                            {statusBadge(c.id)}
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace', marginBottom: 4 }}>{c.id}</div>
+                          <div style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                            <span>{dosCount} dossier{dosCount !== 1 ? 's' : ''}</span>
+                            <span>{tcsCount} conteneur{tcsCount !== 1 ? 's' : ''}</span>
+                            <span>{chsCount} chauffeur{chsCount !== 1 ? 's' : ''}</span>
+                            <span>{depCount} depense{depCount !== 1 ? 's' : ''}</span>
+                          </div>
+                          {lastLog ? (
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                              Derniere activite : {lastLog.d ? lastLog.d.split('T')[0] : '---'}{lastLog.a ? ' — ' + lastLog.a : ''}
+                            </div>
+                          ) : null}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={function () { setExpandedBilling(showBilling ? null : c.id); }}
+                            style={{ background: showBilling ? 'var(--info-bg)' : 'var(--bg-secondary)', color: showBilling ? 'var(--info-text)' : 'var(--text-tertiary)', border: '1px solid ' + (showBilling ? 'var(--info-border)' : 'var(--border)'), borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                            Abonnement
+                          </button>
+                          <button
+                            onClick={function () { toggleMembers(c.id); }}
+                            style={{ background: isExpanded ? 'var(--info-bg)' : 'var(--bg-secondary)', color: isExpanded ? 'var(--info-text)' : 'var(--text-tertiary)', border: '1px solid ' + (isExpanded ? 'var(--info-border)' : 'var(--border)'), borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                            {isExpanded ? 'Masquer' : 'Membres'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Billing detail */}
+                      {showBilling && billingLines ? (
+                        <div style={{ borderTop: '1px solid var(--border)', padding: '12px 18px', background: 'var(--bg-tertiary)' }}>
+                          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6, fontWeight: 600 }}>Abonnement</div>
+                          {billingLines.map(function (line, i) {
+                            return <div key={i} style={{ fontSize: 12, color: 'var(--text-primary)', fontFamily: 'monospace', padding: '2px 0' }}>{line}</div>;
+                          })}
+                        </div>
+                      ) : showBilling ? (
+                        <div style={{ borderTop: '1px solid var(--border)', padding: '12px 18px', background: 'var(--bg-tertiary)' }}>
+                          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6, fontWeight: 600 }}>Abonnement</div>
+                          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Aucune information de facturation (profil billing par défaut)</div>
+                        </div>
+                      ) : null}
+
+                      {/* Members */}
+                      {isExpanded ? (
+                        <div style={{ borderTop: '1px solid var(--border)', padding: '12px 18px', background: 'var(--bg-tertiary)' }}>
+                          {isLoadingM ? (
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '8px 0' }}>Chargement...</div>
+                          ) : memberList.length === 0 ? (
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '8px 0' }}>Aucun membre</div>
+                          ) : (
+                            <div>
+                              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 8, fontWeight: 600 }}>{memberList.length} membre{memberList.length !== 1 ? 's' : ''}</div>
+                              {memberList.map(function (m) {
+                                var roleColor = m.role === 'admin' ? 'var(--purple)' : m.role === 'agent' ? 'var(--info)' : 'var(--text-tertiary)';
+                                var roleBg = m.role === 'admin' ? 'var(--purple-bg)' : m.role === 'agent' ? 'var(--info-bg)' : 'var(--bg-secondary)';
+                                return (
+                                  <div key={m.uid} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid var(--border-light)' }}>
+                                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: 'var(--text-tertiary)', flexShrink: 0 }}>
+                                      {(m.name || m.email || '?').charAt(0).toUpperCase()}
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {m.name || '(sans nom)'}
+                                      </div>
+                                      <div style={{ fontSize: 11, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.email}</div>
+                                    </div>
+                                    <span style={{ background: roleBg, color: roleColor, padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', flexShrink: 0 }}>
+                                      {m.role || 'membre'}
+                                    </span>
+                                    {m.joinedAt ? (
+                                      <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>
+                                        {m.joinedAt.split('T')[0]}
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Gemini key (read-only) */}
+            {geminiKey ? (
+              <div style={{ marginTop: 24, background: 'var(--bg-primary)', borderRadius: 12, padding: '16px 20px', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Clé API Gemini (scan BL)</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                  {geminiKey.substring(0, 8)}...{geminiKey.slice(-4)}
+                </div>
+              </div>
+            ) : null}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

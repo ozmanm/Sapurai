@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, getDoc, doc, setDoc } from 'firebase/firestore';
+import { collection, getDocs, getDoc, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase.js';
 import type { BillingStatus, PlanType } from '../types.js';
 
@@ -23,6 +23,14 @@ interface MemberRow {
   email?: string;
   role?: string;
   joinedAt?: string;
+}
+
+interface SuperAdminRow {
+  uid: string;
+  email?: string;
+  createdAt?: string;
+  role?: string;
+  createdBy?: string;
 }
 
 interface BillingInfo {
@@ -50,6 +58,14 @@ export default function SuperAdmin({ user, logout }: SuperAdminProps) {
   // Sprint 36 : edition inline du billing profile (notes + actions plan/trial/suspension)
   var [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
   var [saving, setSaving] = useState<Record<string, boolean>>({});
+
+  // Sprint 37 : gestion des super-admins (lecture + ajout + retrait)
+  var [superAdmins, setSuperAdmins] = useState<SuperAdminRow[]>([]);
+  var [addingAdmin, setAddingAdmin] = useState(false);
+  var [newUid, setNewUid] = useState('');
+  var [newEmail, setNewEmail] = useState('');
+  var [newRole, setNewRole] = useState<'owner' | 'admin'>('admin');
+  var [savingAdmin, setSavingAdmin] = useState(false);
 
   /**
    * Met a jour le BillingProfile d'une company. Cree le profile s'il n'existe pas.
@@ -104,6 +120,82 @@ export default function SuperAdmin({ user, logout }: SuperAdminProps) {
   }
 
   /**
+   * Sprint 37 - Charge la liste des super-admins depuis /superAdmins.
+   */
+  async function loadSuperAdmins(): Promise<void> {
+    try {
+      var snap = await getDocs(collection(db, 'superAdmins'));
+      var list: SuperAdminRow[] = [];
+      snap.forEach(function (d) { list.push(Object.assign({ uid: d.id }, d.data())); });
+      list.sort(function (a, b) { return (a.email || a.uid).localeCompare(b.email || b.uid); });
+      setSuperAdmins(list);
+    } catch (e: any) {
+      setErr('Erreur chargement super-admins : ' + (e && e.message ? e.message : 'inconnue'));
+    }
+  }
+
+  /**
+   * Sprint 37 - Ajoute un super-admin en creant /superAdmins/{uid}.
+   * Validations basiques : UID non vide + au moins 20 chars, email format simple.
+   */
+  async function addSuperAdmin(): Promise<void> {
+    var uidClean = (newUid || '').trim();
+    var emailClean = (newEmail || '').trim().toLowerCase();
+    if (uidClean.length < 20) { setErr('UID invalide (28 caracteres attendus depuis Firebase Auth)'); return; }
+    if (!emailClean || emailClean.indexOf('@') < 0 || emailClean.indexOf('.') < 0) { setErr('Email invalide'); return; }
+    if (superAdmins.find(function (sa) { return sa.uid === uidClean; })) {
+      setErr('Ce UID est deja super-admin'); return;
+    }
+    setSavingAdmin(true);
+    setErr('');
+    try {
+      var profile = {
+        email: emailClean,
+        createdAt: new Date().toISOString(),
+        role: newRole,
+        createdBy: (user && user.email) || 'super-admin',
+      };
+      await setDoc(doc(db, 'superAdmins', uidClean), profile);
+      setSuperAdmins(function (prev) {
+        var next = prev.slice();
+        next.push(Object.assign({ uid: uidClean }, profile));
+        next.sort(function (a, b) { return (a.email || a.uid).localeCompare(b.email || b.uid); });
+        return next;
+      });
+      setAddingAdmin(false);
+      setNewUid('');
+      setNewEmail('');
+      setNewRole('admin');
+    } catch (e: any) {
+      setErr('Erreur ajout super-admin : ' + (e && e.message ? e.message : 'inconnue'));
+    }
+    setSavingAdmin(false);
+  }
+
+  /**
+   * Sprint 37 - Retire un super-admin. Bloque l'auto-retrait pour eviter
+   * le verrouillage complet (il faut toujours au moins un super-admin actif).
+   */
+  async function removeSuperAdmin(uid: string, email: string): Promise<void> {
+    if (user && user.uid === uid) {
+      setErr('Tu ne peux pas te retirer toi-meme.');
+      return;
+    }
+    if (superAdmins.length <= 1) {
+      setErr('Impossible de retirer le dernier super-admin.');
+      return;
+    }
+    // eslint-disable-next-line no-alert
+    if (!window.confirm('Retirer ' + (email || uid) + ' des super-admins ?')) return;
+    try {
+      await deleteDoc(doc(db, 'superAdmins', uid));
+      setSuperAdmins(function (prev) { return prev.filter(function (sa) { return sa.uid !== uid; }); });
+    } catch (e: any) {
+      setErr('Erreur retrait : ' + (e && e.message ? e.message : 'inconnue'));
+    }
+  }
+
+  /**
    * Enregistre les notes internes saisies dans la textarea.
    */
   function saveNotes(companyId: string): void {
@@ -147,7 +239,7 @@ export default function SuperAdmin({ user, logout }: SuperAdminProps) {
     setLoading(false);
   }
 
-  useEffect(function () { load(); }, []);
+  useEffect(function () { load(); loadSuperAdmins(); }, []);
 
   async function toggleMembers(companyId: string) {
     if (expanded === companyId) { setExpanded(null); return; }
@@ -517,6 +609,134 @@ export default function SuperAdmin({ user, logout }: SuperAdminProps) {
                 })}
               </div>
             )}
+
+            {/* Super-admins (Sprint 37) */}
+            <div style={{ marginTop: 24, background: 'var(--bg-primary)', borderRadius: 12, padding: '16px 20px', border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Super-admins</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                    {superAdmins.length} compte{superAdmins.length !== 1 ? 's' : ''} avec acces super-admin
+                  </div>
+                </div>
+                {!addingAdmin ? (
+                  <button
+                    onClick={function () { setAddingAdmin(true); setErr(''); }}
+                    style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', minHeight: 32 }}>
+                    + Ajouter
+                  </button>
+                ) : null}
+              </div>
+
+              {/* Form ajout */}
+              {addingAdmin ? (
+                <div style={{ background: 'var(--bg-tertiary)', borderRadius: 8, padding: 12, marginBottom: 12, border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 8, fontWeight: 600 }}>
+                    Nouveau super-admin
+                  </div>
+                  <div style={{ marginBottom: 8 }}>
+                    <label style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: 4 }}>UID Firebase (28 caracteres)</label>
+                    <input
+                      type="text"
+                      value={newUid}
+                      onChange={function (e) { setNewUid(e.target.value); }}
+                      placeholder="Copie depuis Firebase Auth > Users > UID"
+                      style={{ width: '100%', background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 10px', fontSize: 12, fontFamily: 'monospace', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: 8 }}>
+                    <label style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: 4 }}>Email</label>
+                    <input
+                      type="email"
+                      value={newEmail}
+                      onChange={function (e) { setNewEmail(e.target.value); }}
+                      placeholder="prenom@example.com"
+                      style={{ width: '100%', background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 10px', fontSize: 12, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: 10 }}>
+                    <label style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: 4 }}>Role</label>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {(['owner', 'admin'] as Array<'owner' | 'admin'>).map(function (r) {
+                        var active = newRole === r;
+                        return (
+                          <button
+                            key={r}
+                            onClick={function () { setNewRole(r); }}
+                            style={{
+                              background: active ? 'var(--btn-primary-bg)' : 'var(--bg-primary)',
+                              color: active ? 'var(--btn-primary-text)' : 'var(--text-primary)',
+                              border: '1px solid ' + (active ? 'var(--btn-primary-bg)' : 'var(--border)'),
+                              borderRadius: 6, padding: '4px 10px', fontSize: 11, fontWeight: 600,
+                              cursor: 'pointer', minHeight: 28,
+                            }}>
+                            {r}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button
+                      disabled={savingAdmin}
+                      onClick={function () { addSuperAdmin(); }}
+                      style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: savingAdmin ? 'default' : 'pointer', opacity: savingAdmin ? 0.5 : 1, minHeight: 32 }}>
+                      {savingAdmin ? 'Ajout...' : 'Ajouter'}
+                    </button>
+                    <button
+                      onClick={function () { setAddingAdmin(false); setNewUid(''); setNewEmail(''); setNewRole('admin'); setErr(''); }}
+                      style={{ background: 'transparent', color: 'var(--text-tertiary)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 32 }}>
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Liste */}
+              {superAdmins.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '8px 0' }}>Aucun super-admin enregistre (anomalie)</div>
+              ) : (
+                <div>
+                  {superAdmins.map(function (sa) {
+                    var isSelf = user && user.uid === sa.uid;
+                    var roleColor = sa.role === 'owner' ? 'var(--purple)' : 'var(--info-text)';
+                    var roleBg = sa.role === 'owner' ? 'var(--purple-bg)' : 'var(--info-bg)';
+                    return (
+                      <div key={sa.uid} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--border-light)' }}>
+                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: 'var(--text-tertiary)', flexShrink: 0 }}>
+                          {(sa.email || '?').charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {sa.email || '(sans email)'}
+                            {isSelf ? <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--text-muted)', fontWeight: 400 }}>(toi)</span> : null}
+                          </div>
+                          <div style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {sa.uid}
+                          </div>
+                        </div>
+                        <span style={{ background: roleBg, color: roleColor, padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', flexShrink: 0 }}>
+                          {sa.role || 'admin'}
+                        </span>
+                        {sa.createdAt ? (
+                          <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>
+                            {sa.createdAt.split('T')[0]}
+                          </span>
+                        ) : null}
+                        {!isSelf ? (
+                          <button
+                            onClick={function () { removeSuperAdmin(sa.uid, sa.email || ''); }}
+                            title="Retirer ce super-admin"
+                            style={{ background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)', borderRadius: 6, padding: '3px 8px', fontSize: 10, fontWeight: 700, cursor: 'pointer', flexShrink: 0, minHeight: 28 }}>
+                            Retirer
+                          </button>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* Gemini key (read-only) */}
             {geminiKey ? (

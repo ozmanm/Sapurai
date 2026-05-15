@@ -1,7 +1,15 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-05-13 (148 taches)
+> Derniere mise a jour : 2026-05-15 (149 taches)
+
+---
+
+## FAIT — Sprint 37 : Gestion des super-admins (lister, ajouter, retirer)
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 152 | **Sprint 37 — UI de gestion des super-admins** | `src/pages/SuperAdmin.tsx` | Demande utilisateur : "je veux accorder ce role a un autre mail" + choix option B "Ajouter une UI Sprint 37". Avant : pour donner l'acces super-admin a une nouvelle personne, il fallait passer par Firebase Console > Firestore > creer manuellement un doc `/superAdmins/{uid}`. Apres : nouvelle section "Super-admins" en bas de la page SuperAdmin (juste avant la cle Gemini) qui liste les comptes actifs et permet d'ajouter/retirer en quelques clics. **Section UI** : entete avec compteur ("N comptes avec acces super-admin") + bouton "+ Ajouter". **Form ajout depliable** : 3 champs (UID Firebase 28 caracteres en placeholder, Email, Role radio owner/admin). Validations cote front : UID >= 20 chars, email contient @ et ., pas de doublon UID. Cree le doc `/superAdmins/{uid}` via setDoc avec `email`, `createdAt: now`, `role`, `createdBy: super-admin courant`. **Liste** : pour chaque super-admin : avatar lettre, email (+ "(toi)" si c'est l'utilisateur courant), UID monospace, badge role colore (owner=purple, admin=info), date de creation, bouton "Retirer" rouge (sauf pour soi-meme). **Protections** : (a) impossible de se retirer soi-meme (evite le verrouillage accidentel), (b) impossible de retirer le dernier super-admin (un seul restant = pas de suppression), (c) `window.confirm()` avant retrait. **Rules Firestore** : deja OK depuis Sprint 34 (read/write `/superAdmins/{uid}` reserve aux super-admins, plus auto-lecture du doc personnel pour le AuthGate). **Fonctions ajoutees** : `loadSuperAdmins()` (charge la collection au mount), `addSuperAdmin()` (cree le doc + refresh state), `removeSuperAdmin(uid, email)` (delete + protections + confirm). **Verifications** : build 14.72s, lint 0 erreur (677 warnings non-bloquants), 306/306 tests. **Effet metier** : le super-admin peut desormais deleguer le role a un associe ou retirer un acces obsolete sans toucher a la console Firebase. Pratique pour la phase de developpement multi-personnes et pour la securisation si un compte super-admin doit etre revoque rapidement. |
 
 ---
 

@@ -444,6 +444,20 @@ export default function useData(uid: string, email: string) {
     setSaveError(null);
     setSaveOk(false);
     var clean = sanitize(newData);
+    // Sprint 38E - Capteur taille document Firestore.
+    // Limite hard Firestore = 1 048 576 bytes (1 MiB). On warn a 500 KB pour anticiper
+    // une migration vers sous-collections (/companies/{id}/dossiers/{dosId} etc.)
+    // bien avant l'erreur bloquante "Document exceeds the maximum size".
+    try {
+      var docSize = JSON.stringify(clean).length;
+      if (docSize > 500000) {
+        console.warn(
+          '[Firestore size warning] companyId=' + userInfo.companyId +
+          ' taille=' + Math.round(docSize / 1024) + ' KB (' + docSize + ' bytes). ' +
+          'Limite hard = 1024 KB. Envisager migration en sous-collections.'
+        );
+      }
+    } catch (_e) { /* ignore : sanitize() doit garantir la serialisabilite */ }
     setDoc(doc(db, 'companies', userInfo.companyId), clean).then(function () {
       setSaveOk(true);
       setTimeout(function () { setSaveOk(false); }, 2000);

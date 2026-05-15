@@ -1,4 +1,5 @@
 import type { Conteneur, Dossier, Config, Alerte, Urgence, AlertesFranchiseResult } from '../types';
+import { joursSurestariesPort, joursDetention } from './franchise';
 
 /**
  * Retourne la date du jour au format ISO (YYYY-MM-DD)
@@ -56,11 +57,8 @@ export function calcAlertesFranchise(tcs: Conteneur[], dos: Dossier[], cfg: Conf
 
     var dateFinPort = tc.st === "PORT" ? null : tc.dsp;
     var joursDepuisDecharge = joursDiff(d.da, dateFinPort);
-    // Surestaries depuis date fin validite BAD si BAD obtenu, sinon depuis da.
-    // Si BAD pas encore expire (joursSur < 0), clamp a 0.
-    var startSur = (d.bs === "OBTENU" && d.bv) ? d.bv : d.da;
-    var joursSur = joursDiff(startSur, dateFinPort);
-    if (joursSur < 0) joursSur = 0;
+    // Sprint 38D - utilise les helpers canoniques (franchise.ts source de verite)
+    var joursSur = joursSurestariesPort(d, dateFinPort);
 
     // 1. MAGASINAGE — DP World
     if (tc.st === "PORT") {
@@ -114,7 +112,7 @@ export function calcAlertesFranchise(tcs: Conteneur[], dos: Dossier[], cfg: Conf
 
     // 3. DETENTION — Compagnie maritime
     if (tc.dsp && tc.st !== "PORT") {
-      var jt = joursDiff(tc.dsp, tc.dr || null);
+      var jt = joursDetention(tc.dsp, tc.dr);
       var rt = ft - jt;
       var tcol = rt > 7 ? "green" : rt > 5 ? "orange" : rt > 2 ? "red" : "black";
 

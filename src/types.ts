@@ -228,17 +228,18 @@ export interface Depense {
   nf?: string;                     // numero facture
   ds?: string;                     // description / libelle
 
-  // Statut (le code utilise `s`, pas `st` — historique)
+  // Statut LEGACY (deprecated Sprint 38C) - utiliser `status` via getDepenseStatus() dans utils/depenseStatus.
+  // Sera retire quand `scripts/migrate-depenses-legacy-status.mjs` aura ete execute sur la prod
+  // et que les 24 lecteurs auront ete migres vers `status`.
+  /** @deprecated Sprint 38C : utiliser `status` + helpers depenseStatus.ts */
   s?: "PAYE" | "ATT" | string;
 
   // Attachement
   fid?: string;                    // file ID (DocAttachment.id)
   fi?: { fn: string };             // attachement inline legacy
 
-  // Auto-stub a l'arrivee (commit 1 - fondations)
-  // `status` est la source de verite cote nouveau code ; `s` reste pour compat
-  // ascendante. Migration lazy : si status absent et s === 'PAYE' => 'payee',
-  // sinon defaut 'a_payer'. Cf. utils/stub.guessStatus.
+  // Auto-stub a l'arrivee (commit 1 - fondations).
+  // SOURCE DE VERITE Sprint 38C : utiliser via getDepenseStatus() dans utils/depenseStatus.
   status?: "en_attente_facture" | "a_payer" | "payee";
   auto?: boolean;                  // true = stub auto genere a l'arrivee
   ignored?: boolean;               // soft-delete : stub ecarte par l'user (faux positif)

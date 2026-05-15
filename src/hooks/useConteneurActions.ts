@@ -4,7 +4,8 @@ import { fm, tcSum } from '../utils/format.js';
 import { SL } from '../constants/statuts.js';
 import { TPHASES } from '../constants/depenses.js';
 import { applyAutoStatus } from '../utils/dossierStatus';
-import { getFranchiseRetourVide } from '../utils/franchise';
+import { getFranchiseRetourVide, joursSurestariesPort, joursDetention } from '../utils/franchise';
+import { canTcTransition } from '../domain/tcStateMachine';
 import type { Dossier, Conteneur, Depense, Config, Chauffeur } from '../types.js';
 
 /**
@@ -81,6 +82,15 @@ export default function useConteneurActions(p: ConteneurActionsDeps) {
   }
 
   function advance(tid: string, ns: string, dt?: string): void {
+    // Sprint 38B - validation transition via machine d'etat TC.
+    // Bloque les transitions interdites (RETURNED -> autre, PORT -> BAMAKO direct, etc.)
+    // tout en tolerant les statuts legacy non-standard.
+    var currentTc = tcs.find(function (c) { return c.id === tid; });
+    var transitionCheck = canTcTransition(currentTc ? currentTc.st : null, ns);
+    if (!transitionCheck.valid) {
+      nf("Transition refusee : " + (transitionCheck.reason || "non autorisee"), "error");
+      return;
+    }
     var d = dt || today();
     var up: Record<string, any> = { st: ns };
     if (ns === "TRANSIT") up.dtk = d;
@@ -214,25 +224,15 @@ export default function useConteneurActions(p: ConteneurActionsDeps) {
       var jra = Math.ceil((arr.getTime() - now.getTime()) / 864e5);
       return { rp: null, rt: null, col: jra > 5 ? "green" : jra > 2 ? "orange" : "red", val: jra, lbl: "Arrive" };
     }
-    // Surestaries port (Bug 1a) :
-    //  - Sans BAD obtenu : decompte depuis date arrivee (da)
-    //  - Avec BAD obtenu + date validite (bv) : decompte depuis bv (date fin de
-    //    validite du BAD = debut des surestaries cote compagnie)
-    //
-    // Bug 1b : calcul jours INCLUSIF (le jour de chargement / d'arrivee compte).
-    //   Du 01/03 au 24/03 = 24 jours (et non 23). Donc +1 sur le diff.
-    var startSur = (d.bs === "OBTENU" && d.bv) ? new Date(d.bv) : new Date(d.da);
-    startSur.setHours(0, 0, 0, 0);
-    var b = tc.dsp ? new Date(tc.dsp) : new Date(); b.setHours(0, 0, 0, 0);
-    var joursPort = Math.floor((b.getTime() - startSur.getTime()) / 864e5) + 1; // +1 pour inclusif
-    if (joursPort < 0) joursPort = 0;  // BAD pas encore expire => pas de surestaries
+    // Sprint 38D - utilise les helpers canoniques (regles BAD + j+1 inclusif
+    // factorisees dans src/utils/franchise.ts pour eviter la duplication avec
+    // calcAlertesFranchise dans utils/date.ts).
+    var joursPort = joursSurestariesPort(d, tc.dsp);
     var rp = (cfg as any).fp - joursPort;
 
     var rt: number | null = null;
     if (tc.dsp && tc.st !== "PORT") {
-      var c2 = new Date(tc.dsp); c2.setHours(0, 0, 0, 0);
-      var d2 = tc.dr ? new Date(tc.dr) : new Date(); d2.setHours(0, 0, 0, 0);
-      var joursDet = Math.floor((d2.getTime() - c2.getTime()) / 864e5) + 1; // +1 pour inclusif
+      var joursDet = joursDetention(tc.dsp, tc.dr);
       rt = (cfg as any).ft - joursDet;
     }
     var isPort = tc.st === "PORT";

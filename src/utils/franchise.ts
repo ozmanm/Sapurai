@@ -80,3 +80,47 @@ export function getFranchiseRetourVide(dos: Dossier): number {
   if (dos.frRt !== undefined && dos.frRt !== null) return dos.frRt;
   return defaultFranchiseRetourVide(regionFromDestination(dos.cr));
 }
+
+
+/**
+ * Sprint 38D - Helpers de calcul jours surestaries/detention (source de verite unique).
+ *
+ * Auparavant duplique dans `src/hooks/useConteneurActions.ts` (tcFranchise) et
+ * `src/utils/date.ts` (calcAlertesFranchise). Si demain on change la regle
+ * (j+1 inclusif, gestion BAD, etc.), on le fait ICI uniquement.
+ *
+ * Regle inclusive : le jour de chargement / d'arrivee compte.
+ *   Du 01/03 au 24/03 = 24 jours (et non 23). Donc +1 sur le diff.
+ */
+
+/**
+ * Jours de surestaries port pour un TC.
+ *  - Si BAD obtenu + date validite (bv) : decompte depuis bv (debut surestaries)
+ *  - Sinon : decompte depuis date arrivee navire (da)
+ *  - dateFin = tc.dsp si dispatche, sinon aujourd'hui
+ *  - Clamp a 0 si BAD pas encore expire (joursSur < 0)
+ */
+export function joursSurestariesPort(d: Dossier, dateFin?: string | null): number {
+  if (!d.da) return 0;
+  var startSur = (d.bs === 'OBTENU' && d.bv) ? new Date(d.bv) : new Date(d.da);
+  startSur.setHours(0, 0, 0, 0);
+  var end = dateFin ? new Date(dateFin) : new Date();
+  end.setHours(0, 0, 0, 0);
+  var jours = Math.floor((end.getTime() - startSur.getTime()) / 864e5) + 1;
+  return jours < 0 ? 0 : jours;
+}
+
+/**
+ * Jours de detention conteneur (sortie terminal -> retour vide).
+ *  - dsp = date dispatch (sortie terminal)
+ *  - dr = date retour vide (si null : aujourd'hui)
+ */
+export function joursDetention(dsp: string | null | undefined, dr?: string | null): number {
+  if (!dsp) return 0;
+  var start = new Date(dsp);
+  start.setHours(0, 0, 0, 0);
+  var end = dr ? new Date(dr) : new Date();
+  end.setHours(0, 0, 0, 0);
+  var jours = Math.floor((end.getTime() - start.getTime()) / 864e5) + 1;
+  return jours < 0 ? 0 : jours;
+}

@@ -1,7 +1,15 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-05-15 (154 taches)
+> Derniere mise a jour : 2026-05-15 (155 taches)
+
+---
+
+## FAIT — Sprint 39 : Tests E2E scenarios metier complets
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 158 | **Sprint 39 - Tests E2E scenarios metier** | `src/__tests__/scenarios/helpers.ts` (CREE), `src/__tests__/scenarios/workflow-nominal.test.ts` (CREE), `src/__tests__/scenarios/detention-blocking.test.ts` (CREE), `src/__tests__/scenarios/state-machine-blocks.test.ts` (CREE) | Point R7 de la critique metier : "Ajouter des tests sur les scenarios metier complets : arrivee, dispatch, retour vide, detention, cloture, caution, paiement DPWorld". Couverture de 3 workflows E2E par chainage de `useAppLogic`. **helpers.ts** : `setupScenario(initialDb)` retourne `{ hook, saves, modals, rerender, getDb, lastSave, lastModal }`. Pattern d'utilisation : `act(() => hook.current.X()); s.rerender();` pour propager le dernier save dans le hook avant l'action suivante (le hook ne souscrit pas a Firestore, il prend `db` en prop). Helpers `getTcStatus(saves, tcid)`, `getDosStatus(saves, dosId)`, `daysAgo(n)`, `today()`. **Scenario 1 — workflow nominal** (2 tests) : creation dossier IMPORT + 1 TC PORT + BAE obtenu, patchDos(da) -> auto-stub Depenses (dpworld, compagnie_location, etc.), dispatch (PORT->DISPATCHE) avec chauffeur, advance TRANSIT, advance BAMAKO, advance RETURNED -> cloture auto. Test avec 2 TC : cloture attend que LES DEUX soient RETURNED. **Scenario 2 — detention bloquante** (3 tests) : (a) detention 15j > franchise 4j -> modale `t: detention` ouverte avec `{ did, jours, depassement, franchise }`, dossier reste ouvert ; (b) detention exactement === franchise -> cloture OK (tolerance limite) ; (c) region CORRIDOR (Bamako) avec default 23j -> 20j detention OK. **Scenario 3 — machine d'etat** (6 tests) : (a) RETURNED -> TRANSIT refuse (regression), (b) PORT -> BAMAKO direct refuse (saut DISPATCHE+TRANSIT), (c) ATTENDU -> DISPATCHE refuse, (d) PORT -> ATTENDU refuse, (e) TRANSIT -> BAMAKO autorise (raccourci tolere), (f) BAMAKO -> KATI autorise (retour). Validation faite via `canTcTransition` Sprint 38B + `advance()` qui return early avec nf error si transition invalide. **Verifications** : 11 tests scenarios, build 10.64s, lint 0 erreur, 349/349 tests total (338 + 11). **Effet metier** : (1) garantie que les workflows critiques (arrivee, dispatch, retour, cloture, detention) restent fonctionnels apres chaque refactor, (2) regression-proof sur la machine d'etat (impossible de re-introduire un bug PORT->BAMAKO direct), (3) regression-proof sur la cloture auto qui doit attendre tous les TC RETURNED ET respecter la franchise detention. |
 
 ---
 

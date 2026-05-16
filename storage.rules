@@ -1,9 +1,22 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Fichiers justificatifs — lecture/écriture pour les utilisateurs authentifiés uniquement
-    match /files/{fileId} {
-      allow read, write: if request.auth != null;
+
+    // Sprint 40 F40.1 — Fix P0.1 acces Storage non protege.
+    // Avant : `allow read, write: if request.auth != null` => tout authentifie
+    // pouvait lire/ecrire tous les fichiers de tous les tenants.
+    //
+    // Apres : chaque fichier vit sous `/files/{companyId}/...` et l'acces
+    // exige d'etre membre de cette company dans Firestore.
+
+    match /files/{companyId}/{fileId=**} {
+      allow read, write: if request.auth != null &&
+        firestore.exists(/databases/(default)/documents/companies/$(companyId)/members/$(request.auth.uid));
+    }
+
+    // Tout autre chemin est interdit (defense en profondeur).
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
   }
 }

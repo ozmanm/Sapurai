@@ -29,6 +29,31 @@ service cloud.firestore {
         get(/databases/$(database)/documents/companies/$(companyId)/billing/profile).data.billingStatus != 'suspended';
     }
 
+    // Sprint 40 F40.1 — Fix P0.1 auto-adhesion.
+    // 1er createur d'une company : autorise si la company n'existe pas encore.
+    function isFirstCompanyCreator(companyId) {
+      return !exists(/databases/$(database)/documents/companies/$(companyId));
+    }
+
+    // Sprint 40 F40.1 — Validation d'une invitation pour rejoindre une company.
+    // Le client passe `inviteCode` dans le memberData. Les rules verifient :
+    //  - L'invite existe sous /invites/{inviteCode}
+    //  - companyId match
+    //  - assignedEmail match l'email auth
+    //  - non utilisee (usedBy absent ou null)
+    //  - role du member doc == role de l'invite (pas de promotion)
+    function hasValidInvite(companyId) {
+      return 'inviteCode' in request.resource.data.keys() &&
+        exists(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)) &&
+        get(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)).data.companyId == companyId &&
+        get(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)).data.assignedEmail == request.auth.token.email &&
+        (
+          !('usedBy' in get(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)).data.keys()) ||
+          get(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)).data.usedBy == null
+        ) &&
+        request.resource.data.role == get(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)).data.role;
+    }
+
     // ── Super-admins ──
     // Seed manuel via Firebase Console. isSuperAdmin() verifie cette collection.
     // Lecture autorisee pour l'UID concerne (le client verifie s'il est super-admin).
@@ -38,9 +63,19 @@ service cloud.firestore {
     }
 
     // ── User profile ──
+    // Sprint 40 F40.1 — Fix P0.1.
+    // CREATE : libre pour self (creation initiale du compte).
+    // UPDATE : interdit modification de companyId / role par self (immutabilite).
+    //          Super-admin peut tout (changement de company, suspension, etc.).
+    // DELETE : super-admin uniquement.
     match /users/{userId} {
       allow read: if isAuth() && (request.auth.uid == userId || isSuperAdmin());
-      allow write: if isAuth() && request.auth.uid == userId;
+      allow create: if isAuth() && request.auth.uid == userId;
+      allow update: if isSuperAdmin() ||
+        (isAuth() && request.auth.uid == userId &&
+         request.resource.data.companyId == resource.data.companyId &&
+         request.resource.data.role == resource.data.role);
+      allow delete: if isSuperAdmin();
     }
 
     // ── Global config ──
@@ -49,22 +84,43 @@ service cloud.firestore {
     }
 
     // ── Companies ──
-    // Tous les writes sont bloques si la company est suspendue (sauf super-admin).
+    // CREATE : autorise seulement si la company n'existe pas encore (1er createur).
+    // UPDATE/DELETE : selon membership + suspension. Delete reserve a super-admin.
     match /companies/{companyId} {
-      allow create: if isAuth();
+      allow create: if isAuth() && isFirstCompanyCreator(companyId);
       allow read: if isAuth() && (isSuperAdmin() || isMember(companyId));
-      allow update: if isSuperAdmin() || (memberHasRole(companyId, ['admin', 'editor', 'agent']) && isCompanyActive(companyId));
-      allow delete: if isSuperAdmin() || (memberHasRole(companyId, ['admin', 'editor']) && isCompanyActive(companyId));
+      allow update: if isSuperAdmin() ||
+        (memberHasRole(companyId, ['admin', 'editor', 'agent']) && isCompanyActive(companyId));
+      allow delete: if isSuperAdmin();
     }
 
     // ── Company members ──
+    // Sprint 40 F40.1 — Fix P0.1.
+    // CREATE :
+    //  - super-admin : libre
+    //  - 1er membre d'une nouvelle company : autorise (createCompany)
+    //  - autres : exige une invitation valide (hasValidInvite)
+    //  Dans tous les cas, on cree son propre member doc (request.auth.uid == memberId).
+    // UPDATE / DELETE : super-admin ou admin de la company (et un admin ne peut pas se retirer).
     match /companies/{companyId}/members/{memberId} {
       allow read: if isSuperAdmin() || isMember(companyId);
-      allow create: if isAuth() && request.auth.uid == memberId && isCompanyActive(companyId);
-      allow update, delete: if isSuperAdmin() || (
-        isMember(companyId) &&
-        get(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid)).data.role == 'admin' &&
-        isCompanyActive(companyId)
+
+      allow create: if isSuperAdmin() || (
+        isAuth() && request.auth.uid == memberId && (
+          isFirstCompanyCreator(companyId) ||
+          hasValidInvite(companyId)
+        )
+      );
+
+      allow update: if isSuperAdmin() || (
+        memberHasRole(companyId, ['admin']) && isCompanyActive(companyId)
+      );
+
+      // Un admin ne peut pas se retirer lui-meme (evite le verrouillage).
+      // Super-admin peut tout supprimer.
+      allow delete: if isSuperAdmin() || (
+        memberHasRole(companyId, ['admin']) && isCompanyActive(companyId) &&
+        memberId != request.auth.uid
       );
     }
 
@@ -77,43 +133,51 @@ service cloud.firestore {
 
     // ── Notifications ──
     match /companies/{companyId}/notifications/{notifId} {
-      allow read, write: if isSuperAdmin();
-      allow read: if isMember(companyId);
+      allow read: if isSuperAdmin() || isMember(companyId);
       allow create: if isSuperAdmin() || (memberHasRole(companyId, ['admin', 'editor']) && isCompanyActive(companyId));
       allow update: if isSuperAdmin() || (isMember(companyId) && isCompanyActive(companyId));
+      allow delete: if isSuperAdmin();
     }
 
     // ── Legacy invites subcollection ──
     match /companies/{companyId}/invites/{inviteId} {
       allow read: if isAuth();
       allow create, delete: if isSuperAdmin() || (
-        isMember(companyId) &&
-        get(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid)).data.role == 'admin' &&
-        isCompanyActive(companyId)
+        memberHasRole(companyId, ['admin']) && isCompanyActive(companyId)
       );
     }
 
     // ── Top-level invites ──
+    // Sprint 40 F40.1 — Fix P0.1.
+    // CREATE : exige que le createur soit ADMIN de la company concernee.
+    // UPDATE : seul le destinataire peut marquer l'invite comme usedBy (acceptation).
+    // DELETE : le destinataire ou un admin de la company.
     match /invites/{code} {
       allow read: if isAuth();
       allow create: if isAuth()
         && request.resource.data.companyId is string
         && request.resource.data.createdBy is string
         && request.resource.data.assignedEmail is string
-        && isCompanyActive(request.resource.data.companyId);
+        && isCompanyActive(request.resource.data.companyId)
+        && memberHasRole(request.resource.data.companyId, ['admin']);
       allow update: if isAuth()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedBy'])
-        && request.resource.data.usedBy == request.auth.uid;
-      allow delete: if isAuth()
-        && resource.data.usedBy == request.auth.uid;
+        && request.resource.data.usedBy == request.auth.uid
+        && resource.data.assignedEmail == request.auth.token.email;
+      allow delete: if isAuth() && (
+        resource.data.usedBy == request.auth.uid ||
+        (memberHasRole(resource.data.companyId, ['admin']) && isCompanyActive(resource.data.companyId))
+      );
     }
 
-    // ── Tracking (public read, write avec suspension check) ──
+    // ── Tracking (public read, write par membre actif) ──
+    // Sprint 40 F40.1 — defense en profondeur : check membership en plus de users.companyId.
     match /tracking/{trackingId} {
       allow read: if true;
 
       allow write: if isAuth()
         && request.resource.data.companyId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId
+        && isMember(request.resource.data.companyId)
         && isCompanyActive(request.resource.data.companyId);
 
       allow update: if resource != null
@@ -133,18 +197,25 @@ service cloud.firestore {
     }
 
     // ── Files (base64 storage) ──
+    // Sprint 40 F40.1 — defense en profondeur :
+    //  users.companyId est desormais immutable cote rules (sauf via super-admin),
+    //  mais on AJOUTE en plus un check de membership pour bloquer le cas ou
+    //  un utilisateur aurait deja un companyId frauduleux historique.
     match /files/{fileId} {
-      allow read: if isAuth()
-        && (isSuperAdmin()
-          || fileId.matches('lt-file-' + get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId + '-.*')
-          || !fileId.matches('lt-file-[^-]+-[^-]+-.*'));
+      allow read: if isAuth() && (
+        isSuperAdmin() ||
+        (isMember(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId) &&
+         fileId.matches('lt-file-' + get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId + '-.*'))
+      );
       allow create, update: if isAuth()
-        && fileId.matches('lt-file-' + get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId + '-.*')
-        && isCompanyActive(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId);
+        && isMember(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId)
+        && isCompanyActive(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId)
+        && fileId.matches('lt-file-' + get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId + '-.*');
       allow delete: if isSuperAdmin()
         || (isAuth()
-          && fileId.matches('lt-file-' + get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId + '-.*')
-          && isCompanyActive(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId));
+          && isMember(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId)
+          && isCompanyActive(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId)
+          && fileId.matches('lt-file-' + get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId + '-.*'));
     }
   }
 }

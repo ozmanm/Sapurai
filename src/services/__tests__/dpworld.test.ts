@@ -10,7 +10,7 @@ function mkDos(overrides: any = {}) {
   return Object.assign({ id: 'd1', bl: 'BL1', cl: 'CL1', st: 'ACTIF' }, overrides);
 }
 
-function mkTc(id: string, n: string, st: string = 'ATTENDU') {
+function mkTc(id: string, n: string, st: string = 'ATTENDU'): any {
   return { id: id, did: 'd1', n: n, ty: '40HC', po: 0, st: st };
 }
 

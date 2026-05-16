@@ -29,14 +29,16 @@ describe('normalizeTcStatus', () => {
 
 describe('normalizeDossierStatus', () => {
   it('retourne le statut Dossier canonique inchangé', () => {
-    expect(normalizeDossierStatus('ACTIF')).toBe('ACTIF');
+    expect(normalizeDossierStatus('INITIALISE')).toBe('INITIALISE');
+    expect(normalizeDossierStatus('SECURISE')).toBe('SECURISE');
+    expect(normalizeDossierStatus('EN_TRANSIT')).toBe('EN_TRANSIT');
     expect(normalizeDossierStatus('CLOTURE')).toBe('CLOTURE');
     expect(normalizeDossierStatus('ARCHIVE')).toBe('ARCHIVE');
-    expect(normalizeDossierStatus('INITIALISE')).toBe('INITIALISE');
   });
-  it('défaut ACTIF si valeur invalide', () => {
-    expect(normalizeDossierStatus(null)).toBe('ACTIF');
-    expect(normalizeDossierStatus('BIDON')).toBe('ACTIF');
+  it('défaut INITIALISE si valeur invalide (Sprint 40 : ACTIF supprime)', () => {
+    expect(normalizeDossierStatus(null)).toBe('INITIALISE');
+    expect(normalizeDossierStatus('BIDON')).toBe('INITIALISE');
+    expect(normalizeDossierStatus('ACTIF')).toBe('INITIALISE');  // ACTIF n'est plus canonique
   });
 });
 
@@ -55,6 +57,6 @@ describe('isKnownTcStatus / isKnownDossierStatus (type guards)', () => {
 
 describe('DOSSIER_STATUSES expose la liste complète', () => {
   it('contient les 4 statuts canoniques', () => {
-    expect(DOSSIER_STATUSES).toEqual(['INITIALISE', 'ACTIF', 'CLOTURE', 'ARCHIVE']);
+    expect(DOSSIER_STATUSES).toEqual(['INITIALISE', 'SECURISE', 'EN_TRANSIT', 'CLOTURE', 'ARCHIVE']);
   });
 });

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, getDocs, getDoc, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase.js';
-import type { BillingStatus, PlanType } from '../types.js';
+import type { BillingStatus, PlanType, PaymentMethod } from '../types.js';
 
 interface SuperAdminProps { user: any; logout: () => void; }
 

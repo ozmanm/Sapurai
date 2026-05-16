@@ -6,6 +6,7 @@ import { TPHASES } from '../constants/depenses.js';
 import { applyAutoStatus } from '../utils/dossierStatus';
 import { getFranchiseRetourVide, joursSurestariesPort, joursDetention } from '../utils/franchise';
 import { canTcTransition } from '../domain/tcStateMachine';
+import { canDispatchTc, canAdvanceTc } from '../domain/invariants';
 import type { Dossier, Conteneur, Depense, Config, Chauffeur } from '../types.js';
 
 /**
@@ -41,7 +42,10 @@ export default function useConteneurActions(p: ConteneurActionsDeps) {
   function dispatch(tid: string, ch: any, avance: number, budget: number, dspDate?: string, prixConvenu?: number, newChData?: any): void {
     var tc = tcs.find(function (c) { return c.id === tid; });
     var d = tc ? dos.find(function (x) { return x.id === tc.did; }) : null;
-    if (d && !d.pn && d.as2 !== "OBTENU") { nf("BAE ou Pregate requis avant dispatch!", "error"); return; }
+    // Sprint 40 F40.5 - validation centralisee via canDispatchTc
+    // (verifie tc.st === 'PORT', dos.da pas dans le futur, BAE/Pregate).
+    var dispatchCheck = canDispatchTc(tc, d);
+    if (!dispatchCheck.ok) { nf(dispatchCheck.reason || "Dispatch refuse", "error"); return; }
 
     // Creation inline du chauffeur si demandee
     var actualCh = ch;
@@ -82,12 +86,12 @@ export default function useConteneurActions(p: ConteneurActionsDeps) {
   }
 
   function advance(tid: string, ns: string, dt?: string): void {
-    // Sprint 38B - validation transition via machine d'etat TC.
-    // Bloque les transitions interdites (RETURNED -> autre, PORT -> BAMAKO direct, etc.)
-    // tout en tolerant les statuts legacy non-standard.
+    // Sprint 40 F40.5 - validation centralisee via canAdvanceTc.
+    // Combine machine d'etat (Sprint 38B) + regle dos.da pas dans le futur pour PORT/DISPATCHE.
     var currentTc = tcs.find(function (c) { return c.id === tid; });
-    var transitionCheck = canTcTransition(currentTc ? currentTc.st : null, ns);
-    if (!transitionCheck.valid) {
+    var currentDos = currentTc ? dos.find(function (x) { return x.id === currentTc.did; }) : null;
+    var transitionCheck = canAdvanceTc(currentTc, currentDos, ns);
+    if (!transitionCheck.ok) {
       nf("Transition refusee : " + (transitionCheck.reason || "non autorisee"), "error");
       return;
     }

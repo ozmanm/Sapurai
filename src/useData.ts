@@ -541,11 +541,16 @@ export default function useData(uid: string, email: string) {
     }
 
     // Add as member
+    // Sprint 40 F40.1 - les rules Firestore exigent inviteCode dans le memberData
+    // pour valider l'auto-creation. La rule hasValidInvite() lookup /invites/{code}
+    // et verifie companyId + assignedEmail + role + non utilisee.
+    var inviteCode = String(code || '').trim().toUpperCase();
     var memberData: Record<string, any> = {
       email: email,
       name: userName,
       role: inv.role || 'viewer',
       joinedAt: new Date().toISOString(),
+      inviteCode: inviteCode,
     };
     if (inv.responsabilites) memberData.responsabilites = inv.responsabilites;
     await setDoc(doc(db, 'companies', inv.companyId, 'members', uid), memberData);

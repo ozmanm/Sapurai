@@ -24,6 +24,16 @@ export function computeDossierStatus(
   if (dos.st === "CLOTURE" || dos.st === "ARCHIVE") return null;
   if (dosTcs.length === 0) return null;
 
+  // Sprint 40 F40.5 - si da est dans le futur, le dossier reste INITIALISE
+  // peu importe les tc.st (qui peuvent etre incoherents). Cf. invariants.ts.
+  if (dos.da) {
+    var arr = new Date(dos.da); arr.setHours(0, 0, 0, 0);
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    if (arr.getTime() > today.getTime()) {
+      return dos.st !== "INITIALISE" ? "INITIALISE" : null;
+    }
+  }
+
   var atPort = dosTcs.filter(function (c) { return c.st === "PORT"; }).length;
   var inTransit = dosTcs.filter(function (c) { return TRANSIT_STATES.indexOf(c.st) >= 0; }).length;
   var attendu = dosTcs.filter(function (c) { return c.st === "ATTENDU"; }).length;

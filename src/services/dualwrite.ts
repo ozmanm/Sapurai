@@ -16,7 +16,8 @@
  * Phase D (Sprint 45) : cleanup, suppression du dual-write.
  */
 
-import { collection, doc, writeBatch, deleteDoc } from 'firebase/firestore';
+import { collection, doc, writeBatch, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
 
 export interface MirrorStats {
@@ -138,5 +139,90 @@ export function logMirrorResult(companyId: string, stats: MirrorStats): void {
   } else if (stats.written > 0 || stats.deleted > 0) {
     // Log discret en debug uniquement (un toggle de status ferait beaucoup de logs)
     // console.debug('[dualwrite] ok', companyId, stats);
+  }
+}
+
+
+/**
+ * Sprint 44 - Cache de dedoublonnage des erreurs (60s).
+ * Si la meme (entity, entityId, errorMessage) a deja ete loggee dans les
+ * 60 dernieres secondes, on skip pour eviter de spammer la collection
+ * dual_write_errors en cas de boucle d'erreurs (mirror qui retente sans cesse).
+ */
+var ERROR_DEDUP_TTL_MS = 60 * 1000;
+var errorDedupCache: Map<string, number> = new Map();
+
+function shouldLogError(entity: string, entityId: string, errorMessage: string): boolean {
+  var key = entity + '|' + entityId + '|' + errorMessage.slice(0, 100);
+  var now = Date.now();
+  var last = errorDedupCache.get(key);
+  if (last !== undefined && (now - last) < ERROR_DEDUP_TTL_MS) {
+    return false;
+  }
+  errorDedupCache.set(key, now);
+  // Cleanup periodique : si la map grossit trop, on jette les vieilles entrees
+  if (errorDedupCache.size > 200) {
+    for (var [k, ts] of errorDedupCache.entries()) {
+      if ((now - ts) > ERROR_DEDUP_TTL_MS) errorDedupCache.delete(k);
+    }
+  }
+  return true;
+}
+
+/**
+ * Sprint 44 (instrumentation observabilite) - persiste les erreurs de mirror
+ * dans `companies/{cid}/dual_write_errors/{auto_id}`.
+ *
+ * Permet d'auditer apres-coup les echecs silencieux du dual-write (Phase A)
+ * sans dependre de console.warn qui disparait apres rafraichissement.
+ *
+ * Fire-and-forget : si la persistance des erreurs echoue elle-meme, on silence
+ * (le mono-doc reste source de verite, on ne bloque pas l'utilisateur).
+ */
+export async function persistMirrorErrors(
+  db: Firestore,
+  companyId: string,
+  stats: MirrorStats,
+): Promise<void> {
+  if (!stats.errors.length) return;
+  try {
+    var auth = getAuth();
+    var uid = (auth && auth.currentUser && auth.currentUser.uid) || 'anon';
+    var collRef = collection(db, 'companies', companyId, 'dual_write_errors');
+    // On persiste un doc par erreur pour pouvoir filtrer/agreger plus tard
+    var session = Math.random().toString(36).slice(2, 10);
+    for (var i = 0; i < stats.errors.length; i++) {
+      var msg = stats.errors[i];
+      // Parse legere : "dossiers/abc : error message" -> entity + msg
+      var entity = 'unknown';
+      var entityId = '';
+      var errorMessage = msg;
+      var parts = msg.split(' : ');
+      if (parts.length >= 2) {
+        var pathParts = parts[0].split('/');
+        entity = pathParts[0] || 'unknown';
+        entityId = pathParts.length > 1 ? pathParts.slice(1).join('/') : '';
+        errorMessage = parts.slice(1).join(' : ');
+      }
+      // Dedoublonnage 60s : evite de spammer la collection si meme erreur recurrente
+      if (!shouldLogError(entity, entityId, String(errorMessage))) continue;
+      try {
+        await addDoc(collRef, {
+          ts: serverTimestamp(),
+          entity: entity,
+          entityId: entityId,
+          mirrorTarget: parts[0] || '',
+          errorMessage: String(errorMessage).slice(0, 500),
+          uid: uid,
+          sessionId: session,
+          durationMs: stats.durationMs,
+        });
+      } catch (_inner) {
+        // Si l'ecriture observabilite elle-meme echoue (rules, network), on continue
+        // sans bloquer. C'est par definition fire-and-forget.
+      }
+    }
+  } catch (_e) {
+    // silence total : observabilite ne doit jamais empecher l'app de fonctionner
   }
 }

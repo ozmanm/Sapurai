@@ -43,15 +43,19 @@ service cloud.firestore {
     //  - non utilisee (usedBy absent ou null)
     //  - role du member doc == role de l'invite (pas de promotion)
     function hasValidInvite(companyId) {
-      return 'inviteCode' in request.resource.data.keys() &&
+      // Sprint 44 hotfix 2 : sans let (compat emulateur), check explicite a l'entree.
+      //  1) Le doc membre DOIT contenir un champ inviteCode (string), sinon refuse.
+      //  2) Le doc /invites/{code} DOIT exister.
+      //  3) Validation companyId + assignedEmail + role + non utilisee.
+      // L'ordre est important : on ne fait jamais get() si exists() est false.
+      return request.resource.data.keys().hasAll(['inviteCode']) &&
+        request.resource.data.inviteCode is string &&
         exists(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)) &&
         get(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)).data.companyId == companyId &&
         get(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)).data.assignedEmail == request.auth.token.email &&
-        (
-          !('usedBy' in get(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)).data.keys()) ||
-          get(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)).data.usedBy == null
-        ) &&
-        request.resource.data.role == get(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)).data.role;
+        request.resource.data.role == get(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)).data.role &&
+        (!('usedBy' in get(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)).data.keys()) ||
+         get(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)).data.usedBy == null);
     }
 
     // ── Super-admins ──
@@ -126,9 +130,17 @@ service cloud.firestore {
       allow read: if isSuperAdmin() || isMember(companyId);
 
       allow create: if isSuperAdmin() || (
+        // Sprint 44 hotfix 2 : 2 branches mutuellement exclusives pour eviter
+        // qu'une evaluation laxiste laisse passer un write sans inviteCode.
+        resource == null &&
         isAuth() && request.auth.uid == memberId && (
-          isFirstCompanyCreator(companyId) ||
-          hasValidInvite(companyId)
+          // BRANCHE 1 : 1er createur d'une company qui n'existe pas + PAS d'inviteCode
+          (isFirstCompanyCreator(companyId) &&
+           !request.resource.data.keys().hasAll(['inviteCode']))
+          ||
+          // BRANCHE 2 : invitation valide (inviteCode obligatoire) sur company existante
+          (request.resource.data.keys().hasAll(['inviteCode']) &&
+           hasValidInvite(companyId))
         )
       );
 
@@ -191,7 +203,20 @@ service cloud.firestore {
         (memberHasRole(companyId, ['admin', 'editor']) && isCompanyActive(companyId));
     }
 
-    match /companies/{companyId}/logs/{logId} {
+    // ── Sprint 44 instrumentation : observabilite dual-write ──
+    // Sous-collection cree par persistMirrorErrors() quand un mirror echoue.
+    // Lecture/ecriture reserve admin (et bien sur super-admin pour audit cross-tenant).
+    // Read : admin uniquement pour ne pas exposer des messages d'erreur a editor/agent.
+    // Create : tout member actif peut ecrire (le mirror tourne sous leur session).
+    // Update/Delete : super-admin uniquement (immutabilite pour audit).
+    match /companies/{companyId}/dual_write_errors/{errId} {
+      allow read: if isSuperAdmin() || memberHasRole(companyId, ['admin']);
+      allow create: if isSuperAdmin() ||
+        (isMember(companyId) && isCompanyActive(companyId));
+      allow update, delete: if isSuperAdmin();
+    }
+
+        match /companies/{companyId}/logs/{logId} {
       allow read: if isSuperAdmin() || isMember(companyId);
       // Append-only : create autorise pour tout member actif, update/delete bloques.
       // Super-admin peut tout (cleanup admin).

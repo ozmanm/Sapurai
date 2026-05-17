@@ -1,7 +1,20 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-05-17 (181 taches)
+> Derniere mise a jour : 2026-05-17 (186 taches)
+
+---
+
+## FAIT — Sprint 44 : Durcissement permissions + nettoyage (suite audit reprise)
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 182 | **F44.1 - cross-env installe** | `package.json` | `npm run test:rules` echouait sur Windows car la variable d'env `FIRESTORE_EMULATOR_HOST=...` etait passee en syntaxe Unix. Ajout `cross-env@^10.1.0` en devDep, script test:rules peut maintenant tourner sur tout OS (encore besoin d'un emulateur lance pour passer du SKIPPED a PASSED). |
+| 183 | **F44.2 - src/firestore.rules legacy supprime** | `src/firestore.rules` (SUPPRIME) | Le fichier legacy `src/firestore.rules` (2.6 KB, daté Feb 22) coexistait avec `firestore.rules` (racine, le vrai) sans etre reference par firebase.json. Risque de confusion : un dev pouvait modifier le mauvais fichier. Supprime pour eliminer l'ambiguite. Seul `firestore.rules` racine reste authoritative. |
+| 184 | **F44.3 - Rules sous-collections durcies par role** | `firestore.rules` | Sprint 43 avait pose des rules genericques `admin\|editor\|agent` pour les 5 nouvelles sous-collections. Sprint 44 introduit une matrice fine : `dossiers/*` create/update admin+editor+agent, delete admin uniquement (audit metier); `tcs/*` create/update tous les roles, delete admin+editor; `chs/*` create/update/delete admin+editor uniquement (agent ne gere pas les chauffeurs); `dep/*` create/update tous, delete admin+editor; `logs/*` APPEND-ONLY (create autorise pour tous, update/delete bloque sauf super-admin). |
+| 185 | **F44.4 - Reduction warnings lint Sprint 43** | `src/services/dualwrite.ts` | Audit reprise a note +10 warnings depuis Sprint 43 (762 -> 772). 9 etaient des `any` dans dualwrite.ts. Re-type : `Record<string, unknown>` au lieu de `any` pour newData/prevData/items, `e instanceof Error ? e.message : 'unknown'` pour les catch. Eslint-disable explicite + raison pour le `console.warn` volontaire (debug Phase A). Resultat : 763 warnings (772 -> 763 = -9). |
+| 186 | **F44.5 - Restrictions companies/* via affectedKeys** | `firestore.rules` | Helper `changesAdminOnlyFields()` qui detecte si l'update touche `cfg` ou `name` (tarifs societe + identite). Rule durcie : admin peut tout, editor/agent peuvent modifier les arrays operationnels (dos/tcs/chs/dep/logs) MAIS pas cfg ni name. Note transitoire : tant que save() reecrit tout le doc, affectedKeys() peut inclure cfg meme sans changement reel. Si bug en prod, retirer la condition. Effective totale en Phase D (Sprint 45+) apres migration sous-collections + passage updateDoc cible. |
+| | **Verifications globales Sprint 44** | — | Build 29.75s, typecheck 0 erreur, 380/380 tests + 11 rules skipped, lint 763 warnings (-9 vs 772 audit reprise), 0 vulnerabilites npm. **Effet metier** : (1) agents et editors ne peuvent plus changer les tarifs (cfg) ni le nom de societe; (2) les chauffeurs et la suppression de dossiers sont reservees aux roles admin/editor; (3) les logs sont append-only (immutables une fois ecrits, ferme un vecteur de manipulation d'audit); (4) plus de confusion sur le fichier rules source de verite; (5) tests rules executables sur Windows. **Reste pour Sprint 45** : 4 issues encore ouvertes - migration listeners onSnapshot vers sous-collections (Phase C), cleanup arrays mono-doc (Phase D), reduction lint <500 warnings, refactor 60 tests E2E. |
 
 ---
 

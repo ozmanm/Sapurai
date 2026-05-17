@@ -85,12 +85,32 @@ service cloud.firestore {
 
     // ── Companies ──
     // CREATE : autorise seulement si la company n'existe pas encore (1er createur).
-    // UPDATE/DELETE : selon membership + suspension. Delete reserve a super-admin.
+    // UPDATE :
+    //   admin : peut tout modifier (cfg, name, arrays legacy)
+    //   editor/agent : peut modifier les arrays operationnels (dos/tcs/chs/dep/logs)
+    //                  MAIS pas les champs sensibles cfg/name (tarifs et identite societe).
+    // DELETE : super-admin uniquement.
+    // Sprint 44 F44.5 : durcissement granulaire via affectedKeys + admin-only fields.
+    // Note transitoire (Phase A) : save() reecrit le doc complet a chaque toggle, donc
+    // affectedKeys() retourne souvent toutes les clefs. Cette rule deviendra
+    // pleinement effective Phase D (Sprint 45+) apres migration vers sous-collections
+    // + passage en updateDoc cible.
+    function changesAdminOnlyFields() {
+      // Returns true si l'update touche un champ reserve admin
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['cfg', 'name']);
+    }
     match /companies/{companyId} {
       allow create: if isAuth() && isFirstCompanyCreator(companyId);
       allow read: if isAuth() && (isSuperAdmin() || isMember(companyId));
-      allow update: if isSuperAdmin() ||
-        (memberHasRole(companyId, ['admin', 'editor', 'agent']) && isCompanyActive(companyId));
+      allow update: if isSuperAdmin() || (
+        isCompanyActive(companyId) && (
+          // Admin : peut tout
+          memberHasRole(companyId, ['admin']) ||
+          // Editor/agent : peut modifier les arrays operationnels SI aucun champ admin-only ne change
+          (memberHasRole(companyId, ['editor', 'agent']) && !changesAdminOnlyFields())
+        )
+      );
       allow delete: if isSuperAdmin();
     }
 
@@ -125,36 +145,59 @@ service cloud.firestore {
     }
 
     // ── Sprint 43 Phase A : sous-collections dual-write ──
-    // Acces par membership (lecture) + write par roles autorises (alignement
-    // avec le doc parent /companies/{cid}). Suspension de la company bloque writes.
+    // Sprint 44 F44.3 : permissions durcies par role + immutabilite des logs.
     //
-    // Quand Phase C activera la lecture depuis ces sous-collections, ces rules
-    // deviendront authoritative. En Phase A, elles servent juste a accepter
-    // les ecritures fire-and-forget du miroir.
+    // Phase A : ces rules autorisent le miroir fire-and-forget depuis save().
+    // Phase C (Sprint 45+) : deviennent authoritative quand les listeners switchent.
+    //
+    // Matrice :
+    //   admin    : tout (create, update, delete sur toutes les sous-collections)
+    //   editor   : tout sauf delete des dossiers cloturees (audit trail metier)
+    //   agent    : update dossiers/tcs/dep, pas de delete, pas de chauffeurs
+    //   viewer   : read only
+    //
+    // Logs : APPEND-ONLY (create autorise, update/delete bloque sauf super-admin).
+
     match /companies/{companyId}/dossiers/{dosId} {
       allow read: if isSuperAdmin() || isMember(companyId);
-      allow write: if isSuperAdmin() ||
+      allow create, update: if isSuperAdmin() ||
         (memberHasRole(companyId, ['admin', 'editor', 'agent']) && isCompanyActive(companyId));
+      // Delete : admin uniquement (les editor/agent ne peuvent pas effacer un dossier)
+      allow delete: if isSuperAdmin() ||
+        (memberHasRole(companyId, ['admin']) && isCompanyActive(companyId));
     }
+
     match /companies/{companyId}/tcs/{tcId} {
       allow read: if isSuperAdmin() || isMember(companyId);
-      allow write: if isSuperAdmin() ||
+      allow create, update: if isSuperAdmin() ||
         (memberHasRole(companyId, ['admin', 'editor', 'agent']) && isCompanyActive(companyId));
+      allow delete: if isSuperAdmin() ||
+        (memberHasRole(companyId, ['admin', 'editor']) && isCompanyActive(companyId));
     }
+
     match /companies/{companyId}/chs/{chId} {
       allow read: if isSuperAdmin() || isMember(companyId);
-      allow write: if isSuperAdmin() ||
-        (memberHasRole(companyId, ['admin', 'editor', 'agent']) && isCompanyActive(companyId));
+      // Chauffeurs : geres par admin/editor uniquement (agent ne cree pas de chauffeurs)
+      allow create, update, delete: if isSuperAdmin() ||
+        (memberHasRole(companyId, ['admin', 'editor']) && isCompanyActive(companyId));
     }
+
     match /companies/{companyId}/dep/{depId} {
       allow read: if isSuperAdmin() || isMember(companyId);
-      allow write: if isSuperAdmin() ||
+      allow create, update: if isSuperAdmin() ||
         (memberHasRole(companyId, ['admin', 'editor', 'agent']) && isCompanyActive(companyId));
+      // Delete : admin/editor uniquement (un agent ne supprime pas une depense)
+      allow delete: if isSuperAdmin() ||
+        (memberHasRole(companyId, ['admin', 'editor']) && isCompanyActive(companyId));
     }
+
     match /companies/{companyId}/logs/{logId} {
       allow read: if isSuperAdmin() || isMember(companyId);
-      allow write: if isSuperAdmin() ||
+      // Append-only : create autorise pour tout member actif, update/delete bloques.
+      // Super-admin peut tout (cleanup admin).
+      allow create: if isSuperAdmin() ||
         (memberHasRole(companyId, ['admin', 'editor', 'agent']) && isCompanyActive(companyId));
+      allow update, delete: if isSuperAdmin();
     }
 
     // ── Billing (sous-collection) ──

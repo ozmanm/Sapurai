@@ -57,8 +57,8 @@ var BATCH_CHUNK = 400;  // marge sur la limite Firestore 500
 export async function mirrorToSubcollections(
   db: Firestore,
   companyId: string,
-  newData: any,
-  prevData?: any,
+  newData: Record<string, unknown>,
+  prevData?: Record<string, unknown>,
 ): Promise<MirrorStats> {
   var start = Date.now();
   var stats: MirrorStats = { ok: true, written: 0, deleted: 0, errors: [], durationMs: 0 };
@@ -72,8 +72,8 @@ export async function mirrorToSubcollections(
 
   for (var i = 0; i < SUBCOLLECTIONS.length; i++) {
     var spec = SUBCOLLECTIONS[i];
-    var arr: any[] = Array.isArray(newData[spec.key]) ? newData[spec.key] : [];
-    var prevArr: any[] = prevData && Array.isArray(prevData[spec.key]) ? prevData[spec.key] : [];
+    var arr = (Array.isArray(newData[spec.key]) ? newData[spec.key] : []) as Array<Record<string, unknown>>;
+    var prevArr = (prevData && Array.isArray(prevData[spec.key]) ? prevData[spec.key] : []) as Array<Record<string, unknown>>;
 
     try {
       // Step 1 : ecrire / mettre a jour tous les items de newData
@@ -81,7 +81,7 @@ export async function mirrorToSubcollections(
       for (var off = 0; off < arr.length; off += BATCH_CHUNK) {
         var slice = arr.slice(off, off + BATCH_CHUNK);
         var batch = writeBatch(db);
-        slice.forEach(function (item: any) {
+        slice.forEach(function (item: Record<string, unknown>) {
           var id = item && item[spec.idField];
           if (!id) return;
           batch.set(doc(collRef, String(id)), item);
@@ -93,7 +93,7 @@ export async function mirrorToSubcollections(
       // Step 2 : si prevData fourni, supprimer les ids qui ne sont plus dans newData
       if (prevArr.length > 0) {
         var newIds: Record<string, true> = {};
-        arr.forEach(function (item: any) {
+        arr.forEach(function (item: Record<string, unknown>) {
           if (item && item[spec.idField]) newIds[String(item[spec.idField])] = true;
         });
         for (var j = 0; j < prevArr.length; j++) {
@@ -105,15 +105,17 @@ export async function mirrorToSubcollections(
             try {
               await deleteDoc(doc(collRef, String(oldId)));
               stats.deleted++;
-            } catch (e: any) {
-              stats.errors.push(spec.path + '/' + oldId + ' delete : ' + (e.message || 'unknown'));
+            } catch (e) {
+              var msg = e instanceof Error ? e.message : 'unknown';
+              stats.errors.push(spec.path + '/' + oldId + ' delete : ' + msg);
             }
           }
         }
       }
-    } catch (e: any) {
+    } catch (e) {
       stats.ok = false;
-      stats.errors.push(spec.path + ' : ' + (e.message || 'unknown'));
+      var emsg = e instanceof Error ? e.message : 'unknown';
+      stats.errors.push(spec.path + ' : ' + emsg);
     }
   }
 
@@ -127,6 +129,7 @@ export async function mirrorToSubcollections(
  */
 export function logMirrorResult(companyId: string, stats: MirrorStats): void {
   if (stats.errors.length > 0) {
+    // eslint-disable-next-line no-console -- volontaire pour debug Phase A
     console.warn(
       '[dualwrite] companyId=' + companyId + ' written=' + stats.written +
       ' deleted=' + stats.deleted + ' duration=' + stats.durationMs + 'ms errors=',

@@ -33,7 +33,12 @@ function NDepForm(p: NDepFormProps) {
     if (!file) return;
     var ext = (file.name.split(".").pop() || "").toLowerCase();
     if (ext !== "pdf" && ext !== "jpg" && ext !== "jpeg" && ext !== "png") { p.nf("PDF, JPG ou PNG", "error"); return; }
-    if (file.size > 4 * 1024 * 1024) { p.nf("Max 4 Mo", "error"); return; }
+    // Sprint 41 F41.7 - Fix P1.7 : limite a 600 Ko.
+    // Avant : 4 Mo, incompatible avec Firestore (limite hard 1 MiB par document)
+    // + base64 grossit le payload de ~33%. Resultat : uploads instables/impossibles.
+    // Quick fix : limite stricte a 600 Ko (apres encodage base64 ~800 Ko, marge ok).
+    // Long terme : migration vers Firebase Storage (Sprint 42).
+    if (file.size > 600 * 1024) { p.nf("Max 600 Ko (limite Firestore). Compressez ou utilisez un PDF allege.", "error"); return; }
     setUploading(true);
     var reader = new FileReader();
     reader.onload = function (ev) {
@@ -104,10 +109,13 @@ function NDepForm(p: NDepFormProps) {
           if (v.hasErrors) { p.nf(v.errors.di ? "Dossier requis" : v.errors.ht ? "Montant HT requis (> 0)" : v.firstError, "error"); return; }
           // Statut legacy `s` synchronise avec nouveau `status` : payee => PAYE, sinon ATT
           var legacyS = status === "payee" ? "PAYE" : "ATT";
-          // Montant : si statut === payee, on prend ttc (saisi explicitement), sinon
-          // on garde 0 (sera demande au passage a_payer -> payee via toggleDepSt).
-          // En cas de creation/edit avec statut != payee, on n'auto-remplit plus TTC.
-          var mtFinal = status === "payee" ? (parseFloat(ttc) || parseFloat(ht) || 0) : 0;
+          // Sprint 41 F41.1 - Fix P1.6 :
+          // `mt` (montant TTC) est INDEPENDANT du statut paiement. Avant on mettait
+          // mt=0 quand status !== 'payee', ce qui faisait disparaitre les impayes
+          // des totaux/marges (totalDep biaise, totalImpaye = 0).
+          // Maintenant mt = TTC saisi (ou HT comme fallback) peu importe le statut.
+          // Le calcul "paye" reste filtre par status === 'payee' en aval.
+          var mtFinal = parseFloat(ttc) || parseFloat(ht) || 0;
           p.onSave({
             did: di, tp: tp, nf: nf2.trim(),
             ht: parseFloat(ht) || 0, mt: mtFinal, dt: dt,

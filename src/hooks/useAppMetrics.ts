@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { isDepensePayee } from '../utils/depenseStatus';
 import { fm } from '../utils/format.js';
 import { calcAlertesFranchise, calcUrgencesDoc } from '../utils/date.js';
 import type { Dossier, Conteneur, Depense, Config } from '../types.js';
@@ -21,7 +22,8 @@ export default function useAppMetrics(
     var nAttendu = tcs.filter(function (c) { return c.st === "ATTENDU"; }).length;
     var nPort = tcs.filter(function (c) { return c.st === "PORT"; }).length;
     var nTrans = tcs.filter(function (c) { return c.st !== "PORT" && c.st !== "ATTENDU" && c.st !== "RETURNED"; }).length;
-    var totalPaye = dep.filter(function (f) { return f.s === "PAYE"; }).reduce(function (a, f) { return a + (f.mt || 0); }, 0);
+    // Sprint 41 F41.1 - utilise helper canonique (resout status nouveau OU s legacy)
+    var totalPaye = dep.filter(function (f) { return isDepensePayee(f); }).reduce(function (a, f) { return a + (f.mt || 0); }, 0);
     var totalImpaye = totalDep - totalPaye;
     var payePct = totalDep > 0 ? Math.round(totalPaye / totalDep * 100) : 0;
     var nCloture = dos.filter(function (d) { return d.st === "CLOTURE"; }).length;

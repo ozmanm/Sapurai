@@ -665,11 +665,15 @@ export default function useData(uid: string, email: string) {
     var expires = new Date();
     expires.setDate(expires.getDate() + 7);
 
+    // Sprint 41 F41.6 - Fix P2.14 : unification sur `assignedEmail` (champ canonique).
+    // Avant : addMemberByEmail() ecrivait `forEmail` alors que createInvite() et
+    // les firestore.rules attendent `assignedEmail`. Les invites etaient ignorees.
+    var normalizedMemberEmail = String(memberEmail || '').toLowerCase().trim();
     await setDoc(doc(db, 'invites', code), {
       companyId: userInfo.companyId,
       role: role,
       createdBy: email,
-      forEmail: memberEmail,
+      assignedEmail: normalizedMemberEmail,
       forName: name || '',
       createdAt: new Date().toISOString(),
       expiresAt: expires.toISOString()

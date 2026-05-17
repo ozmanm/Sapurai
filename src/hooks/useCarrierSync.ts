@@ -1,4 +1,5 @@
 import { fetchCarrier, mapCarrierToPatches, detectCarrier, CARRIER_LABELS } from '../services/carriers';
+import { reconcileDossierState } from '../domain/invariants';
 import { mid } from '../utils/id.js';
 import { isNewArrival, generateArrivalStubsWithIds } from '../utils/stub';
 import type { Dossier, Conteneur, Depense } from '../types.js';
@@ -97,8 +98,10 @@ export default function useCarrierSync(p: CarrierSyncDeps) {
         }
       }
 
+      // Sprint 41 F41.4 - reconcile au save (cf. useDPWorldSync)
+      var reconciled = reconcileDossierState(newDosList, newTcsList);
       sv(wLog(
-        Object.assign({}, db, { dos: newDosList, tcs: newTcsList, dep: newDep }),
+        Object.assign({}, db, { dos: reconciled.dos, tcs: reconciled.tcs, dep: newDep }),
         dosId,
         'SYNC_CARRIER',
         (CARRIER_LABELS[carrier] || carrier) + ' : ' + patches.summary + stubSummary,

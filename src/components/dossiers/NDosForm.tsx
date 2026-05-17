@@ -24,7 +24,12 @@ function NDosForm(p: NDosFormProps) {
   var [cl, sCl] = useState(sc ? sc.cl || "" : i ? i.cl || "" : "");
   var [cp, sCp] = useState(sc ? sc.cp || "" : i ? i.cp || "" : "");
   var [cr, sCr] = useState(sc ? sc.cr || "" : i ? i.cr || "" : "");
-  var [da, sDa] = useState(sc ? sc.da || today() : i ? i.da || today() : today());
+  // Sprint 41 F41.2 - Fix P2.11 : da n'est PLUS pre-rempli a today().
+  // Le transitaire doit saisir la vraie date d'arrivee navire (ETA), sinon le TC
+  // est cree en ATTENDU avec da vide -> le dossier reste INITIALISE jusqu'a
+  // la connaissance de la date reelle. Evite les dossiers EN_TRANSIT avec da
+  // = today() par erreur de saisie.
+  var [da, sDa] = useState(sc ? sc.da || "" : i ? i.da || "" : "");
   var [ct, sCt] = useState(sc ? sc.ct || "" : i ? i.ct || "" : "");
   var [gr, sGr] = useState(i ? i.gr || "PERMANENTE" : "PERMANENTE");
   var [garContact, sGarContact] = useState(i ? i.gar_contact || "" : "");

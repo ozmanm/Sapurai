@@ -27,7 +27,9 @@ export default function App(props: AppProps) {
   var logout = props.logout;
   var role = props.role || "agent";
   var showTeam = props.showTeam;
-  var canEdit = role === "admin" || role === "agent";
+  // Sprint 41 F41.5 - Fix P2.13 : matrice alignee sur firestore.rules.
+  // Rules autorisent update company a admin/editor/agent. UI doit faire pareil.
+  var canEdit = role === "admin" || role === "editor" || role === "agent";
   var th = useTheme();
 
   var initVw = (window.location.hash || "").replace("#", "") || "dash";

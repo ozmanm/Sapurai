@@ -1,4 +1,5 @@
 import { fetchCMA, mapCMAToPatches } from '../services/cma';
+import { reconcileDossierState } from '../domain/invariants';
 import { mid } from '../utils/id.js';
 import { isNewArrival, generateArrivalStubsWithIds } from '../utils/stub';
 import type { Dossier, Conteneur, Depense } from '../types.js';
@@ -65,7 +66,9 @@ export default function useCMASync(p: CMASyncDeps) {
           stubSummary = ' +' + stubs.length + ' factures en attente';
         }
       }
-      sv(wLog(Object.assign({}, db, { dos: newDos, tcs: newTcs, dep: newDep }), dosId, 'SYNC_CMA', patch.summary + stubSummary));
+      // Sprint 41 F41.4 - reconcile au save (cf. useDPWorldSync)
+      var reconciled = reconcileDossierState(newDos, newTcs);
+      sv(wLog(Object.assign({}, db, { dos: reconciled.dos, tcs: reconciled.tcs, dep: newDep }), dosId, 'SYNC_CMA', patch.summary + stubSummary));
       nf(patch.summary + stubSummary + (result.cached ? ' (cache)' : ''), 'ok');
     } catch (e: any) {
       nf('Erreur CMA: ' + (e.message || 'reseau'), 'error');

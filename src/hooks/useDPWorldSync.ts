@@ -6,6 +6,7 @@
  */
 
 import { fetchDPWorld, mapDPWorldToPatches, mapTcDPWorld, detectTcConflict } from '../services/dpworld.js';
+import { reconcileDossierState } from '../domain/invariants';
 import { mid } from '../utils/id.js';
 import { isNewArrival, generateArrivalStubsWithIds } from '../utils/stub';
 import type { Dossier, Conteneur, Depense } from '../types.js';
@@ -184,7 +185,10 @@ export default function useDPWorldSync(p: DPWorldSyncDeps) {
       }
 
       var summary = patch.summary + stubSummary;
-      sv(wLog(Object.assign({}, db, { dos: newDos, tcs: newTcs, dep: newDep }), dosId, "SYNC_DPWORLD", summary));
+      // Sprint 41 F41.4 - reconcile au save : si la sync a pose une da future,
+      // les TC dispatches doivent etre retrogrades + le statut dossier recalcule.
+      var reconciled = reconcileDossierState(newDos, newTcs);
+      sv(wLog(Object.assign({}, db, { dos: reconciled.dos, tcs: reconciled.tcs, dep: newDep }), dosId, "SYNC_DPWORLD", summary));
       nf(summary, "ok");
     } catch (e: any) {
       nf("Erreur DPWorld: " + (e.message || "reseau"), "error");
@@ -299,7 +303,8 @@ export default function useDPWorldSync(p: DPWorldSyncDeps) {
     };
 
     var summary = reportItems.length + " dossier(s) synchronise(s)" + (totalStubs > 0 ? " +" + totalStubs + " facture(s) en attente" : "") + (erroredBL.length > 0 ? " (" + erroredBL.length + " BL non trouve(s))" : "");
-    sv(wLog(Object.assign({}, db, { dos: newDos, tcs: newTcs, dep: accumulatedDep }), "", "SYNC_DPWORLD_ALL", summary));
+    var reconciledAll = reconcileDossierState(newDos, newTcs);
+    sv(wLog(Object.assign({}, db, { dos: reconciledAll.dos, tcs: reconciledAll.tcs, dep: accumulatedDep }), "", "SYNC_DPWORLD_ALL", summary));
     nf(summary, "ok");
     setMl({ t: "syncreport", report: report });
   }

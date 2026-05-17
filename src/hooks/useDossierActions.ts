@@ -73,9 +73,44 @@ export default function useDossierActions(p: DossierActionsDeps) {
 
   function editDos(id: string, f: any, tcl: any[]): void {
     var todayStr = today();
-    var kept = tcs.filter(function (c) { return c.did !== id || (c.st !== "PORT" && c.st !== "ATTENDU"); });
+    // Sprint 41 F41.3 - Fix P2.12 : reconciliation TC par numero.
+    // Avant : on supprimait tous les TC PORT/ATTENDU et on les recreait avec
+    // de nouveaux IDs -> perte de notes, dates dsp, champs DPWorld, historique.
+    // Maintenant : on matche par numero `n` et on garde l'ID + tous les champs
+    // existants. Seuls ty et po peuvent etre mis a jour depuis le form.
     var editTcSt = f.da && f.da > todayStr ? "ATTENDU" : "PORT";
-    var newP = tcl.filter(function (t) { return t.n; }).map(function (t) { return { id: mid(), did: id, n: t.n, ty: t.ty, po: t.po, st: editTcSt }; });
+    var existingDosTcs = tcs.filter(function (c) { return c.did === id; });
+    var formTcs = tcl.filter(function (t) { return t.n; });
+    var formNumbers = formTcs.map(function (t: any) { return String(t.n).toUpperCase().trim(); });
+
+    // Step 1 : TC existants -> garder l'ID + merger (ty, po depuis form si match)
+    //          TC pas presents dans le form -> supprimer.
+    //          TC en transit (DISPATCHE/TRANSIT/...) sont gardes meme s'ils ne sont
+    //          plus dans le form (l'utilisateur ne peut pas les supprimer via edit dossier).
+    var matchedTcs: any[] = [];
+    existingDosTcs.forEach(function (oldTc: any) {
+      var oldN = String(oldTc.n || "").toUpperCase().trim();
+      var posInForm = formNumbers.indexOf(oldN);
+      var isInTransit = oldTc.st && oldTc.st !== "PORT" && oldTc.st !== "ATTENDU";
+      if (posInForm >= 0) {
+        var formTc = formTcs[posInForm];
+        // Merge : garder TOUS les champs existants, mettre a jour seulement ty et po.
+        matchedTcs.push(Object.assign({}, oldTc, { ty: formTc.ty, po: formTc.po }));
+      } else if (isInTransit) {
+        // TC en transit non liste dans le form : on le garde (suppression interdite via edit).
+        matchedTcs.push(oldTc);
+      }
+      // Sinon : TC PORT/ATTENDU absent du form -> supprime (intention utilisateur).
+    });
+
+    // Step 2 : TC du form qui n'existent pas encore -> creer.
+    var existingNumbers = existingDosTcs.map(function (c: any) { return String(c.n || "").toUpperCase().trim(); });
+    var createdTcs = formTcs
+      .filter(function (t: any) { return existingNumbers.indexOf(String(t.n).toUpperCase().trim()) < 0; })
+      .map(function (t: any) { return { id: mid(), did: id, n: t.n, ty: t.ty, po: t.po, st: editTcSt }; });
+
+    var kept = tcs.filter(function (c) { return c.did !== id; });
+    var newP = matchedTcs.concat(createdTcs);
 
     // Auto-stub Depenses si arrivee nouvellement renseignee (da absent → present)
     var oldDos = dos.find(function (d) { return d.id === id; });

@@ -2,6 +2,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 import { getMessaging, isSupported as messagingSupported, getToken, onMessage, type Messaging } from 'firebase/messaging';
 
 const firebaseConfig = {
@@ -21,6 +22,12 @@ export const googleProvider = new GoogleAuthProvider();
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
+
+// Sprint 42 F42.3 - Firebase Storage pour les pieces jointes (fileStore).
+// Bucket par defaut configure dans firebaseConfig.storageBucket.
+// Note : Storage necessite le plan Blaze pour les uploads. Sur Spark, le
+// fallback Firestore (legacy) reste actif via fileStore.ts.
+export const storage = getStorage(app);
 
 // FCM (Cloud Messaging) — Phase 1.3 PWA optim
 // Cle VAPID publique (safe en client) : a regenerer dans Firebase Console -> Cloud Messaging -> Web Push certificates

@@ -9,10 +9,47 @@ import {
 type SheetData = { name: string; headers: string[]; rows: any[][]; type: string; rowCount: number };
 type ImportResult = { dossiers: any[]; deps: any[]; chauffeurs: any[]; depsByBl: Record<string, number> };
 
-var xlsxCache: Promise<any> | null = null;
-function getXLSX() {
-  if (!xlsxCache) xlsxCache = import('xlsx');
-  return xlsxCache;
+// Sprint 42 F42.5 - exceljs remplace xlsx (vulnerabilites prototype pollution + ReDoS sans fix).
+// Lazy-load pour ne pas gonfler le main bundle.
+var exceljsCache: Promise<any> | null = null;
+function getExcelJS() {
+  if (!exceljsCache) exceljsCache = import('exceljs');
+  return exceljsCache;
+}
+
+/**
+ * Adapter : prend un ArrayBuffer Excel et retourne le meme format que sheet_to_json
+ * avec header:1 (rows as arrays). Compatible avec parseWorkbook() existant.
+ */
+async function readWorkbook(buf: ArrayBuffer): Promise<{ SheetNames: string[]; Sheets: Record<string, any[][]> }> {
+  var mod: any = await getExcelJS();
+  var ExcelJS = mod.default || mod;
+  var workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buf);
+  var result: { SheetNames: string[]; Sheets: Record<string, any[][]> } = { SheetNames: [], Sheets: {} };
+  workbook.eachSheet(function (ws: any) {
+    result.SheetNames.push(ws.name);
+    var rows: any[][] = [];
+    ws.eachRow({ includeEmpty: true }, function (row: any) {
+      // row.values est 1-indexed dans exceljs : [undefined, cell1, cell2, ...]
+      var values = (row.values || []).slice(1).map(function (v: any) {
+        if (v === null || v === undefined) return '';
+        if (typeof v === 'object' && v !== null) {
+          // Cellule avec formule, hyperlink, richText -> extraire la valeur affichee
+          if ('result' in v) return v.result;
+          if ('text' in v) return v.text;
+          if ('hyperlink' in v) return v.text || v.hyperlink;
+          if (v instanceof Date) return v;
+          if (Array.isArray(v.richText)) return v.richText.map(function (rt: any) { return rt.text; }).join('');
+          return String(v);
+        }
+        return v;
+      });
+      rows.push(values);
+    });
+    result.Sheets[ws.name] = rows;
+  });
+  return result;
 }
 
 // Scan all sheets cell by cell, classify, assemble
@@ -176,10 +213,10 @@ export default function ImportExcel(p: ImportExcelProps) {
   var existingBls = new Set((p.dos || []).map(function (d) { return (d.bl || "").toUpperCase(); }).filter(Boolean));
   var existingTcNums = new Set((p.tcs || []).map(function (c) { return (c.n || "").toUpperCase(); }).filter(Boolean));
 
-  function parseWorkbook(wb: any, XLSX: any) {
-    var sheetData = wb.SheetNames.map(function (name) {
-      var ws = wb.Sheets[name];
-      var data = XLSX.utils.sheet_to_json(ws, { header: 1 });
+  function parseWorkbook(wb: any) {
+    var sheetData = wb.SheetNames.map(function (name: string) {
+      // Sprint 42 F42.5 - wb.Sheets[name] est deja un array de rows (exceljs adapter)
+      var data: any[][] = wb.Sheets[name] || [];
       if (data.length < 2) return null;
       // Find first non-empty row as header (skip empty rows at top)
       var headerIdx = 0;
@@ -206,11 +243,9 @@ export default function ImportExcel(p: ImportExcelProps) {
     setErr("");
     var reader = new FileReader();
     reader.onload = function (ev) {
-      getXLSX().then(function (XLSX) {
-        try {
-          var wb = XLSX.read(ev.target.result, { type: "array" });
-          parseWorkbook(wb, XLSX);
-        } catch (ex) { setErr("Erreur lecture: " + ex.message); }
+      var buf = ev.target!.result as ArrayBuffer;
+      readWorkbook(buf).then(parseWorkbook).catch(function (ex: any) {
+        setErr("Erreur lecture: " + (ex && ex.message ? ex.message : 'inconnue'));
       });
     };
     reader.readAsArrayBuffer(file);
@@ -227,9 +262,8 @@ export default function ImportExcel(p: ImportExcelProps) {
         return r.arrayBuffer();
       })
       .then(function (buf) {
-        return getXLSX().then(function (XLSX) {
-          var wb = XLSX.read(new Uint8Array(buf), { type: "array" });
-          parseWorkbook(wb, XLSX);
+        return readWorkbook(buf).then(function (wb) {
+          parseWorkbook(wb);
           setLoadingUrl(false);
         });
       })

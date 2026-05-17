@@ -1,7 +1,21 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-05-16 (169 taches)
+> Derniere mise a jour : 2026-05-16 (174 taches)
+
+---
+
+## FAIT — Sprint 42 : Audit fond en comble - Phase 3 partielle (durcissement plateforme)
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 173 | **F42.4 - Encodage UTF-8** | (verifie) | `file *.md` confirme : tous les .md sont deja UTF-8 valide. La seule occurrence "Ã©" trouvee dans `AUDIT-FOND-EN-COMBLE.md` etait une citation litterale entre backticks decrivant le probleme. Rien a corriger. |
+| 174 | **F42.2 - Upgrade deps (jspdf, vite, rollup, protobufjs)** | `package.json`, `package-lock.json` | `npm audit fix` applique : jspdf 4.2.0 -> 4.2.1 (patch GHSA), vite 7.0.0-7.3.1 -> 7.3.2 (path traversal + WS + fs.deny), rollup 4.0.0-4.58.0 -> 4.59 (path traversal), protobufjs upgrade. 11 vulnerabilites -> 1 (xlsx, traitee en F42.5). |
+| 175 | **F42.1 - Tests rules Firebase via emulateur** | `package.json` (+ `@firebase/rules-unit-testing`, +`@types/node`), `firebase.json` (config emulators), `src/__tests__/rules/firestore-security.test.ts` (CREE, 11 tests), `tsconfig.json` (add node types) | 11 tests valident les corrections de securite Sprint 40 F40.1 (P0.1 auto-adhesion) : refus auto-join admin sans invitation, refus inviteCode email-mismatch, refus elevation role via invitation, autorisation invitation valide, refus update users.companyId / users.role par self, refus invite creation par non-admin, refus acces fichier cross-tenant, refus squatting de companyId existant. Tests SKIPPED si l'emulateur n'est pas lance (comportement par defaut en CI). Scripts ajoutes : `npm run emulators` (lance Firestore + Storage emulator), `npm run test:rules` (FIRESTORE_EMULATOR_HOST=localhost:8080 vitest --run src/__tests__/rules). |
+| 176 | **F42.3 - Migration fichiers vers Firebase Storage** | `src/fileStore.ts`, `src/firebase.ts` | `fileStore` refactor : `set/get/delete` essaie d'abord Firebase Storage (chemin `files/{companyId}/{fileId}`), fallback Firestore (legacy). Ancienne API preservee + bonus `getDownloadUrl()`. Compat ascendante : les fichiers deja stockes en Firestore continuent de fonctionner. Convention de chemin alignee avec `storage.rules` Sprint 40 (validation par membership). Note : Storage necessite plan Blaze pour les uploads, mais le fallback Firestore reste actif sur Spark. |
+| 177 | **F42.5 - Remplacement xlsx par exceljs** | `package.json` (uninstall xlsx, install exceljs), `src/ImportExcel.tsx`, `src/utils/export.ts` | xlsx avait 2 vulnerabilites high sans fix disponible (Prototype Pollution GHSA-4r6h-8v6p-xvw6 + ReDoS GHSA-5pgg-2g8v-p4x9). Remplace par exceljs (^4.4.0, sans vulnerabilites connues). `ImportExcel.tsx` : nouveau adapter `readWorkbook(buf)` qui parse via `workbook.xlsx.load()` et retourne le meme format `{ SheetNames, Sheets[name] = rows }` pour rester compatible avec `parseWorkbook` existant. `utils/export.ts` : 3 fonctions reecrites (`exportDossiers`, `exportDepenses`, `exportFinancierClient`), passent en async (await `wb.xlsx.writeBuffer()` + download via Blob/URL.createObjectURL). Migre aussi `f.s === 'PAYE'` vers `isDepensePayee()` (Sprint 38C). Resultat audit npm : **0 vulnerabilites**. |
+| | **F42.6 reporte Sprint 43** | — | Sous-collections Firestore + transactions : reporte au Sprint 43 dedie. `useData.ts` = 818 lignes / 43 sites Firestore, plus tous les hooks (useDossierActions, useConteneurActions, useDPWorldSync, useCMASync, useCarrierSync) + 60 tests E2E qui dependent du format `db = { dos: [...], tcs: [...] }`. Effort realiste 3-5 jours. Plan Sprint 43 : dual-write transitoire (ecrit ancien + nouveau modele en parallele) + script backfill incremental + refactor tests E2E + rollback possible. Le capteur Sprint 38E warn deja si le doc depasse 500 KB, donnant le temps pour la migration. |
+| | **Verifications globales Sprint 42** | — | Build 24.26s, typecheck 0 erreur, 380/380 tests + 11 skipped (rules emulator). **Effet metier** : (1) **0 vulnerabilites npm** (avant : 11 dont 2 critiques); (2) tests rules Firebase prets a lancer via emulateur pour valider les corrections Sprint 40 (P0.1 auto-adhesion); (3) uploads de fichiers > 600 Ko desormais possibles via Storage (avec fallback Firestore pour Spark); (4) export Excel sans risque de prototype pollution/ReDoS; (5) pipeline `deploy = typecheck && build && firebase deploy` bloque tout deploy avec erreurs TS. |
 
 ---
 

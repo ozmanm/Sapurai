@@ -1,0 +1,129 @@
+name: 'Phase A — Daily dual-write drift check'
+
+# Sprint 45 - Automatisation de la fenetre d'observation 7 jours.
+#
+# Lance le script diff-mono-vs-sub.mjs chaque matin contre la prod et :
+#   - Si zero drift : success silencieux (log seulement)
+#   - Si drift : cree une GitHub Issue + email automatique
+#   - Si erreur d'execution : email automatique GitHub
+#
+# Prerequis :
+#   GitHub Secret FIREBASE_SERVICE_ACCOUNT_JSON = contenu complet du fichier
+#     service-account.json (Firebase Console -> Service Accounts).
+#   GitHub Secret SAPURAI_BETA_CID = c_mocpodna9egt (optionnel, defaut hardcode)
+
+on:
+  schedule:
+    # Tous les jours a 09:00 UTC (= 09:00 GMT, 11:00 Senegal heure ete)
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+    # Permet de lancer manuellement depuis l'onglet Actions GitHub
+
+permissions:
+  contents: read
+  issues: write  # Pour creer une issue en cas de drift
+
+jobs:
+  drift-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Setup Firebase service account
+        env:
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$SA_JSON" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON secret not set"
+            exit 1
+          fi
+          echo "$SA_JSON" > ${{ runner.temp }}/sa.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=${{ runner.temp }}/sa.json" >> $GITHUB_ENV
+
+      - name: Run diff mono-doc vs sous-collections
+        id: diff
+        env:
+          CID: ${{ secrets.SAPURAI_BETA_CID || 'c_mocpodna9egt' }}
+        run: |
+          set +e  # ne pas fail au exit code != 0 (on veut le capturer)
+          node scripts/diff-mono-vs-sub.mjs --cid="$CID" --verbose > diff-output.txt 2>&1
+          DIFF_EXIT=$?
+          echo "diff_exit=$DIFF_EXIT" >> $GITHUB_OUTPUT
+          echo "=== diff output ==="
+          cat diff-output.txt
+          echo "=== end output ==="
+          if [ "$DIFF_EXIT" = "0" ]; then
+            echo "Status: OK (zero drift)"
+          elif [ "$DIFF_EXIT" = "2" ]; then
+            echo "Status: DRIFT DETECTED"
+          else
+            echo "Status: ERROR exit=$DIFF_EXIT"
+          fi
+          # On force exit 0 ici pour que les steps suivants tournent
+          exit 0
+
+      - name: Cleanup service account
+        if: always()
+        run: rm -f ${{ runner.temp }}/sa.json
+
+      - name: Read diff output
+        id: read_output
+        run: |
+          # Tronque a 6000 chars pour eviter de depasser la limite GitHub Issue
+          DIFF_BODY=$(head -c 6000 diff-output.txt)
+          # Echappe pour multi-line GitHub output
+          {
+            echo 'diff_body<<EOF'
+            echo "$DIFF_BODY"
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+
+      - name: Create issue if drift detected
+        if: steps.diff.outputs.diff_exit == '2'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const today = new Date().toISOString().slice(0, 10);
+            const title = `🚨 Phase A drift detected (${today})`;
+            const body = `Le diff quotidien mono-doc vs sous-collections a detecte un drift.\n\n## Sortie du script\n\n\`\`\`\n${{ steps.read_output.outputs.diff_body }}\n\`\`\`\n\n## Procedure\n\n1. Lancer en local avec service account :\n   \`\`\`\n   node scripts/diff-mono-vs-sub.mjs --cid=c_mocpodna9egt --verbose\n   \`\`\`\n2. Identifier l'entite drifted (\`onlyMono\`, \`onlySub\`, \`fieldDiffs\`)\n3. Consulter \`companies/c_mocpodna9egt/dual_write_errors\` dans Firestore Console\n4. Cf. \`OBSERVATION-PHASE-A.md\` section "Que faire si drift detecte"\n\n## Reinitialiser la fenetre\n\nApres correction, **le compteur 7 jours redemarre a zero**. Mettre a jour le tableau dans \`OBSERVATION-PHASE-A.md\`.\n\n_Generee automatiquement par .github/workflows/observation-phase-a.yml_`;
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['phase-a', 'drift', 'priority-high'],
+            });
+
+      - name: Create issue if execution error
+        if: steps.diff.outputs.diff_exit != '0' && steps.diff.outputs.diff_exit != '2'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const today = new Date().toISOString().slice(0, 10);
+            const title = `⚠️ Phase A check error (${today})`;
+            const body = `Le workflow d'observation Phase A a echoue.\n\nExit code : ${{ steps.diff.outputs.diff_exit }}\n\n## Sortie\n\n\`\`\`\n${{ steps.read_output.outputs.diff_body }}\n\`\`\`\n\nVerifier :\n1. Le secret \`FIREBASE_SERVICE_ACCOUNT_JSON\` est-il toujours valide ?\n2. La rotation de cle a-t-elle ete faite recemment ?\n3. Les firebase-admin permissions sont-elles correctes ?\n\n_Generee automatiquement par .github/workflows/observation-phase-a.yml_`;
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['phase-a', 'ci-error'],
+            });
+
+      - name: Fail job if drift or error
+        if: steps.diff.outputs.diff_exit != '0'
+        run: |
+          echo "::error::Diff exit code ${{ steps.diff.outputs.diff_exit }} (0=OK, 2=drift, autre=erreur)"
+          exit 1

@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react';
 import { doc, getDoc, getDocs, setDoc, onSnapshot, collection, deleteDoc, addDoc, updateDoc, query, where } from 'firebase/firestore';
 import { db } from './firebase.js';
+import { mirrorToSubcollections, logMirrorResult } from './services/dualwrite';
 
 var EMPTY = { dos: [], tcs: [], chs: [], dep: [], logs: [], cfg: { fp: 10, ft: 23, fm: 20 } };
 
@@ -458,9 +459,17 @@ export default function useData(uid: string, email: string) {
         );
       }
     } catch (_e) { /* ignore : sanitize() doit garantir la serialisabilite */ }
+    // Sprint 43 Phase A - Snapshot precedent (depuis le state React) pour permettre
+    // au miroir de detecter les suppressions. Fire-and-forget : un echec n'impacte
+    // pas le save authoritative.
+    var prevSnapshot = data;
     setDoc(doc(db, 'companies', userInfo.companyId), clean).then(function () {
       setSaveOk(true);
       setTimeout(function () { setSaveOk(false); }, 2000);
+      // Miroir sous-collections en arriere-plan (non bloquant).
+      mirrorToSubcollections(db, userInfo.companyId, clean, prevSnapshot)
+        .then(function (stats) { logMirrorResult(userInfo.companyId, stats); })
+        .catch(function (e) { console.warn('[dualwrite] uncaught', e); });
     }).catch(function (err) {
       console.error('Save error:', err);
       // Message detaille pour aider au diagnostic terrain (code + raison)

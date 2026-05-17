@@ -1,7 +1,21 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-05-16 (174 taches)
+> Derniere mise a jour : 2026-05-17 (181 taches)
+
+---
+
+## FAIT — Sprint 43 : Migration sous-collections Firestore - Phase A (dual-write) + B (script backfill)
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 178 | **Phase A1 - dualwrite.ts** | `src/services/dualwrite.ts` (CREE) | Module isole qui implemente `mirrorToSubcollections(db, companyId, newData, prevData?)`. Pour chaque sous-collection (dossiers, tcs, chs, dep, logs) : batch write des items presents (set par id = idempotent) + delete des items absents si prevData fourni. Batch chunke a 400 (limite Firestore 500). Fire-and-forget : NE THROW JAMAIS, retourne `MirrorStats { ok, written, deleted, errors, durationMs }`. Helper `logMirrorResult` pour debug discret. |
+| 179 | **Phase A2 - save() branche** | `src/useData.ts` | Apres le `setDoc(/companies/{cid})` (authoritative), on appelle `mirrorToSubcollections` avec le snapshot precedent en parametre. Fire-and-forget : un echec mirror ne bloque pas l'utilisateur ni le toast saveOk. prevData (l'ancien `data` React) permet de detecter les suppressions et de propager les deletes vers les sous-docs. |
+| 180 | **Phase A3 - firestore.rules sous-collections** | `firestore.rules` | Ajout de 5 blocs `match /companies/{cid}/{dossiers,tcs,chs,dep,logs}/{id}` : `allow read: if isMember(cid)`, `allow write: if memberHasRole(['admin','editor','agent']) && isCompanyActive(cid)`. Alignement avec les rules du doc parent. En Phase A ces rules servent uniquement au miroir fire-and-forget. En Phase C (Sprint 44), elles deviendront authoritative quand on switchera les listeners. |
+| 181 | **Phase B - scripts/backfill-subcollections.mjs** | `scripts/backfill-subcollections.mjs` (CREE) | Script Node Firebase Admin pour "exploser" les arrays imbriques des docs companies existants vers les sous-collections. Idempotent (setDoc ecrase). Options : `--apply` (sinon dry-run), `--only=companyId` (cibler une seule company). Batch chunke a 400. Logs detailles par company avec counts dos/tcs/chs/dep/logs. Requiert `GOOGLE_APPLICATION_CREDENTIALS` pointant vers un service account avec role Firestore Admin. **A executer une fois** quand Phase A aura tourne 7 jours sans erreur miroir (cf MIGRATION-SUBCOLLECTIONS.md). |
+| | **Phase C reportee Sprint 44** | — | Switch des listeners onSnapshot pour lire depuis les sous-collections : refactor useData (5 listeners au lieu d'1) + adaptation des 60 tests E2E qui dependent du format `db = { dos: [...], tcs: [...] }`. A faire apres validation 7 jours de Phase A en prod. |
+| | **Phase D reportee Sprint 45** | — | Cleanup : suppression des arrays dans le doc principal, suppression du code dual-write, refactor final des tests. A faire apres Phase C stable. |
+| | **Verifications globales Sprint 43** | — | Build 20.74s, typecheck 0 erreur, 380/380 tests. Aucun changement visible utilisateur, aucune regression. Le miroir tournera silencieusement en prod et alimentera progressivement les sous-collections au fil des saves. **Effet metier** : (1) filet de securite contre la limite hard 1 MiB Firestore : meme si le doc explose, les sous-collections continueront de fonctionner; (2) prerequis technique de Phase C pose; (3) script backfill pret pour reconciliation des donnees existantes. |
 
 ---
 

@@ -124,6 +124,39 @@ service cloud.firestore {
       );
     }
 
+    // ── Sprint 43 Phase A : sous-collections dual-write ──
+    // Acces par membership (lecture) + write par roles autorises (alignement
+    // avec le doc parent /companies/{cid}). Suspension de la company bloque writes.
+    //
+    // Quand Phase C activera la lecture depuis ces sous-collections, ces rules
+    // deviendront authoritative. En Phase A, elles servent juste a accepter
+    // les ecritures fire-and-forget du miroir.
+    match /companies/{companyId}/dossiers/{dosId} {
+      allow read: if isSuperAdmin() || isMember(companyId);
+      allow write: if isSuperAdmin() ||
+        (memberHasRole(companyId, ['admin', 'editor', 'agent']) && isCompanyActive(companyId));
+    }
+    match /companies/{companyId}/tcs/{tcId} {
+      allow read: if isSuperAdmin() || isMember(companyId);
+      allow write: if isSuperAdmin() ||
+        (memberHasRole(companyId, ['admin', 'editor', 'agent']) && isCompanyActive(companyId));
+    }
+    match /companies/{companyId}/chs/{chId} {
+      allow read: if isSuperAdmin() || isMember(companyId);
+      allow write: if isSuperAdmin() ||
+        (memberHasRole(companyId, ['admin', 'editor', 'agent']) && isCompanyActive(companyId));
+    }
+    match /companies/{companyId}/dep/{depId} {
+      allow read: if isSuperAdmin() || isMember(companyId);
+      allow write: if isSuperAdmin() ||
+        (memberHasRole(companyId, ['admin', 'editor', 'agent']) && isCompanyActive(companyId));
+    }
+    match /companies/{companyId}/logs/{logId} {
+      allow read: if isSuperAdmin() || isMember(companyId);
+      allow write: if isSuperAdmin() ||
+        (memberHasRole(companyId, ['admin', 'editor', 'agent']) && isCompanyActive(companyId));
+    }
+
     // ── Billing (sous-collection) ──
     // Lecture par membres de la company + super-admin. Ecriture super-admin uniquement.
     match /companies/{companyId}/billing/{billingDoc} {

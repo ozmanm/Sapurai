@@ -146,6 +146,8 @@ export default function useAppLogic({ db, sv, ml, setMl, sendNotif }: UseAppLogi
 
     // Actions conteneurs
     dispatch: conteneurActions.dispatch,
+    assignTc: conteneurActions.assignTc,
+    loadTc: conteneurActions.loadTc,
     addTcPayment: conteneurActions.addTcPayment,
     advance: conteneurActions.advance,
     updateTcDate: conteneurActions.updateTcDate,

@@ -1,12 +1,16 @@
 // Statuts conteneurs
-export var PL: string[] = ["ATTENDU", "PORT", "DISPATCHE", "TRANSIT", "KATI", "BAMAKO", "RETURNED"];
+// Sprint 46 : ajout ASSIGNE entre PORT et DISPATCHE, retrait de KATI.
+// KATI conserve dans SL/SC/SB en lecture seule pour rendu des TC legacy
+// non encore migres (transition automatique vers TRANSIT via le script).
+export var PL: string[] = ["ATTENDU", "PORT", "ASSIGNE", "DISPATCHE", "TRANSIT", "BAMAKO", "RETURNED"];
 
 export var SL: Record<string, string> = {
   ATTENDU: "Attendu",
   PORT: "Au Port",
-  DISPATCHE: "Dispatche",
+  ASSIGNE: "Camion assigne",
+  DISPATCHE: "Charge / Sorti",
   TRANSIT: "En Transit",
-  KATI: "Kati",
+  KATI: "Kati (legacy)",  // legacy : TCs pas encore migres
   BAMAKO: "Bamako",
   RETURNED: "Retourne",
 };
@@ -14,6 +18,7 @@ export var SL: Record<string, string> = {
 export var SC: Record<string, string> = {
   ATTENDU: "var(--sc-attendu)",
   PORT: "var(--sc-port)",
+  ASSIGNE: "var(--sc-assigne, var(--sc-port))",
   DISPATCHE: "var(--sc-dispatche)",
   TRANSIT: "var(--sc-transit)",
   KATI: "var(--sc-kati)",
@@ -24,6 +29,7 @@ export var SC: Record<string, string> = {
 export var SB: Record<string, string> = {
   ATTENDU: "var(--sb-attendu)",
   PORT: "var(--sb-port)",
+  ASSIGNE: "var(--sb-assigne, var(--sb-port))",
   DISPATCHE: "var(--sb-dispatche)",
   TRANSIT: "var(--sb-transit)",
   KATI: "var(--sb-kati)",

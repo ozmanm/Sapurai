@@ -4,25 +4,28 @@
  * Definit les transitions de statut valides et permet de detecter les
  * regressions ou les sauts d'etape suspects (ex: PORT -> BAMAKO sans DISPATCHE).
  *
- * Cycle de vie nominal Dakar -> Bamako :
+ * Cycle de vie nominal Dakar -> Bamako (Sprint 46) :
  *
- *   ATTENDU  -> PORT       (le navire arrive et decharge)
- *   PORT     -> DISPATCHE  (BAD obtenu, TC sort du terminal sur camion)
- *   DISPATCHE -> TRANSIT   (camion en route vers Bamako)
- *   TRANSIT  -> KATI       (etape frontiere Mali)
- *   KATI     -> BAMAKO     (arrive a destination)
- *   BAMAKO   -> RETURNED   (TC vide retourne a Dakar)
+ *   ATTENDU   -> PORT       (le navire arrive et decharge)
+ *   PORT      -> ASSIGNE    (transitaire choisit un camion + chauffeur, RDV pris au port)
+ *   ASSIGNE   -> DISPATCHE  (camion charge effectivement le TC + sortie terminal)
+ *   DISPATCHE -> TRANSIT    (camion en route vers Bamako)
+ *   TRANSIT   -> BAMAKO     (arrivee destination)
+ *   BAMAKO    -> RETURNED   (TC vide retourne a Dakar)
  *
  * Raccourcis tolerees (cas reels) :
- *   - TRANSIT  -> BAMAKO   (si pas de passage Kati identifie)
- *   - TRANSIT  -> RETURNED (TC livre + retour rapide, dates condensees)
- *   - BAMAKO   -> KATI -> RETURNED (TC peut rebrousser par Kati au retour)
+ *   - PORT     -> DISPATCHE (chargement immediat sans etape assignation explicite)
+ *   - TRANSIT  -> RETURNED  (TC livre + retour rapide, dates condensees)
  *   - DISPATCHE -> RETURNED (pour les dossiers locaux Dakar)
+ *   - ASSIGNE  -> PORT      (annulation assignation, le camion ne vient pas)
  *
  * Transitions BLOQUEES (regression ou impossibilite metier) :
  *   - RETURNED -> n'importe quoi (un TC retourne ne peut pas repartir)
- *   - PORT -> ATTENDU (regression de statut)
- *   - ATTENDU -> autre que PORT (le TC doit forcement etre dechargé d'abord)
+ *   - PORT     -> ATTENDU (regression de statut)
+ *   - ATTENDU  -> autre que PORT (le TC doit forcement etre decharge d'abord)
+ *
+ * KATI a ete retire du cycle de vie Sprint 46. Les TC en KATI ont ete migres
+ * vers TRANSIT. Le champ legacy `dak` est conserve en lecture seule.
  *
  * Le contournement est possible via `force: true` pour les cas exceptionnels
  * (correction manuelle d'une erreur de saisie).
@@ -31,13 +34,13 @@
 export type TcStatus =
   | 'ATTENDU'
   | 'PORT'
+  | 'ASSIGNE'
   | 'DISPATCHE'
   | 'TRANSIT'
-  | 'KATI'
   | 'BAMAKO'
   | 'RETURNED';
 
-export var TC_STATUSES: TcStatus[] = ['ATTENDU', 'PORT', 'DISPATCHE', 'TRANSIT', 'KATI', 'BAMAKO', 'RETURNED'];
+export var TC_STATUSES: TcStatus[] = ['ATTENDU', 'PORT', 'ASSIGNE', 'DISPATCHE', 'TRANSIT', 'BAMAKO', 'RETURNED'];
 
 /**
  * Table des transitions autorisees. Chaque clef = statut de depart,
@@ -45,11 +48,11 @@ export var TC_STATUSES: TcStatus[] = ['ATTENDU', 'PORT', 'DISPATCHE', 'TRANSIT',
  */
 var TRANSITIONS: Record<TcStatus, TcStatus[]> = {
   ATTENDU: ['PORT'],
-  PORT: ['DISPATCHE'],
-  DISPATCHE: ['TRANSIT', 'RETURNED'],  // RETURNED pour dossier Dakar local
-  TRANSIT: ['KATI', 'BAMAKO', 'RETURNED'],
-  KATI: ['BAMAKO', 'RETURNED'],
-  BAMAKO: ['KATI', 'RETURNED'],         // KATI au retour
+  PORT: ['ASSIGNE', 'DISPATCHE'],       // DISPATCHE direct = "chargement immediat"
+  ASSIGNE: ['DISPATCHE', 'PORT'],       // PORT = annulation assignation
+  DISPATCHE: ['TRANSIT', 'RETURNED'],   // RETURNED pour dossier Dakar local
+  TRANSIT: ['BAMAKO', 'RETURNED'],
+  BAMAKO: ['RETURNED'],
   RETURNED: [],                          // statut terminal
 };
 

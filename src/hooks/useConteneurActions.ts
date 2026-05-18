@@ -6,7 +6,7 @@ import { TPHASES } from '../constants/depenses.js';
 import { applyAutoStatus } from '../utils/dossierStatus';
 import { getFranchiseRetourVide, joursSurestariesPort, joursDetention } from '../utils/franchise';
 import { canTcTransition } from '../domain/tcStateMachine';
-import { canDispatchTc, canAdvanceTc } from '../domain/invariants';
+import { canDispatchTc, canAdvanceTc, canAssignTc } from '../domain/invariants';
 import type { Dossier, Conteneur, Depense, Config, Chauffeur } from '../types.js';
 
 /**
@@ -39,6 +39,69 @@ export default function useConteneurActions(p: ConteneurActionsDeps) {
    * les races sur `db` capture en closure (deux sv() successifs ecraseraient
    * la creation du ch).
    */
+  /**
+   * Sprint 46 : ASSIGNATION du camion sans chargement (PORT -> ASSIGNE).
+   * Pose `dassign` mais PAS `dsp`. Le TC reste physiquement au port,
+   * la franchise port continue de courir. L'avance est versee a ce moment
+   * (cash chauffeur pour gasoil/route avant le chargement effectif).
+   */
+  function assignTc(tid: string, ch: any, avance: number, budget: number, dassignDate?: string, prixConvenu?: number, newChData?: any): void {
+    var tc = tcs.find(function (c) { return c.id === tid; });
+    var d = tc ? dos.find(function (x) { return x.id === tc.did; }) : null;
+    var check = canAssignTc(tc, d);
+    if (!check.ok) { nf(check.reason || "Assignation refusee", "error"); return; }
+
+    var actualCh = ch;
+    var newChs = chs;
+    if (newChData) {
+      var freshCh: Chauffeur = Object.assign({}, newChData, {
+        id: mid(),
+        pm: parseInt(newChData.pm) || 0,
+        tty: newChData.tty || ["20GP", "40GP", "40HC"],
+      });
+      newChs = chs.concat([freshCh]);
+      actualCh = freshCh;
+    }
+
+    var up: Record<string, any> = { st: "ASSIGNE", ch: actualCh.nm, cm: actualCh.cm, dassign: dassignDate || today() };
+    if (budget > 0) up.budget = budget;
+    if (prixConvenu && prixConvenu > 0) up.pc = prixConvenu;
+    var nc = tcs.map(function (c) { return c.id === tid ? Object.assign({}, c, up) : c; });
+    var nd: Depense[] = dep;
+    if (avance > 0) {
+      nd = dep.concat([{ id: mid(), did: tc ? tc.did : "", tp: "TRANSPORT", ht: avance, mt: avance, s: "ATT", ph: "AVANCE_DK", tcid: tid, ds: "Avance assignation - " + (tc ? tc.n : "?") + " - " + actualCh.nm, dt: today() }]);
+    }
+    var newDos = applyAutoStatus(dos, nc);
+    var patch: any = { dos: newDos, tcs: nc, dep: nd };
+    if (newChData) patch.chs = newChs;
+    var detail = (tc ? tc.n : "?") + " -> " + actualCh.nm + " (" + actualCh.cm + ")" + (newChData ? " [nouveau ch]" : "");
+    sv(wLog(Object.assign({}, db, patch), tc ? tc.did : "", "ASSIGN", detail));
+    nf(newChData ? "Assigne (chauffeur cree)" : "Camion assigne"); setMl(null);
+  }
+
+  /**
+   * Sprint 46 : CHARGEMENT effectif (ASSIGNE -> DISPATCHE).
+   * Pose `dsp` (date sortie terminal). Permet un complement de paiement optionnel.
+   */
+  function loadTc(tid: string, dspDate?: string, extraPayment?: number): void {
+    var tc = tcs.find(function (c) { return c.id === tid; });
+    var d = tc ? dos.find(function (x) { return x.id === tc.did; }) : null;
+    var check = canDispatchTc(tc, d);
+    if (!check.ok) { nf(check.reason || "Chargement refuse", "error"); return; }
+
+    var up: Record<string, any> = { st: "DISPATCHE", dsp: dspDate || today() };
+    var nc = tcs.map(function (c) { return c.id === tid ? Object.assign({}, c, up) : c; });
+    var nd: Depense[] = dep;
+    if (extraPayment && extraPayment > 0) {
+      nd = dep.concat([{ id: mid(), did: tc ? tc.did : "", tp: "TRANSPORT", ht: extraPayment, mt: extraPayment, s: "ATT", ph: "AVANCE_DK", tcid: tid, ds: "Complement chargement - " + (tc ? tc.n : "?"), dt: today() }]);
+    }
+    var newDos = applyAutoStatus(dos, nc);
+    var detail = (tc ? tc.n : "?") + " charge a " + (dspDate || today());
+    sv(wLog(Object.assign({}, db, { dos: newDos, tcs: nc, dep: nd }), tc ? tc.did : "", "LOAD", detail));
+    nf("TC charge");
+    setMl(null);
+  }
+
   function dispatch(tid: string, ch: any, avance: number, budget: number, dspDate?: string, prixConvenu?: number, newChData?: any): void {
     var tc = tcs.find(function (c) { return c.id === tid; });
     var d = tc ? dos.find(function (x) { return x.id === tc.did; }) : null;
@@ -60,7 +123,9 @@ export default function useConteneurActions(p: ConteneurActionsDeps) {
       actualCh = freshCh;
     }
 
-    var up: Record<string, any> = { st: "DISPATCHE", ch: actualCh.nm, cm: actualCh.cm, dsp: dspDate || today() };
+    // Sprint 46 : chargement immediat = assignation + chargement atomiques
+    var date = dspDate || today();
+    var up: Record<string, any> = { st: "DISPATCHE", ch: actualCh.nm, cm: actualCh.cm, dassign: date, dsp: date };
     if (budget > 0) up.budget = budget;
     if (prixConvenu && prixConvenu > 0) up.pc = prixConvenu;
     var nc = tcs.map(function (c) { return c.id === tid ? Object.assign({}, c, up) : c; });
@@ -246,5 +311,5 @@ export default function useConteneurActions(p: ConteneurActionsDeps) {
     return { rp: rp, rt: rt, col: col, val: val, lbl: lbl };
   }
 
-  return { dispatch, addTcPayment, advance, updateTcDate, patchTc, deleteTc, editTcInfo, humanPhrase, tcFranchise };
+  return { dispatch, assignTc, loadTc, addTcPayment, advance, updateTcDate, patchTc, deleteTc, editTcInfo, humanPhrase, tcFranchise };
 }

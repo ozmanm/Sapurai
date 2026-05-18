@@ -26,7 +26,9 @@ export interface InvariantResult {
   reason?: string;
 }
 
-var TRANSIT_STATES: TcStatus[] = ['DISPATCHE', 'TRANSIT', 'KATI', 'BAMAKO'];
+// Sprint 46 : ASSIGNE n'est PAS dans TRANSIT_STATES (TC encore physiquement au port).
+// KATI retire du cycle de vie.
+var TRANSIT_STATES: TcStatus[] = ['DISPATCHE', 'TRANSIT', 'BAMAKO'];
 
 /**
  * Indique si la date d'arrivee du dossier est dans le futur (navire pas encore arrive).
@@ -42,17 +44,35 @@ export function isDaFuture(dos: Dossier | null | undefined): boolean {
 }
 
 /**
- * Indique si un TC peut etre dispatche (PORT -> DISPATCHE).
+ * Indique si un TC peut etre dispatche (PORT/ASSIGNE -> DISPATCHE).
+ * Sprint 46 : accepte PORT (chargement immediat sans etape assignation) OU ASSIGNE
+ * (le TC a deja un camion reserve, on confirme le chargement effectif).
  * Pre-requis :
- *  - tc.st === 'PORT' (le TC est au port)
+ *  - tc.st === 'PORT' ou 'ASSIGNE'
  *  - dos.da n'est pas dans le futur (le navire est effectivement arrive)
  *  - dos a une autorisation de sortie : BAE obtenu OU Pregate (pn) presente
  */
 export function canDispatchTc(tc: Conteneur | null | undefined, dos: Dossier | null | undefined): InvariantResult {
   if (!tc || !dos) return { ok: false, reason: 'TC ou dossier manquant' };
-  if (tc.st !== 'PORT') return { ok: false, reason: 'TC doit etre au port (actuel: ' + (tc.st || 'inconnu') + ')' };
+  if (tc.st !== 'PORT' && tc.st !== 'ASSIGNE') {
+    return { ok: false, reason: 'TC doit etre au port ou assigne (actuel: ' + (tc.st || 'inconnu') + ')' };
+  }
   if (isDaFuture(dos)) return { ok: false, reason: "Date d'arrivee " + dos.da + " encore dans le futur — TC ne peut pas etre dispatche" };
   if (!dos.pn && dos.as2 !== 'OBTENU') return { ok: false, reason: 'BAE ou Pregate requis avant dispatch' };
+  return { ok: true };
+}
+
+/**
+ * Sprint 46 : indique si un TC peut etre assigne a un camion (PORT -> ASSIGNE).
+ * Une assignation ne demande pas BAE/Pregate (c'est juste une reservation logistique).
+ * En revanche le TC doit etre physiquement au port et le navire arrive.
+ */
+export function canAssignTc(tc: Conteneur | null | undefined, dos: Dossier | null | undefined): InvariantResult {
+  if (!tc || !dos) return { ok: false, reason: 'TC ou dossier manquant' };
+  if (tc.st !== 'PORT') {
+    return { ok: false, reason: 'TC doit etre au port pour assignation (actuel: ' + (tc.st || 'inconnu') + ')' };
+  }
+  if (isDaFuture(dos)) return { ok: false, reason: "Date d'arrivee " + dos.da + " encore dans le futur — assignation prematuree" };
   return { ok: true };
 }
 
@@ -98,7 +118,8 @@ export function canAdvanceTc(
  *
  * Sinon, applique la logique existante de `computeDossierStatus` :
  *  - INITIALISE : tous TC ATTENDU ou aucun TC
- *  - EN_TRANSIT : tous TC actifs en DISPATCHE/TRANSIT/KATI/BAMAKO
+ *  - EN_TRANSIT : tous TC actifs en DISPATCHE/TRANSIT/BAMAKO
+ *  - SECURISE   : au moins un TC en PORT ou ASSIGNE (physiquement au port)
  *  - SECURISE   : au moins un TC en PORT
  *
  * CLOTURE / ARCHIVE : statuts manuels, jamais ecrases.
@@ -119,7 +140,8 @@ export function deriveDossierStatus(
     return dos.st !== 'INITIALISE' ? 'INITIALISE' : null;
   }
 
-  var atPort = dosTcs.filter(function (c) { return c.st === 'PORT'; }).length;
+  // Sprint 46 : PORT et ASSIGNE comptent tous deux comme 'physiquement au port'
+  var atPort = dosTcs.filter(function (c) { return c.st === 'PORT' || c.st === 'ASSIGNE'; }).length;
   var inTransit = dosTcs.filter(function (c) { return TRANSIT_STATES.indexOf(c.st as TcStatus) >= 0; }).length;
   var attendu = dosTcs.filter(function (c) { return c.st === 'ATTENDU'; }).length;
   var returned = dosTcs.filter(function (c) { return c.st === 'RETURNED'; }).length;

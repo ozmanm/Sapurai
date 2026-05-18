@@ -7,14 +7,15 @@ import type { Dossier, Conteneur } from '../types';
  *  - INITIALISE : aucun TC encore au port (tous ATTENDU ou pas de TC)
  *  - SECURISE   : au moins un TC est arrive a Dakar (PORT) mais pas tous dispatches
  *  - EN_TRANSIT : tous les TC actifs sont effectivement en transit (DISPATCHE,
- *                 TRANSIT, KATI, BAMAKO) et au moins un l'est
+ *                 TRANSIT, BAMAKO) et au moins un l'est
  *  - CLOTURE / ARCHIVE : statuts manuels, jamais ecrases par le calcul auto
  *
  * Retourne `null` si le statut ne doit PAS changer (eg. dossier deja CLOTURE
  * ou aucun changement detecte).
  */
 
-var TRANSIT_STATES = ["DISPATCHE", "TRANSIT", "KATI", "BAMAKO"];
+// Sprint 46 : KATI retire, ASSIGNE non inclus (TC encore au port)
+var TRANSIT_STATES = ["DISPATCHE", "TRANSIT", "BAMAKO"];
 
 export function computeDossierStatus(
   dos: Dossier,
@@ -34,7 +35,8 @@ export function computeDossierStatus(
     }
   }
 
-  var atPort = dosTcs.filter(function (c) { return c.st === "PORT"; }).length;
+  // Sprint 46 : PORT et ASSIGNE comptent tous deux comme "au port"
+  var atPort = dosTcs.filter(function (c) { return c.st === "PORT" || c.st === "ASSIGNE"; }).length;
   var inTransit = dosTcs.filter(function (c) { return TRANSIT_STATES.indexOf(c.st) >= 0; }).length;
   var attendu = dosTcs.filter(function (c) { return c.st === "ATTENDU"; }).length;
   var returned = dosTcs.filter(function (c) { return c.st === "RETURNED"; }).length;

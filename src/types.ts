@@ -29,13 +29,17 @@ export interface Conteneur {
   po?: number;         // poids kg
 
   // Cycle de vie
-  st?: "ATTENDU" | "PORT" | "DISPATCHE" | "TRANSIT" | "KATI" | "BAMAKO" | "RETURNED" | string;
+  // Sprint 46 : ajout ASSIGNE (camion choisi, RDV pris mais TC encore au port).
+  // KATI retire du cycle de vie - les TC en KATI ont ete migres vers TRANSIT.
+  st?: "ATTENDU" | "PORT" | "ASSIGNE" | "DISPATCHE" | "TRANSIT" | "BAMAKO" | "RETURNED" | string;
 
   // Dates de parcours (ISO)
   da?: string;         // date attendue
-  dsp?: string;        // date dispatch
+  dassign?: string;    // Sprint 46 : date assignation camion (PORT -> ASSIGNE)
+  dsp?: string;        // date chargement effectif / sortie terminal (ASSIGNE -> DISPATCHE)
   dtk?: string;        // date sortie Dakar
-  dak?: string;        // date arrivee Kati
+  /** @deprecated Sprint 46 - KATI retire du cycle. Champ conserve en lecture pour les anciens dossiers (exports, PDFs). Aucune nouvelle ecriture. */
+  dak?: string;        // date arrivee Kati (legacy)
   dab?: string;        // date arrivee Bamako
   dr?: string;         // date retour
 

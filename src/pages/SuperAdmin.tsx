@@ -292,18 +292,6 @@ export default function SuperAdmin({ user, logout }: SuperAdminProps) {
     );
   }
 
-  function billingInfo(cId: string) {
-    var b = billing[cId];
-    if (!b) return null;
-    var lines: string[] = [];
-    if (b.trialEndsAt) lines.push('Fin essai : ' + b.trialEndsAt);
-    if (b.subscriptionEndsAt) lines.push('Fin abonnement : ' + b.subscriptionEndsAt);
-    if (b.lastPaymentAt) lines.push('Dernier paiement : ' + b.lastPaymentAt);
-    if (b.paymentMethod) lines.push('Méthode : ' + b.paymentMethod);
-    if (b.internalNotes) lines.push('Notes : ' + b.internalNotes);
-    return lines.length > 0 ? lines : null;
-  }
-
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-secondary)', fontFamily: 'var(--font-sans)' }}>
       <div style={{ background: 'var(--bg-primary)', borderBottom: '1px solid var(--border)', padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 100 }}>
@@ -369,7 +357,6 @@ export default function SuperAdmin({ user, logout }: SuperAdminProps) {
                   var isExpanded = expanded === c.id;
                   var memberList = members[c.id] || [];
                   var isLoadingM = loadingMembers === c.id;
-                  var billingLines = billingInfo(c.id);
                   var showBilling = expandedBilling === c.id;
 
                   return (

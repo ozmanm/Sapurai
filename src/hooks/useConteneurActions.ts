@@ -5,7 +5,6 @@ import { SL } from '../constants/statuts.js';
 import { TPHASES } from '../constants/depenses.js';
 import { applyAutoStatus } from '../utils/dossierStatus';
 import { getFranchiseRetourVide, joursSurestariesPort, joursDetention } from '../utils/franchise';
-import { canTcTransition } from '../domain/tcStateMachine';
 import { canDispatchTc, canAdvanceTc, canAssignTc } from '../domain/invariants';
 import type { Dossier, Conteneur, Depense, Config, Chauffeur } from '../types.js';
 

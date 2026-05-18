@@ -79,6 +79,7 @@ export default function useFCM(opts: UseFCMOpts) {
           await setDoc(doc(db, 'users', uid), { fcmToken: t, fcmUpdatedAt: new Date().toISOString() }, { merge: true });
         }
       } catch (e) {
+        // eslint-disable-next-line no-console -- diagnostic FCM token registration (echec rare, signale via warn pour debug)
         console.warn('[useFCM] getToken failed:', e);
         registeredRef.current = false;
       }

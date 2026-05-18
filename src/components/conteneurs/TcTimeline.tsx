@@ -80,7 +80,6 @@ function TcTimeline(p: TcTimelineProps) {
   // Calculs surestaries
   var franchiseFp = (p.cfg && p.cfg.fp) || 10;
   var franchiseFt = (p.cfg && p.cfg.ft) || 23;
-  var nowMs = Date.now();
   var jp = 0, rp = 0, jt = 0, rt = 0;
   if (d.da) {
     var arr = new Date(d.da); arr.setHours(0, 0, 0, 0);

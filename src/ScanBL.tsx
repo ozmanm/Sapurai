@@ -130,7 +130,7 @@ export default function ScanBL(p: ScanBLProps) {
       var json: any = null;
       try {
         json = await response.json();
-      } catch (_) {
+      } catch (_e) {
         throw new Error("reponse non-JSON du Worker (HTTP " + response.status + ")");
       }
 
@@ -159,13 +159,7 @@ export default function ScanBL(p: ScanBLProps) {
       // Post-processing metier : corrige les confusions OCR connues selon la compagnie
       data = applyCarrierHeuristics(data);
       setPreview(data);
-      // Debug : raw model response (a retirer une fois Sprint 33 stable)
-      if (json.raw) {
-        console.log("[ScanBL] raw model response:", json.raw);
-      }
-      if (json.ocrText) {
-        console.log("[ScanBL] OCR text (first 500 chars):", String(json.ocrText).slice(0, 500));
-      }
+      // Sprint 33 stabilise — logs debug retires (Phase 1 lint cleanup Sprint 46)
       setStage("idle");
     } catch (ex: any) {
       setErr("Erreur scan : " + (ex && ex.message ? ex.message : "inconnue"));

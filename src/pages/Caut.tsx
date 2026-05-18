@@ -11,7 +11,6 @@ function Caut(p: CautProps) {
   var tcs = p.tcs;
   var setMl = p.setMl;
   var [tab, setTab] = useState("LOUEE");
-  var [expandedDos, setExpandedDos] = useState<Record<string, boolean>>({});
 
   var louees = dos.filter(function (d) { return d.gr === "LOUEE" && d.st !== "ARCHIVE"; });
   var vendues = dos.filter(function (d) { return d.gr === "VENDUE" && d.st !== "ARCHIVE"; });

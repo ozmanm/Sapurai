@@ -101,10 +101,6 @@ function normalizeContainerNumber(c: any): string {
   return String(c.number || c.containerNumber || c.containerId || c.id || c.ContainerNumber || '').toUpperCase().trim();
 }
 
-function normalizeContainerStatus(c: any): string {
-  return String(c.status || c.statusCode || c.currentStatus || c.Status || '').toUpperCase();
-}
-
 function normalizeEvents(c: any): CmaEvent[] {
   var raw = c.events || c.history || c.statusHistory || c.Events || [];
   if (!Array.isArray(raw)) return [];
@@ -180,20 +176,6 @@ function eventToStatus(eventType: string): string | null {
  * ]
  */
 
-// ISO container code -> type Sapurai
-var ISO_TO_TYPE: Record<string, string> = {
-  "22G1": "20GP", "22G0": "20GP",
-  "42G1": "40GP", "42G0": "40GP",
-  "45G1": "40HC", "45G0": "40HC",
-  "L5G1": "45HC",
-  "22R1": "20RF", "42R1": "40RF", "45R1": "40HCRF",
-};
-
-function isoToType(iso: string | undefined): string {
-  if (!iso) return "20GP";
-  return ISO_TO_TYPE[iso] || iso;
-}
-
 function extractDCSAEvents(raw: any): any[] {
   if (Array.isArray(raw)) return raw;
   if (raw && Array.isArray(raw.data)) return raw.data;
@@ -255,11 +237,6 @@ function mapDCSAEvents(events: any[], dosTcs: any[], dos: any): CMAPatches {
     if (unCode === 'SNDKR' || unCode === 'DKR') return true;
     var name = String(loc.locationName || '').toLowerCase();
     return name.indexOf('dakar') >= 0;
-  }
-
-  function isLoaded(e: any): boolean {
-    var lbl = String(e.carrierSpecificData?.internalEventLabel || '').toLowerCase();
-    return lbl.indexOf('load') >= 0;
   }
 
   function isEmptyReturn(e: any): boolean {

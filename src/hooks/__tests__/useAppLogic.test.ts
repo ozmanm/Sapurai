@@ -247,8 +247,6 @@ describe('closeDos', function () {
 // ---------------------------------------------------------------------------
 
 describe('addDos', function () {
-  var nf = vi.fn();
-
   it('cree un dossier avec tokId et status INITIALISE', function () {
     var s = setupHook({});
     act(function () { s.hook.current.addDos({ cl: 'CLIENT', bl: 'BL123' }, []); });

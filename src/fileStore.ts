@@ -48,6 +48,7 @@ export var fileStore = {
         return;
       } catch (e) {
         // Fallback Firestore en cas d'erreur Storage (quota, permissions)
+        // eslint-disable-next-line no-console -- observabilite degradation Storage->Firestore (rare, signale via warn)
         console.warn('[fileStore] Storage upload failed, fallback Firestore', e);
       }
     }
@@ -70,6 +71,7 @@ export var fileStore = {
         return { value: 'data:application/octet-stream;base64,' + b64 };
       } catch (e: any) {
         if (e && e.code && e.code.indexOf('not-found') < 0 && e.code.indexOf('object-not-found') < 0) {
+          // eslint-disable-next-line no-console -- observabilite erreur Storage read (filtre les not-found legitimes)
           console.warn('[fileStore] Storage read error, fallback Firestore', e);
         }
       }

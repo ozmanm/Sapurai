@@ -4,11 +4,11 @@ var KEY_PREFIX: string = 'lt_ana_';
 var MAX_DAYS: number = 30;
 
 function getStore(cid: string): Record<string, any> {
-  try { return JSON.parse(localStorage.getItem(KEY_PREFIX + cid) || '{}'); } catch (e) { return {}; }
+  try { return JSON.parse(localStorage.getItem(KEY_PREFIX + cid) || '{}'); } catch (_e) { return {}; }
 }
 
 function saveStore(cid: string, data: Record<string, any>): void {
-  try { localStorage.setItem(KEY_PREFIX + cid, JSON.stringify(data)); } catch (e) {}
+  try { localStorage.setItem(KEY_PREFIX + cid, JSON.stringify(data)); } catch (_e) {}
 }
 
 function todayKey(): string {

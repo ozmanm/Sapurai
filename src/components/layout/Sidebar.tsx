@@ -39,15 +39,11 @@ function Sidebar(p: SidebarProps) {
   var enCours = p.enCours;
   var critCount = p.critCount;
   var canEdit = p.canEdit;
-  var showTeam = p.showTeam;
   var installEvt = p.installEvt;
   var setInstallEvt = p.setInstallEvt;
   var logout = p.logout;
-  var role = p.role;
   var companyName = p.companyName;
   var setMl = p.setMl;
-  var theme = p.theme;
-  var toggleTheme = p.toggleTheme;
 
   return (
     <>

@@ -56,15 +56,14 @@ async function readWorkbook(buf: ArrayBuffer): Promise<{ SheetNames: string[]; S
 function patternScan(allSheets: SheetData[]): ImportResult {
   var tcSet: Record<string, any> = {};        // container# → { bl, type, weight }
   var blSet: Record<string, any> = {};        // bl# → { client, date, company, tcs[] }
-  var amounts: any[] = [];      // { bl, amount, desc, row context }
   var allRows: any[] = [];      // flat list of classified rows
 
   // Pass 1: scan every cell, classify per row
   allSheets.forEach(function (sheet) {
-    sheet.rows.forEach(function (row, ri) {
+    sheet.rows.forEach(function (row) {
       var classified = { tcs: [], bls: [], amounts: [], dates: [], names: [], types: [], raw: row, sheetName: sheet.name };
-      
-      row.forEach(function (cell, ci) {
+
+      row.forEach(function (cell) {
         if (cell === null || cell === undefined || cell === "") return;
         var sv = String(cell).trim();
         
@@ -209,9 +208,8 @@ export default function ImportExcel(p: ImportExcelProps) {
   var [colDebug, setColDebug] = useState<string[] | null>(null);
   var [excluded, setExcluded] = useState<Set<string>>(new Set());
 
-  // BL et TC existants en base pour detection doublons
+  // BL existants en base pour detection doublons
   var existingBls = new Set((p.dos || []).map(function (d) { return (d.bl || "").toUpperCase(); }).filter(Boolean));
-  var existingTcNums = new Set((p.tcs || []).map(function (c) { return (c.n || "").toUpperCase(); }).filter(Boolean));
 
   function parseWorkbook(wb: any) {
     var sheetData = wb.SheetNames.map(function (name: string) {

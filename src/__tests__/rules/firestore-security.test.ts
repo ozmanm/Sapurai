@@ -15,7 +15,7 @@
  *   FIRESTORE_EMULATOR_HOST=localhost:8080 npm test -- --run src/__tests__/rules
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, beforeAll, afterAll, beforeEach } from 'vitest';
 import {
   initializeTestEnvironment,
   assertFails,

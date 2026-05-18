@@ -96,8 +96,6 @@ function AppModals(p: AppModalsProps) {
   var syncCMA = p.syncCMA;
   var humanPhrase = p.humanPhrase;
   var bulkImport = p.bulkImport;
-  var urgences = p.urgences;
-  var alertes = p.alertes;
   var advPending = p.advPending;
   var setAdvPending = p.setAdvPending;
   var shareTracking = p.shareTracking;

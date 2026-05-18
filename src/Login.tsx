@@ -71,12 +71,12 @@ export default function Login(props: { onBack?: () => void } = {}) {
     if (!invPass || invPass.length < 6) { setErr('Mot de passe trop court (6 min minimum)'); return; }
     setLoading(true);
     // Store pending join — useData will auto-call joinWithCode once account is created
-    try { sessionStorage.setItem('lt_pending_join', JSON.stringify({ code: code, name: invName.trim() })); } catch (e2) {}
+    try { sessionStorage.setItem('lt_pending_join', JSON.stringify({ code: code, name: invName.trim() })); } catch (_e2) {}
     createUserWithEmailAndPassword(auth, invEmail, invPass)
       .then(function () { setLoading(false); })
       .catch(function (error) {
         setLoading(false);
-        try { sessionStorage.removeItem('lt_pending_join'); } catch (e2) {}
+        try { sessionStorage.removeItem('lt_pending_join'); } catch (_e2) {}
         var msg = {
           'auth/invalid-email': 'Email invalide',
           'auth/email-already-in-use': 'ALREADY_USED',
@@ -89,13 +89,13 @@ export default function Login(props: { onBack?: () => void } = {}) {
   function signInWithGoogle(pendingJoin) {
     setErr(''); setLoading(true);
     if (pendingJoin) {
-      try { sessionStorage.setItem('lt_pending_join', JSON.stringify(pendingJoin)); } catch (e2) {}
+      try { sessionStorage.setItem('lt_pending_join', JSON.stringify(pendingJoin)); } catch (_e2) {}
     }
     signInWithPopup(auth, googleProvider)
       .then(function () { setLoading(false); })
       .catch(function (error) {
         setLoading(false);
-        if (pendingJoin) { try { sessionStorage.removeItem('lt_pending_join'); } catch (e2) {} }
+        if (pendingJoin) { try { sessionStorage.removeItem('lt_pending_join'); } catch (_e2) {} }
         var msg = {
           'auth/popup-closed-by-user': 'Connexion annulee',
           'auth/cancelled-popup-request': 'Connexion annulee',

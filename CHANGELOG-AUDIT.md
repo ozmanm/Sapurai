@@ -1,7 +1,15 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-05-18 (198 taches)
+> Derniere mise a jour : 2026-05-18 (199 taches)
+
+---
+
+## FAIT — Sprint 46 (3/3) : Lint cleanup Phase 1 (unused-vars + console)
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 199 | **Phase 1 lint cleanup + bug Sprint46Toast** | `eslint.config.js`, `src/App.tsx`, 26 fichiers (unused-vars/imports/catch params + console.log/warn) | (1) **Config eslint** : ajout `caughtErrorsIgnorePattern: '^_'` sur les 2 blocs no-unused-vars (JS + TS) - les catch params prefixes `_` etaient signales malgre la convention. -19 warnings instantanes sans toucher au code. (2) **Bug Sprint 46 decouvert** : `Sprint46Toast` etait importe dans `App.tsx` mais jamais rendu → le toast first-time-view annonce dans tache #197 ne s'affichait jamais en realite. Ajout de `<Sprint46Toast />` juste avant la fermeture du shell racine. (3) **Unused-vars/imports morts retires** : `Sprint46Toast` import devenu live, `amounts`/`ri`/`ci`/`existingTcNums` (ImportExcel), `stepStateColor`/`e`→`_e` (TrackingPage), `expect` test rules, `getDosStatus` test coherence, `nowMs` (TcTimeline), `FieldError`/`vErr` (NDepForm, mais setter conserve via tuple destructure), `today` (NDosForm), 4 vars (Sidebar : showTeam/role/theme/toggleTheme), `urgences`/`alertes` (AppModals), `expandedDos`/`setExpandedDos` (Caut), `pdfClient`/`exportFinancierClient`/`companyName` (Dash), `totalMembers` (AdminPanel), `useState` (AgentView), `billingLines` + dead function `billingInfo` (SuperAdmin) [voir note ci-dessous], `mkTcWithDpw` (dpworld.test), `nf` (useAppLogic.test), `canTcTransition` (useConteneurActions), 3 fonctions (cma : normalizeContainerStatus, isoToType, ISO_TO_TYPE constante, isLoaded inner), `pw` (pdf.ts pdfClient). Renommage `e`→`_e` sur ~10 catch (Login x4 `e2`, ScanBL, useAnalytics x2, useData x6, AdminPanel, TrackingPage x2). (4) **console.warn/error legitimes** : eslint-disable-next-line motive sur 4 sites isoles (AdminPanel detach member, fileStore Storage fallback x2, firebase FCM init, useFCM token registration). Pour useData.ts (17 console legitimes : listener errors, dual-write debug, FCM, tracking sync, save error), disable file-level avec commentaire explicite : "Si un log debug est ajoute par erreur, le retirer (pas le justifier)". (5) **console.log debug retires** : 2 logs Sprint 33 dans ScanBL.tsx (raw model response + OCR text) — Sprint 33 est stabilise depuis longtemps. **Resultats** : 780 → 684 warnings (-96, soit -12%). Build 14.80s, 387/387 tests + 21 rules skipped (emulateur off), lint 0 erreur. Note dette : `billingInfo` dans SuperAdmin.tsx etait code mort (feature billing pour super-admin jamais cablee dans le rendu) — retire ici, a re-cabler plus tard si feature voulue (Sprint 36/37 reprise possible). **Effet metier** : (a) le toast Sprint 46 s'affiche maintenant aux utilisateurs au premier login post-deploy comme prevu dans tache #197, (b) bruit lint divise par 8% facilitant le diagnostic des warnings restants (645 `any` Phase 2a/2b a venir). |
 
 ---
 

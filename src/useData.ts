@@ -4,6 +4,12 @@
 // /companies/{companyId}/members/{uid} -> { email, role, name, joinedAt }
 // /companies/{companyId}/invites/{code} -> { role, createdBy, expiresAt }
 // /users/{uid} -> { companyId, role, email }
+//
+// Sprint 46 lint cleanup : ce fichier centralise tous les listeners Firestore + le save() avec dual-write.
+// Les `console.warn`/`console.error` sont volontaires : observabilite sur erreurs listener, save, FCM,
+// tracking sync, dualwrite. Disable file-level pour eviter 17 lignes de bruit. Si un log debug est
+// ajoute par erreur, le retirer (pas le justifier).
+/* eslint-disable no-console */
 
 import { useState, useEffect } from 'react';
 import { doc, getDoc, getDocs, setDoc, onSnapshot, collection, deleteDoc, addDoc, updateDoc, query, where } from 'firebase/firestore';
@@ -41,7 +47,7 @@ export default function useData(uid: string, email: string) {
       } else {
         // 1. Check sessionStorage: pending join after account creation in Login.jsx (invite flow)
         var pendingJoin = null;
-        try { pendingJoin = JSON.parse(sessionStorage.getItem('lt_pending_join') || 'null'); } catch (e) {}
+        try { pendingJoin = JSON.parse(sessionStorage.getItem('lt_pending_join') || 'null'); } catch (_e) {}
         if (pendingJoin && pendingJoin.code && pendingJoin.name) {
           sessionStorage.removeItem('lt_pending_join');
           joinWithCode(pendingJoin.code, pendingJoin.name).catch(function (e) {
@@ -55,7 +61,7 @@ export default function useData(uid: string, email: string) {
         }
         // 2. Legacy fallback: localStorage for existing anonymous sessions
         var saved = null;
-        try { saved = JSON.parse(localStorage.getItem('lt_session') || 'null'); } catch (e) {}
+        try { saved = JSON.parse(localStorage.getItem('lt_session') || 'null'); } catch (_e) {}
         if (saved && saved.companyId) {
           setDoc(doc(db, 'companies', saved.companyId, 'members', uid), {
             email: email || '',
@@ -95,7 +101,7 @@ export default function useData(uid: string, email: string) {
               cfg: Object.assign({}, compData.cfg || {}, { geminiKey: globalSnap.data().geminiKey })
             });
           }
-        } catch (e) {}
+        } catch (_e) {}
       }
       setData(compData);
       setLoading(false);
@@ -512,8 +518,8 @@ export default function useData(uid: string, email: string) {
           existingData = { dos: old.dos || [], tcs: old.tcs || [], chs: old.chs || [], dep: old.dep || [], logs: old.logs || [], cfg: old.cfg || { fp: 10, ft: 23, fm: 20 } };
         }
       }
-    } catch (e) { }
-    
+    } catch (_e) { }
+
     // 3. Create company doc
     await setDoc(doc(db, 'companies', companyId), Object.assign({}, existingData, { name: companyName }));
     
@@ -532,7 +538,7 @@ export default function useData(uid: string, email: string) {
         role: 'admin',
         name: userName
       }));
-    } catch (e) {}
+    } catch (_e) {}
   }
 
   // Join company with invite code
@@ -627,7 +633,7 @@ export default function useData(uid: string, email: string) {
         role: inv.role || 'viewer',
         name: userName
       }));
-    } catch (e) {}
+    } catch (_e) {}
   }
 
   // Generate invite code (admin only)

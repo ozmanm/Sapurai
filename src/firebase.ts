@@ -51,6 +51,7 @@ export async function getMessagingSafe(): Promise<Messaging | null> {
     messagingInstance = getMessaging(app);
     return messagingInstance;
   } catch (e) {
+    // eslint-disable-next-line no-console -- diagnostic init FCM (echec silencieux sinon, signale via warn)
     console.warn('[firebase] getMessaging not supported:', e);
     return null;
   }

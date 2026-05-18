@@ -52,14 +52,6 @@ function useIsNarrow(): boolean {
 var STEPS = ["PORT", "ASSIGNE", "DISPATCHE", "TRANSIT", "BAMAKO", "RETURNED"];
 var STEP_LABELS: Record<string, string> = { PORT: "Au Port", ASSIGNE: "Chauffeur assigné", DISPATCHE: "Chargé", TRANSIT: "En Transit", BAMAKO: "Bamako", RETURNED: "Retourné", KATI: "En Transit" };  // KATI legacy fallback
 var STEP_LETTERS: Record<string, string> = { PORT: "P", ASSIGNE: "A", DISPATCHE: "C", TRANSIT: "T", BAMAKO: "B", RETURNED: "R", KATI: "T" };
-// Sprint 28 polish : 3 etats semantiques (la position dans le stepper raconte la progression,
-// la couleur l'affirme). Plus de palette arc-en-ciel inventee hors-systeme.
-function stepStateColor(done: boolean, current: boolean): string {
-  if (current) return 'var(--text-primary)';
-  if (done) return 'var(--success)';
-  return 'var(--text-muted)';
-}
-
 interface Tc {
   n?: string;
   ty?: string;
@@ -335,7 +327,7 @@ function RatingWidget(p: RatingWidgetProps) {
       try { localStorage.setItem(STORAGE_KEY, "1"); } catch (_e) {}
       setDone(true);
       p.onRated();
-    } catch (e: any) {
+    } catch (_e) {
       setSubmitting(false);
       setErr("Erreur d'enregistrement. Verifiez votre connexion et reessayez.");
     }
@@ -721,5 +713,5 @@ function formatDateTime(iso: string): string {
   try {
     var d = new Date(iso);
     return d.toLocaleDateString("fr-FR") + " \u00E0 " + d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-  } catch (e) { return iso; }
+  } catch (_e) { return iso; }
 }

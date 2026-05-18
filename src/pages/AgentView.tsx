@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { SL } from '../constants/statuts.js';
 import { fd, fm } from '../utils/format.js';
 import { textColorFor } from '../utils/contrast.js';

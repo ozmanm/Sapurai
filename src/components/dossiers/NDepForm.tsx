@@ -6,7 +6,7 @@ import { mid } from '../../utils/id.js';
 import { fm } from '../../utils/format.js';
 import { fileStore } from '../../fileStore.js';
 import Btn from '../ui/Btn.tsx';
-import { validateAll, FieldError } from '../../utils/validate.js';
+import { validateAll } from '../../utils/validate.js';
 
 interface NDepFormProps { init?: any; did?: string; dos: any[]; companyId: string; nf: (m: string, t?: string) => void; onClose: () => void; onSave: (data: any) => void; }
 type FormErrors = Record<string, string>;
@@ -26,7 +26,8 @@ function NDepForm(p: NDepFormProps) {
   var [uploading, setUploading] = useState(false);
   var [fileInfo, setFileInfo] = useState<FileInfo | null>(null);
   var [fileId, setFileId] = useState<string | null>(null);
-  var [vErr, setVErr] = useState<FormErrors>({});
+  // _vErr conserve pour compat (setVErr utilise par validateAll), getter inutilise actuellement
+  var [, setVErr] = useState<FormErrors>({});
 
   function handleFile(e: ChangeEvent<HTMLInputElement>) {
     var file = e.target.files && e.target.files[0];

@@ -1,6 +1,5 @@
 import { fm } from '../utils/format.js';
-import { pdfBilan, pdfClient } from '../utils/pdf.js';
-import { exportFinancierClient } from '../utils/export.js';
+import { pdfBilan } from '../utils/pdf.js';
 import { ratingStats, dossiersWithProblems, RATING_REASON_LABELS } from '../utils/rating.js';
 import { pendingInvoices, pendingInvoicesStats, groupPendingByDossier } from '../utils/pendingInvoices';
 import { getCategorieMeta } from '../utils/stub';
@@ -27,7 +26,6 @@ function Dash(p: DashProps) {
   var canEdit = p.canEdit;
   var setMl = p.setMl;
   var setVw = p.setVw;
-  var companyName = p.companyName || "SAPURAI";
 
   if (dos.length === 0) {
     return (

@@ -15,7 +15,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { act } from '@testing-library/react';
-import { setupScenario, getTcStatus, getDosStatus, daysAgo } from './helpers';
+import { setupScenario, getTcStatus, daysAgo } from './helpers';
 import { canDispatchTc, canAdvanceTc, deriveDossierStatus, reconcileDossierState } from '../../domain/invariants';
 
 function daysFromToday(n: number): string {

@@ -367,7 +367,6 @@ export function pdfBilan(data: any): void {
 export function pdfClient(clientName: string, dos: any[], tcs: any[], dep: any[], companyName?: string): void {
   companyName = companyName || "SAPURAI";
   var doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  var pw = doc.internal.pageSize.getWidth();
   var y = pdfHeader(doc, companyName, "BILAN CLIENT");
 
   var clientDos = (dos || []).filter(function (d) { return (d.cl || "") === clientName && d.st !== "ARCHIVE"; });

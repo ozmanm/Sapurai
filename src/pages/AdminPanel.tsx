@@ -35,7 +35,7 @@ export default function AdminPanel({ user, logout }: AdminPanelProps) {
     try {
       var globalSnap = await getDoc(doc(db, 'config', 'global'));
       if (globalSnap.exists()) setGeminiKey(globalSnap.data().geminiKey || '');
-    } catch (e) {}
+    } catch (_e) {}
     setLoading(false);
   }
 
@@ -74,6 +74,7 @@ export default function AdminPanel({ user, logout }: AdminPanelProps) {
       var detachPromises = [];
       membersSnap.forEach(function (m) {
         detachPromises.push(
+          // eslint-disable-next-line no-console -- diagnostic admin pour detachement membre orphelin (rare, action manuelle)
           updateDoc(doc(db, 'users', m.id), { companyId: null }).catch(function (err) { console.error('Detach member ' + m.id + ':', err); })
         );
       });
@@ -113,7 +114,6 @@ export default function AdminPanel({ user, logout }: AdminPanelProps) {
 
   var activeCount = companies.filter(function (c) { return c.status !== 'blocked'; }).length;
   var blockedCount = companies.filter(function (c) { return c.status === 'blocked'; }).length;
-  var totalMembers = Object.values(members).reduce(function (sum, list) { return sum + list.length; }, 0);
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-secondary)', fontFamily: 'var(--font-sans)' }}>

@@ -14,18 +14,6 @@ function mkTc(id: string, n: string, st: string = 'ATTENDU'): any {
   return { id: id, did: 'd1', n: n, ty: '40HC', po: 0, st: st };
 }
 
-function mkTcWithDpw(id: string, n: string, st: string, overrides: any = {}) {
-  return Object.assign(mkTc(id, n, st), {
-    dpwAta: undefined,
-    dpwDischarge: undefined,
-    dpwTimeIn: undefined,
-    dpwTimeOut: undefined,
-    dpwVisitState: undefined,
-    dpwSyncedAt: undefined,
-    dpwConflict: undefined,
-  }, overrides);
-}
-
 // ===== mapTcDPWorld (core par TC) =====
 
 describe('mapTcDPWorld', function () {

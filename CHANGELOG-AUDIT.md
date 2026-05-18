@@ -1,7 +1,7 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-05-17 (197 taches)
+> Derniere mise a jour : 2026-05-18 (198 taches)
 
 ---
 
@@ -15,7 +15,8 @@
 | 195 | **Timeline TC + Tracking public** | `src/components/conteneurs/TcTimeline.tsx`, `src/TrackingPage.tsx` | TcTimeline : 7 etapes au lieu de 7 (meme nombre, mais ASSIGNE remplace KATI). buildSteps utilise PL.indexOf + fallback KATI -> TRANSIT pour rendu retrocompatible des anciens TC. TrackingPage : `STEPS = [PORT, ASSIGNE, DISPATCHE, TRANSIT, BAMAKO, RETURNED]`. Label ASSIGNE = "Chauffeur assigné" cote client public, DISPATCHE = "Chargé". KATI conserve dans STEP_LABELS avec fallback "En Transit" pour ne pas casser l'affichage des TC pas encore migres. |
 | 196 | **Tests E2E Sprint 46** | `src/__tests__/scenarios/state-machine-blocks.test.ts` | Remplace l'ancien test "BAMAKO -> KATI" par 3 nouveaux tests : (a) "PORT -> ASSIGNE via assignTc", (b) "ASSIGNE -> DISPATCHE via loadTc avec dsp posee", (c) "KATI refuse comme cible (retire Sprint 46)". 387/387 tests app OK (380 + 7 nouveaux). |
 | 197 | **Toast first-time-view utilisateur** | `src/components/shared/Sprint46Toast.tsx` (CREE), `src/App.tsx` | Composant Sprint46Toast qui s'affiche 1x par utilisateur lors du premier login post-deploy. Persistance via `localStorage.sapurai_sprint46_seen='1'`. Message : "Nouveau cycle de vie : un TC passe maintenant par Camion assigne avant Chargement / Sortie. L'etape Kati a ete retiree du suivi." Pas de Firestore, juste cote client. |
-| | **Statut Sprint 46 (1/2)** | — | **Commit 7a62473** : fondations (types + machine d'etat + invariants + hooks). **Commit 2/2 a venir** : UI + tests + toast + doc. **Migration prod KATI -> TRANSIT** differee : script `migrate-kati-to-transit.mjs` a creer puis dry-run + snapshot Firestore avant `--apply`. Tant que la migration n'est pas executee, les eventuels TC en KATI restent dans cet etat (le code les tolere comme statut legacy). |
+| 198 | **Migration KATI prod = NO-OP (base deja saine)** | snapshot-c_mocpodna9egt-2026-05-18.json | Snapshot prod execute (424 KB - 56 dos, 98 tcs, 51 chs, 235 dep, 308 logs, 0 dual_write_errors). Dry-run `migrate-kati-to-transit.mjs` sur 9 companies : **0 TC en statut KATI detecte**. L'etape KATI n'a jamais ete utilisee en pratique sur la prod (ou avait deja ete contournee), ce qui confirme retrospectivement la pertinence de son retrait du cycle de vie. Aucune ecriture necessaire. Sprint 46 est complet (code + tests + script disponible pour usage futur si jamais des TC KATI reapparaissent via import legacy). |
+| | **Statut Sprint 46 COMPLET** | — | **3 commits** : `7a62473` (1/2 fondations) + `1daf870` (2/2 UI/tests/tracking/toast) + `8323f5c` (script migration). Migration prod = no-op. 387/387 tests app + 21/21 tests rules. Pret au deploy front (rollback git possible). |
 
 ---
 

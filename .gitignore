@@ -82,3 +82,6 @@ landing.html
 
 # OS/browser artifacts
 *.exe
+
+# Sprint 45 - Snapshots locaux des companies (filet de rollback, contiennent prod data)
+snapshot-*.json

@@ -79,8 +79,25 @@ export async function mirrorToSubcollections(
     try {
       // Step 1 : ecrire / mettre a jour tous les items de newData
       var collRef = collection(db, 'companies', companyId, spec.path);
-      for (var off = 0; off < arr.length; off += BATCH_CHUNK) {
-        var slice = arr.slice(off, off + BATCH_CHUNK);
+
+      // Sprint 45 fix : pour les logs (append-only via rules), ne re-mirror
+      // que les items NOUVEAUX (absents de prevArr). Sinon `batch.set()` sur
+      // un log existant declenche rule `update: super-admin only` qui rejette
+      // tout le batch (perte des nouveaux logs du meme commit).
+      var workingArr = arr;
+      if (spec.key === 'logs' && prevArr.length > 0) {
+        var prevIds: Record<string, true> = {};
+        prevArr.forEach(function (item: Record<string, unknown>) {
+          if (item && item[spec.idField]) prevIds[String(item[spec.idField])] = true;
+        });
+        workingArr = arr.filter(function (item) {
+          var id = item && item[spec.idField];
+          return !!id && !prevIds[String(id)];
+        });
+      }
+
+      for (var off = 0; off < workingArr.length; off += BATCH_CHUNK) {
+        var slice = workingArr.slice(off, off + BATCH_CHUNK);
         var batch = writeBatch(db);
         slice.forEach(function (item: Record<string, unknown>) {
           var id = item && item[spec.idField];

@@ -50,21 +50,39 @@ async function backfillOneCompany(db, companyId, data) {
 
     var collRef = db.collection('companies').doc(companyId).collection(spec.path);
 
+    // Sprint 45 fix : pour logs (append-only via rules), filtrer les IDs deja
+    // existants avant de batch.set() - les rules logs/update sont super-admin only,
+    // donc tenter de re-set un log existant fait fail tout le batch.
+    var existingIds = new Set();
+    if (spec.key === 'logs') {
+      var existingSnap = await collRef.select().get();
+      existingSnap.forEach(function (d) { existingIds.add(d.id); });
+    }
+
     for (var off = 0; off < arr.length; off += BATCH_CHUNK) {
       var slice = arr.slice(off, off + BATCH_CHUNK);
+      // Filtrer les logs deja existants
+      var filtered = slice.filter(function (item) {
+        if (spec.key !== 'logs') return true;
+        var id = item && item.id;
+        return id && !existingIds.has(String(id));
+      });
       if (DRY) {
-        stats.written += slice.length;
+        stats.written += filtered.length;
+        stats.skipped += slice.length - filtered.length;
         continue;
       }
+      if (filtered.length === 0) continue;
       var batch = db.batch();
-      for (var j = 0; j < slice.length; j++) {
-        var item = slice[j];
+      for (var j = 0; j < filtered.length; j++) {
+        var item = filtered[j];
         var id = item && item.id;
         if (!id) { stats.skipped++; continue; }
         batch.set(collRef.doc(String(id)), item);
       }
       await batch.commit();
-      stats.written += slice.length;
+      stats.written += filtered.length;
+      stats.skipped += slice.length - filtered.length;
     }
   }
 

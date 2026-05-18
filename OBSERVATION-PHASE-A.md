@@ -40,7 +40,7 @@ Et vérifier la collection `dual_write_errors` dans la console Firebase
 
 | Date | Diff exit code | onlyMono | onlySub | fieldDiffs | dual_write_errors nouveaux | Note |
 |------|---|---|---|---|---|------|
-| 2026-05-17 | 0 (post-backfill) | 0 | 0 | 0 | 0 | Backfill OK |
+| 2026-05-17 | 0 (post-prune+backfill) | 0 | 0 | 0 | 0 | Backfill OK + hotfix orphans (cf. Incidents) |
 | 2026-05-18 | | | | | | |
 | 2026-05-19 | | | | | | |
 | 2026-05-20 | | | | | | |
@@ -48,6 +48,36 @@ Et vérifier la collection `dual_write_errors` dans la console Firebase
 | 2026-05-22 | | | | | | |
 | 2026-05-23 | | | | | | |
 | 2026-05-24 | | | | | | Fin attendue |
+
+## Incidents résolus
+
+### 2026-05-17 — Drift initial post-backfill (resolu)
+
+Premier run du workflow CI a remonte un drift inattendu :
+- **TCs** : sub=158 vs mono=98 → 60 sub-docs orphelins (IDs `xmoh*` Sprint 43 Phase A initial)
+- **DEP** : sub=380 vs mono=235 → 145 sub-docs orphelins
+- **LOGS** : mono=308 vs sub=247 → 61 nouveaux logs non miroirés
+
+**Cause racine** :
+1. Lors des premiers tests dual-write (Sprint 43), des sub-docs ont ete crees avec
+   des IDs Firestore auto-gen au lieu des IDs `mid()` du mono-array. Le backfill
+   `setDoc` ecrase mais ne supprime pas → orphelins persistants.
+2. La rule `logs/update: super-admin only` (immutabilite append-only) rejetait le
+   `batch.set()` du mirror sur les logs deja existants → batch entier rejete →
+   nouveaux logs aussi perdus.
+
+**Procedure de remediation** (commit `2d70b78`) :
+1. Nouveau script `scripts/prune-sub-orphans.mjs` : supprime les sub-docs sans
+   correspondance mono. Lance avec `--apply` → 205 orphelins supprimes.
+2. Fix `src/services/dualwrite.ts` : pour logs (append-only), ne re-mirror que
+   les items absents de `prevArr` (les anciens logs ne sont jamais re-set).
+3. Fix `scripts/backfill-subcollections.mjs` : pour logs, `select().get()` les
+   IDs existants au depart, filter `slice` avant batch set.
+4. Re-execute prune + backfill → zero drift confirme.
+
+**Validation** : workflow CI run #3 (`2d70b78`) = success, 26s, zero drift.
+
+---
 
 ## Que faire si drift détecté
 

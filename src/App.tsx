@@ -18,6 +18,7 @@ const Chs   = lazy(() => import('./pages/Chs.tsx'));
 const Stats = lazy(() => import('./pages/Stats.tsx'));
 const Caut  = lazy(() => import('./pages/Caut.tsx'));
 const OnboardingModal = lazy(() => import('./components/shared/OnboardingModal.tsx'));
+import Sprint46Toast from './components/shared/Sprint46Toast.tsx';
 
 var LOADING = <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>{"Chargement..."}</div>;
 

@@ -7,6 +7,7 @@ import ScanBL from '../../ScanBL.tsx';
 import { isBetaCompany } from '../../constants/featureFlags';
 import NChForm from '../chauffeurs/NChForm.tsx';
 import DispForm from '../conteneurs/DispForm.tsx';
+import LoadForm from '../conteneurs/LoadForm.tsx';
 import TrancheForm from '../conteneurs/TrancheForm.tsx';
 import NDepForm from '../dossiers/NDepForm.tsx';
 import JdocView from '../dossiers/JdocView.tsx';
@@ -81,6 +82,8 @@ function AppModals(p: AppModalsProps) {
   var addDep = p.addDep;
   var editDep = p.editDep;
   var dispatch = p.dispatch;
+  var assignTc = p.assignTc;
+  var loadTc = p.loadTc;
   var advance = p.advance;
   var deleteDos = p.deleteDos;
   var closeDos = p.closeDos;
@@ -110,7 +113,8 @@ function AppModals(p: AppModalsProps) {
       {ml && ml.t === "edos" ? <Overlay close={function () { setMl(ml.prev || null); }} title="Modifier dossier" w={820}><NDosForm allDos={dos} members={(p.teamProps || {}).members || []} init={dos.find(function (d) { return d.id === ml.did; })} initTcs={tcs.filter(function (c) { return c.did === ml.did && (c.st === "PORT" || c.st === "ATTENDU"); })} onSave={function (f, tcl) { var prev = ml.prev; editDos(ml.did, f, tcl); if (prev) setTimeout(function () { setMl(prev); }, 0); }} onClose={function () { setMl(ml.prev || null); }} nf={nf} /></Overlay> : null}
       {ml && ml.t === "nch" ? <Overlay close={function () { setMl(null); }} title="Nouveau chauffeur" w={600}><NChForm onSave={addCh} onClose={function () { setMl(null); }} nf={nf} /></Overlay> : null}
       {ml && ml.t === "ech" ? <Overlay close={function () { setMl(null); }} title="Modifier chauffeur" w={600}><NChForm init={chs.find(function (c) { return c.id === ml.cid; })} onSave={function (d) { editCh(ml.cid, d); }} onClose={function () { setMl(null); }} nf={nf} /></Overlay> : null}
-      {ml && ml.t === "disp" ? <Overlay close={function () { setMl(null); }} title="Dispatch" w={600}><DispForm tc={tcs.find(function (c) { return c.id === ml.tid; })} chs={chs} tcs={tcs} onDisp={dispatch} onClose={function () { setMl(null); }} goAddCh={function () { setMl({ t: "nch" }); }} nf={nf} /></Overlay> : null}
+      {ml && ml.t === "disp" ? <Overlay close={function () { setMl(null); }} title="Dispatch" w={600}><DispForm tc={tcs.find(function (c) { return c.id === ml.tid; })} chs={chs} tcs={tcs} onDisp={dispatch} onAssign={assignTc} onClose={function () { setMl(null); }} goAddCh={function () { setMl({ t: "nch" }); }} nf={nf} /></Overlay> : null}
+      {ml && ml.t === "load" ? <Overlay close={function () { setMl(null); }} title="Confirmer chargement" w={520}><LoadForm tc={tcs.find(function (c) { return c.id === ml.tid; })} onLoad={loadTc} onClose={function () { setMl(null); }} nf={nf} /></Overlay> : null}
       {ml && ml.t === "tcp" ? <Overlay close={function () { setMl(null); }} title="Versement transport" w={500}><TrancheForm tc={tcs.find(function (c) { return c.id === ml.tid; })} tranches={dep.filter(function (f) { return f.tcid === ml.tid && f.tp === "TRANSPORT"; })} onSave={function (ph, mt, note) { addTcPayment(ml.tid, ph, mt, note); }} onClose={function () { setMl(null); }} nf={nf} /></Overlay> : null}
       {ml && ml.t === "ndep" ? <Overlay close={function () { setMl(null); }} title="Nouvelle dépense" w={600}><NDepForm dos={dos} did={ml.did || ""} onSave={addDep} onClose={function () { setMl(null); }} nf={nf} companyId={companyId} /></Overlay> : null}
       {ml && ml.t === "edep" ? <Overlay close={function () { setMl(null); }} title="Modifier dépense" w={600}><NDepForm dos={dos} init={dep.find(function (f) { return f.id === ml.fid; })} did={(dep.find(function (f) { return f.id === ml.fid; }) || {}).did || ""} onSave={function (d) { editDep(ml.fid, d); }} onClose={function () { setMl(null); }} nf={nf} companyId={companyId} /></Overlay> : null}

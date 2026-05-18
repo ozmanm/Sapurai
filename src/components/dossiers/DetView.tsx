@@ -358,19 +358,25 @@ function DetView(p: DetViewProps) {
       <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>{"Conteneurs (" + String(mt.length) + ")"}</div>
       {mt.map(function (tc) {
         var nx = PL.slice(PL.indexOf(tc.st) + 1);
+        // Sprint 46 : PORT -> disp modal (assigner|chargement immediat),
+        //             ASSIGNE -> load modal (confirmer chargement)
         var canDisp = tc.st === "PORT" && (d.pn || d.as2 === "OBTENU");
-        var noGate = tc.st === "PORT" && !d.pn && d.as2 !== "OBTENU";
+        var canLoad = tc.st === "ASSIGNE" && (d.pn || d.as2 === "OBTENU");
+        var noGate = (tc.st === "PORT" || tc.st === "ASSIGNE") && !d.pn && d.as2 !== "OBTENU";
         var stIdx = PL.indexOf(tc.st);
+        // Sprint 46 : ASSIGNE entre PORT et DISPATCHE, KATI retire (TC legacy migres).
+        // On utilise PL.indexOf() pour calculer done dynamiquement -> insensible aux
+        // futurs reorderings de PL.
         var stps = [
-          { k: "ATTENDU", lbl: "Attendu", dt: null, done: stIdx >= 0 },
-          { k: "PORT", lbl: "Port", dt: d.da || null, done: stIdx >= 1 },
-          { k: "DISPATCHE", lbl: "Chargement", dt: tc.dsp || null, done: stIdx >= 2 },
-          { k: "TRANSIT", lbl: "Sortie DK", dt: tc.dtk || null, done: stIdx >= 3 },
-          { k: "KATI", lbl: "Kati", dt: tc.dak || null, done: stIdx >= 4 },
-          { k: "BAMAKO", lbl: "Bamako", dt: tc.dab || null, done: stIdx >= 5 },
-          { k: "RETURNED", lbl: "Retourne", dt: tc.dr || null, done: stIdx >= 6 }
+          { k: "ATTENDU", lbl: "Attendu", dt: null, done: stIdx >= PL.indexOf("ATTENDU") },
+          { k: "PORT", lbl: "Port", dt: d.da || null, done: stIdx >= PL.indexOf("PORT") },
+          { k: "ASSIGNE", lbl: "Camion assigne", dt: tc.dassign || null, done: stIdx >= PL.indexOf("ASSIGNE") },
+          { k: "DISPATCHE", lbl: "Charge / Sortie", dt: tc.dsp || null, done: stIdx >= PL.indexOf("DISPATCHE") },
+          { k: "TRANSIT", lbl: "En transit", dt: tc.dtk || null, done: stIdx >= PL.indexOf("TRANSIT") },
+          { k: "BAMAKO", lbl: "Bamako", dt: tc.dab || null, done: stIdx >= PL.indexOf("BAMAKO") },
+          { k: "RETURNED", lbl: "Retourne", dt: tc.dr || null, done: stIdx >= PL.indexOf("RETURNED") }
         ];
-        return <div key={tc.id} style={{ background: "var(--bg-tertiary)", borderRadius: 8, padding: 10, marginBottom: 6, border: "1px solid var(--border)" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 4 }}><div><span style={{ fontFamily: "var(--font-mono)", fontWeight: 700 }}>{tc.n || "?"}</span><span style={{ color: "var(--text-secondary)", fontSize: 12, marginLeft: 6 }}>{(tc.ty || "") + (tc.po ? " " + tc.po + "kg" : "")}</span>{tc.ch ? <span style={{ color: "var(--text-tertiary)", fontSize: 12, marginLeft: 6 }}>{"-> " + tc.ch}</span> : null}</div><div style={{ display: "flex", gap: 4, alignItems: "center" }}><span style={{ background: SB[tc.st] || "var(--bg-secondary)", color: SC[tc.st] || "var(--text-secondary)", padding: "3px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700 }}>{SL[tc.st] || tc.st}</span>{canDisp && ce ? <button onClick={function () { p.setMl({ t: "disp", tid: tc.id }); }} style={{ background: "var(--success)", color: "white", border: "none", borderRadius: 8, padding: "5px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{"Dispatch"}</button> : null}{noGate ? <span style={{ fontSize: 10, color: "var(--danger)", fontWeight: 600 }}>{"BAE/Pregate requis"}</span> : null}{tc.st === "ATTENDU" && ce ? <button onClick={function () { p.setAdvPending({ tid: tc.id, ns: "PORT", dt: today() }); }} style={{ background: "var(--btn-primary-bg)", color: "white", border: "none", borderRadius: 8, padding: "5px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{"Arrive au port"}</button> : null}{tc.st !== "PORT" && tc.st !== "ATTENDU" && nx.length > 0 && ce ? <select value="" onChange={function (e) { if (e.target.value) p.setAdvPending({ tid: tc.id, ns: e.target.value, dt: today() }); }} style={{ padding: "3px 5px", borderRadius: 6, border: "1px solid var(--border)", fontSize: 11, cursor: "pointer" }}><option value="">{"-->"}</option>{nx.map(function (s) { return <option key={s} value={s}>{SL[s] || s}</option>; })}</select> : null}</div></div>
+        return <div key={tc.id} style={{ background: "var(--bg-tertiary)", borderRadius: 8, padding: 10, marginBottom: 6, border: "1px solid var(--border)" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 4 }}><div><span style={{ fontFamily: "var(--font-mono)", fontWeight: 700 }}>{tc.n || "?"}</span><span style={{ color: "var(--text-secondary)", fontSize: 12, marginLeft: 6 }}>{(tc.ty || "") + (tc.po ? " " + tc.po + "kg" : "")}</span>{tc.ch ? <span style={{ color: "var(--text-tertiary)", fontSize: 12, marginLeft: 6 }}>{"-> " + tc.ch}</span> : null}</div><div style={{ display: "flex", gap: 4, alignItems: "center" }}><span style={{ background: SB[tc.st] || "var(--bg-secondary)", color: SC[tc.st] || "var(--text-secondary)", padding: "3px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700 }}>{SL[tc.st] || tc.st}</span>{canDisp && ce ? <button onClick={function () { p.setMl({ t: "disp", tid: tc.id }); }} style={{ background: "var(--success)", color: "white", border: "none", borderRadius: 8, padding: "5px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{"Dispatch"}</button> : null}{canLoad && ce ? <button onClick={function () { p.setMl({ t: "load", tid: tc.id }); }} style={{ background: "var(--success)", color: "white", border: "none", borderRadius: 8, padding: "5px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{"Confirmer chargement"}</button> : null}{noGate ? <span style={{ fontSize: 10, color: "var(--danger)", fontWeight: 600 }}>{"BAE/Pregate requis"}</span> : null}{tc.st === "ATTENDU" && ce ? <button onClick={function () { p.setAdvPending({ tid: tc.id, ns: "PORT", dt: today() }); }} style={{ background: "var(--btn-primary-bg)", color: "white", border: "none", borderRadius: 8, padding: "5px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{"Arrive au port"}</button> : null}{tc.st !== "PORT" && tc.st !== "ATTENDU" && nx.length > 0 && ce ? <select value="" onChange={function (e) { if (e.target.value) p.setAdvPending({ tid: tc.id, ns: e.target.value, dt: today() }); }} style={{ padding: "3px 5px", borderRadius: 6, border: "1px solid var(--border)", fontSize: 11, cursor: "pointer" }}><option value="">{"-->"}</option>{nx.map(function (s) { return <option key={s} value={s}>{SL[s] || s}</option>; })}</select> : null}</div></div>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 0, marginTop: 8, overflowX: "auto" }}>
             {stps.map(function (s, i) {
               var isCur = s.k === tc.st;
@@ -380,10 +386,24 @@ function DetView(p: DetViewProps) {
               //  - DISPATCHE depuis PORT : ouvre la modale dispatch (chauffeur requis).
               //  - Autres etapes apres DISPATCHE : advance direct.
               var isNext = ce && i === stIdx + 1 && !s.done && !isCur;
-              var canClick = isNext && (s.k !== "DISPATCHE" || canDisp);  // dispatch needs BAE/Pregate
+              // Sprint 46 : clic timeline -> action contextuelle
+              //  - PORT -> ASSIGNE : ouvre la modal disp (qui permet aussi chargement immediat)
+              //  - ASSIGNE -> DISPATCHE : ouvre la modal load (confirmer chargement)
+              //  - autres : advance direct
+              var canClick = isNext && (
+                (s.k === "ASSIGNE" && canDisp) ||
+                (s.k === "DISPATCHE" && (canDisp || canLoad)) ||
+                (s.k !== "ASSIGNE" && s.k !== "DISPATCHE")
+              );
               var onStepClick = canClick ? function () {
-                if (s.k === "DISPATCHE") {
-                  p.setMl({ t: "disp", tid: tc.id });
+                if (s.k === "ASSIGNE") {
+                  p.setMl({ t: "disp", tid: tc.id });  // form propose les 2 actions
+                } else if (s.k === "DISPATCHE") {
+                  if (tc.st === "ASSIGNE") {
+                    p.setMl({ t: "load", tid: tc.id });
+                  } else {
+                    p.setMl({ t: "disp", tid: tc.id });
+                  }
                 } else {
                   p.setAdvPending({ tid: tc.id, ns: s.k, dt: today() });
                 }

@@ -34,20 +34,24 @@ interface Step {
 }
 
 function buildSteps(tc: any): Step[] {
-  // Ordre logique : ATTENDU → PORT → DISPATCHE → TRANSIT → KATI → BAMAKO → RETURNED
-  // On agrege Kati et Bamako en "Livraison" pour rester sur 6 etapes (handoff)
-  var states = ["ATTENDU", "PORT", "DISPATCHE", "TRANSIT", "KATI", "BAMAKO", "RETURNED"];
+  // Sprint 46 - Cycle de vie : ATTENDU -> PORT -> ASSIGNE -> DISPATCHE -> TRANSIT -> BAMAKO -> RETURNED
+  // KATI retire du cycle. Les TC legacy en KATI sont migres vers TRANSIT par script,
+  // mais on garde KATI dans la map de fallback pour les affichages historiques.
+  var states = ["ATTENDU", "PORT", "ASSIGNE", "DISPATCHE", "TRANSIT", "BAMAKO", "RETURNED"];
   var orderIdx: Record<string, number> = {};
   states.forEach(function (s, i) { orderIdx[s] = i; });
+  // KATI legacy -> on l'aligne sur TRANSIT pour l'affichage
+  if (tc.st === "KATI") orderIdx["KATI"] = orderIdx["TRANSIT"];
   var curIdx = orderIdx[tc.st] !== undefined ? orderIdx[tc.st] : 0;
 
-  // Dates correspondantes sur le TC : da (annonce), dsp (dispatch), dtk (sortie DK), dak (Kati), dab (Bamako), dr (retour)
+  // Dates : da (annonce), dassign (assignation camion), dsp (chargement effectif),
+  //         dtk (sortie DK), dab (Bamako), dr (retour). dak legacy.
   var stepDefs = [
     { key: "ATTENDU", lbl: "Annoncé", date: tc.da || null },
     { key: "PORT", lbl: "Au port", date: tc.dsp ? "" : (tc.st === "PORT" ? "" : null) },
-    { key: "DISPATCHE", lbl: "Dispatché", date: tc.dsp || null },
-    { key: "TRANSIT", lbl: "En transit", date: tc.dtk || null },
-    { key: "KATI", lbl: "Kati", date: tc.dak || null },
+    { key: "ASSIGNE", lbl: "Camion assigné", date: tc.dassign || null },
+    { key: "DISPATCHE", lbl: "Chargé", date: tc.dsp || null },
+    { key: "TRANSIT", lbl: "En transit", date: tc.dtk || tc.dak || null },
     { key: "BAMAKO", lbl: "Bamako", date: tc.dab || null },
     { key: "RETURNED", lbl: "Retourné", date: tc.dr || null },
   ];

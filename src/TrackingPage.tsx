@@ -48,9 +48,10 @@ function useIsNarrow(): boolean {
 // Sprint 40 F40.6 - alignement sur les codes domaine canoniques (TC_STATUSES).
 // Avant : DISPATCH / RETOUR (incoherents avec tc.st = DISPATCHE / RETURNED).
 // Apres : DISPATCHE / RETURNED comme partout dans le code.
-var STEPS = ["PORT", "DISPATCHE", "TRANSIT", "KATI", "BAMAKO", "RETURNED"];
-var STEP_LABELS: Record<string, string> = { PORT: "Au Port", DISPATCHE: "Dispatché", TRANSIT: "En Transit", KATI: "Kati", BAMAKO: "Bamako", RETURNED: "Retourné" };
-var STEP_LETTERS: Record<string, string> = { PORT: "P", DISPATCHE: "D", TRANSIT: "T", KATI: "K", BAMAKO: "B", RETURNED: "R" };
+// Sprint 46 : ASSIGNE entre PORT et DISPATCHE, KATI retire (TC legacy migres).
+var STEPS = ["PORT", "ASSIGNE", "DISPATCHE", "TRANSIT", "BAMAKO", "RETURNED"];
+var STEP_LABELS: Record<string, string> = { PORT: "Au Port", ASSIGNE: "Chauffeur assigné", DISPATCHE: "Chargé", TRANSIT: "En Transit", BAMAKO: "Bamako", RETURNED: "Retourné", KATI: "En Transit" };  // KATI legacy fallback
+var STEP_LETTERS: Record<string, string> = { PORT: "P", ASSIGNE: "A", DISPATCHE: "C", TRANSIT: "T", BAMAKO: "B", RETURNED: "R", KATI: "T" };
 // Sprint 28 polish : 3 etats semantiques (la position dans le stepper raconte la progression,
 // la couleur l'affirme). Plus de palette arc-en-ciel inventee hors-systeme.
 function stepStateColor(done: boolean, current: boolean): string {

@@ -10,7 +10,8 @@
  * Et que les transitions valides passent normalement :
  *   - PORT -> DISPATCHE
  *   - TRANSIT -> BAMAKO (raccourci tolere)
- *   - BAMAKO -> KATI (au retour)
+ *   - PORT -> ASSIGNE (assignation camion, Sprint 46)
+ *   - ASSIGNE -> DISPATCHE (chargement effectif via loadTc)
  */
 
 import { describe, it, expect } from 'vitest';
@@ -97,17 +98,48 @@ describe('Scenario machine d etat TC', () => {
     expect(getTcStatus(s.saves, 't1')).toBe('BAMAKO');
   });
 
-  it('autorise BAMAKO -> KATI (passage retour)', () => {
+  it('Sprint 46 : autorise PORT -> ASSIGNE (assignation camion)', () => {
     var s = setupScenario({
-      dos: [{ id: 'd1', bl: 'BL1', cl: 'CL', st: 'ACTIF', td: 'IMPORT', da: daysAgo(10), as2: 'OBTENU' }],
-      tcs: [{ id: 't1', did: 'd1', n: 'TC1', ty: '40HC', st: 'BAMAKO', dsp: daysAgo(7), dab: daysAgo(1) }],
+      dos: [{ id: 'd1', bl: 'BL1', cl: 'CL', st: 'ACTIF', td: 'IMPORT', da: daysAgo(5), as2: 'OBTENU' }],
+      tcs: [{ id: 't1', did: 'd1', n: 'TC1', ty: '40HC', st: 'PORT' }],
+      chs: [{ id: 'ch1', nm: 'CHAUFFEUR TEST', cm: 'AB-111-CD', tty: ['40HC'] }],
     });
 
+    act(function () {
+      s.hook.current.assignTc('t1', { id: 'ch1', nm: 'CHAUFFEUR TEST', cm: 'AB-111-CD' }, 0, 0, daysAgo(0));
+    });
+    s.rerender();
+
+    expect(getTcStatus(s.saves, 't1')).toBe('ASSIGNE');
+  });
+
+  it('Sprint 46 : autorise ASSIGNE -> DISPATCHE via loadTc', () => {
+    var s = setupScenario({
+      dos: [{ id: 'd1', bl: 'BL1', cl: 'CL', st: 'ACTIF', td: 'IMPORT', da: daysAgo(5), as2: 'OBTENU' }],
+      tcs: [{ id: 't1', did: 'd1', n: 'TC1', ty: '40HC', st: 'ASSIGNE', ch: 'CHAUFFEUR', cm: 'AB-111-CD', dassign: daysAgo(2) }],
+    });
+
+    act(function () {
+      s.hook.current.loadTc('t1', daysAgo(0));
+    });
+    s.rerender();
+
+    expect(getTcStatus(s.saves, 't1')).toBe('DISPATCHE');
+    var tc = s.lastSave().tcs.find(function (t: any) { return t.id === 't1'; });
+    expect(tc.dsp).toBeDefined();
+  });
+
+  it('Sprint 46 : refuse KATI comme cible (retire du cycle)', () => {
+    var s = setupScenario({
+      dos: [{ id: 'd1', bl: 'BL1', cl: 'CL', st: 'ACTIF', td: 'IMPORT', da: daysAgo(10), as2: 'OBTENU' }],
+      tcs: [{ id: 't1', did: 'd1', n: 'TC1', ty: '40HC', st: 'TRANSIT', dsp: daysAgo(7) }],
+    });
+
+    var savesBefore = s.saves.length;
     act(function () {
       s.hook.current.advance('t1', 'KATI');
     });
     s.rerender();
-
-    expect(getTcStatus(s.saves, 't1')).toBe('KATI');
+    expect(s.saves.length).toBe(savesBefore);
   });
 });

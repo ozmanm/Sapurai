@@ -17,6 +17,7 @@ interface DispFormProps {
   // Nouvelle signature : 7e parametre optionnel pour creation chauffeur inline.
   // Quand newChData est defini, ch peut etre null (pas encore en DB).
   onDisp: (tid: string, ch: any, avance: number, budget: number, dspDate?: string, prixConvenu?: number, newChData?: any) => void;
+  onAssign?: (tid: string, ch: any, avance: number, budget: number, dassign?: string, prixConvenu?: number, newChData?: any) => void;
   nf: (m: string, t?: string) => void;
 }
 
@@ -120,9 +121,12 @@ function DispForm(p: DispFormProps) {
   var noCh = availChs.length === 0;
   var showNewForm = mode === "new" || noCh;
 
-  function doDispatch() {
+  /**
+   * Sprint 46 : valide les inputs et retourne les params communs.
+   * Si validation echoue, retourne null (notif deja envoyee).
+   */
+  function validateAndCollect(): { actualCh: any; newChData: any | null } | null {
     if (showNewForm) {
-      // Validation mode 'new'
       var v = validateAll({
         nm: [newNm, { required: true, maxLen: 50 }],
         cm: [newCm, { required: true, maxLen: 15 }],
@@ -134,10 +138,10 @@ function DispForm(p: DispFormProps) {
         prixConvenu: [prixConvenu, { minVal: 0, maxVal: 999999999 }],
       });
       setVErr(v.errors);
-      if (v.errors.nm) { p.nf("Nom du chauffeur requis", "error"); return; }
-      if (v.errors.cm) { p.nf("Plaque du camion requise", "error"); return; }
-      if (v.hasErrors) { p.nf(v.firstError, "error"); return; }
-      var newChData = {
+      if (v.errors.nm) { p.nf("Nom du chauffeur requis", "error"); return null; }
+      if (v.errors.cm) { p.nf("Plaque du camion requise", "error"); return null; }
+      if (v.hasErrors) { p.nf(v.firstError, "error"); return null; }
+      var ncd = {
         nm: newNm.trim().toUpperCase(),
         cm: newCm.trim().toUpperCase(),
         tl: newTl.trim(),
@@ -147,10 +151,8 @@ function DispForm(p: DispFormProps) {
         bl: false,
         blr: "",
       };
-      p.onDisp(tc.id, null, parseFloat(avance) || 0, parseFloat(budget) || 0, dspDate, parseFloat(prixConvenu) || 0, newChData);
-      return;
+      return { actualCh: null, newChData: ncd };
     }
-    // Mode 'select' : validation classique
     var vSel = validateAll({
       ci: [ci, { required: true }],
       budget: [budget, { minVal: 0, maxVal: 999999999 }],
@@ -158,9 +160,31 @@ function DispForm(p: DispFormProps) {
       prixConvenu: [prixConvenu, { minVal: 0, maxVal: 999999999 }],
     });
     setVErr(vSel.errors);
-    if (vSel.errors.ci) { p.nf("Choisir chauffeur", "error"); return; }
-    if (vSel.hasErrors) { p.nf(vSel.firstError, "error"); return; }
-    p.onDisp(tc.id, ch, parseFloat(avance) || 0, parseFloat(budget) || 0, dspDate, parseFloat(prixConvenu) || 0);
+    if (vSel.errors.ci) { p.nf("Choisir chauffeur", "error"); return null; }
+    if (vSel.hasErrors) { p.nf(vSel.firstError, "error"); return null; }
+    return { actualCh: ch, newChData: null };
+  }
+
+  /**
+   * Sprint 46 : PORT -> ASSIGNE (camion reserve, RDV pris, pas encore charge).
+   * L'avance est versee maintenant (chauffeur a besoin du cash pour la route).
+   */
+  function doAssign() {
+    var r = validateAndCollect();
+    if (!r) return;
+    if (p.onAssign) {
+      p.onAssign(tc.id, r.actualCh, parseFloat(avance) || 0, parseFloat(budget) || 0, dspDate, parseFloat(prixConvenu) || 0, r.newChData);
+    }
+  }
+
+  /**
+   * Sprint 46 : PORT -> DISPATCHE atomique (chargement immediat,
+   * camion deja sur place). Pose dassign + dsp a la meme date.
+   */
+  function doDispatch() {
+    var r = validateAndCollect();
+    if (!r) return;
+    p.onDisp(tc.id, r.actualCh, parseFloat(avance) || 0, parseFloat(budget) || 0, dspDate, parseFloat(prixConvenu) || 0, r.newChData);
   }
 
   return (
@@ -267,9 +291,16 @@ function DispForm(p: DispFormProps) {
         </div>
       ) : null}
 
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, borderTop: "1px solid var(--border)", paddingTop: 12 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, borderTop: "1px solid var(--border)", paddingTop: 12, flexWrap: "wrap" }}>
         <button onClick={p.onClose} style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 16px", fontWeight: 600, cursor: "pointer", minHeight: 44, fontSize: 14 }}>{"Annuler"}</button>
-        <button onClick={doDispatch} style={{ background: "var(--success)", color: "white", border: "none", borderRadius: 8, padding: "10px 16px", fontWeight: 600, cursor: "pointer", minHeight: 44, fontSize: 14 }}>{"Dispatcher"}</button>
+        {p.onAssign ? (
+          <button onClick={doAssign} title="Camion reserve, chargement plus tard" style={{ background: "var(--info, var(--btn-primary-bg))", color: "white", border: "none", borderRadius: 8, padding: "10px 16px", fontWeight: 600, cursor: "pointer", minHeight: 44, fontSize: 14 }}>
+            {"Assigner camion"}
+          </button>
+        ) : null}
+        <button onClick={doDispatch} title="Camion deja sur place, chargement immediat" style={{ background: "var(--success)", color: "white", border: "none", borderRadius: 8, padding: "10px 16px", fontWeight: 600, cursor: "pointer", minHeight: 44, fontSize: 14 }}>
+          {"Chargement immediat"}
+        </button>
       </div>
     </div>
   );

@@ -32,10 +32,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node 22
+      - name: Setup Node 20 LTS
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          # Node 20 LTS : firebase-admin 13.x crash en Node 22 avec
+          # 'Unexpected identifier punycode' (module built-in deprecated).
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies

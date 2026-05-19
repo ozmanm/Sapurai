@@ -15,9 +15,39 @@ export function setCMAProxy(url: string): void {
   PROXY_URL = url;
 }
 
+// --- Types "large" pour les payloads API CMA (cf. caveat Phase 2a). ---
+// Les payloads sont volontairement Record<string, unknown> & { knownFields? } pour
+// preserver les champs heterogenes au cas ou l'editeur ajoute des champs : on ne les
+// perd pas a la serialisation et TypeScript ne masque pas leur presence aux extractors.
+type CmaRawData = Record<string, unknown>;
+type CmaContainerRaw = Record<string, unknown> & {
+  number?: string; containerNumber?: string; containerId?: string; id?: string; ContainerNumber?: string;
+  events?: CmaEventRaw[]; history?: CmaEventRaw[]; statusHistory?: CmaEventRaw[]; Events?: CmaEventRaw[];
+};
+type CmaEventRaw = Record<string, unknown> & {
+  date?: string; eventDate?: string; timestamp?: string; Date?: string;
+  type?: string; eventType?: string; code?: string; Type?: string;
+  location?: string; locationName?: string; place?: string; Location?: string;
+};
+// Format DCSA v2.2.0 (events EQUIPMENT/TRANSPORT)
+type DcsaEvent = Record<string, unknown> & {
+  eventType?: string;
+  eventDateTime?: string;
+  equipmentReference?: string;
+  transportEventTypeCode?: string;
+  equipmentEventTypeCode?: string;
+  eventClassifierCode?: string;
+  transportCall?: {
+    transportationPhase?: string;
+    location?: { UNLocationCode?: string; locationName?: string };
+    [k: string]: unknown;
+  };
+  carrierSpecificData?: { internalEventLabel?: string; internalEventCode?: string; [k: string]: unknown };
+};
+
 export interface CMAResponse {
   ok: boolean;
-  data?: any;
+  data?: CmaRawData;
   error?: string;
   detail?: string;
   cached?: boolean;
@@ -47,10 +77,12 @@ export async function fetchCMA(query: { bl?: string; container?: string }): Prom
     }
     var json = await res.json();
     return json as CMAResponse;
-  } catch (e: any) {
+  } catch (e: unknown) {
     clearTimeout(timer);
-    if (e && e.name === 'AbortError') return { ok: false, error: 'CMA: timeout (20s)' };
-    return { ok: false, error: 'Reseau: ' + (e.message || 'inconnu') };
+    var name = e instanceof Error ? e.name : '';
+    var msg = e instanceof Error ? e.message : 'inconnu';
+    if (name === 'AbortError') return { ok: false, error: 'CMA: timeout (20s)' };
+    return { ok: false, error: 'Reseau: ' + msg };
   }
 }
 
@@ -71,40 +103,41 @@ interface CmaEvent {
   location?: string;    // ex: "DAKAR (SN)"
 }
 
-function extractContainersFromCMA(raw: any): CmaContainer[] {
+function extractContainersFromCMA(raw: unknown): CmaContainerRaw[] {
   if (!raw) return [];
+  // Format direct array
+  if (Array.isArray(raw)) return raw as CmaContainerRaw[];
+  if (typeof raw !== 'object') return [];
+  var r = raw as Record<string, unknown>;
 
   // Format possible 1 : { containers: [...] }
-  if (Array.isArray(raw.containers)) return raw.containers;
+  if (Array.isArray(r.containers)) return r.containers as CmaContainerRaw[];
 
   // Format possible 2 : { data: { containers: [...] } }
-  if (raw.data && Array.isArray(raw.data.containers)) return raw.data.containers;
+  var d = r.data as Record<string, unknown> | undefined;
+  if (d && Array.isArray(d.containers)) return d.containers as CmaContainerRaw[];
 
   // Format possible 3 : { items: [...] }
-  if (Array.isArray(raw.items)) return raw.items;
+  if (Array.isArray(r.items)) return r.items as CmaContainerRaw[];
 
   // Format possible 4 : { containerStatuses: [...] }
-  if (Array.isArray(raw.containerStatuses)) return raw.containerStatuses;
-
-  // Format possible 5 : reponse direct array
-  if (Array.isArray(raw)) return raw;
+  if (Array.isArray(r.containerStatuses)) return r.containerStatuses as CmaContainerRaw[];
 
   // Format possible 6 : { TransportDocument: { Containers: [...] } } (style ancien CMA)
-  if (raw.TransportDocument && Array.isArray(raw.TransportDocument.Containers)) {
-    return raw.TransportDocument.Containers;
-  }
+  var td = r.TransportDocument as Record<string, unknown> | undefined;
+  if (td && Array.isArray(td.Containers)) return td.Containers as CmaContainerRaw[];
 
   return [];
 }
 
-function normalizeContainerNumber(c: any): string {
+function normalizeContainerNumber(c: CmaContainerRaw): string {
   return String(c.number || c.containerNumber || c.containerId || c.id || c.ContainerNumber || '').toUpperCase().trim();
 }
 
-function normalizeEvents(c: any): CmaEvent[] {
-  var raw = c.events || c.history || c.statusHistory || c.Events || [];
+function normalizeEvents(c: CmaContainerRaw): CmaEvent[] {
+  var raw = (c.events || c.history || c.statusHistory || c.Events || []) as CmaEventRaw[];
   if (!Array.isArray(raw)) return [];
-  return raw.map(function (e: any): CmaEvent {
+  return raw.map(function (e: CmaEventRaw): CmaEvent {
     return {
       date: e.date || e.eventDate || e.timestamp || e.Date || '',
       type: String(e.type || e.eventType || e.code || e.Type || '').toUpperCase(),
@@ -132,8 +165,11 @@ interface TcUpdate {
   dr?: string;
 }
 
+// Patch values applied to dossier doc (flat champ-par-champ, type large pour preserver
+// les champs heterogenes appliques par patchDos sans perte a l'ecriture).
+type DosPatch = Record<string, unknown>;
 interface CMAPatches {
-  dosPatches: Record<string, any>;
+  dosPatches: DosPatch;
   tcUpdates: TcUpdate[];
   summary: string;
   changes: string[];
@@ -176,10 +212,13 @@ function eventToStatus(eventType: string): string | null {
  * ]
  */
 
-function extractDCSAEvents(raw: any): any[] {
-  if (Array.isArray(raw)) return raw;
-  if (raw && Array.isArray(raw.data)) return raw.data;
-  if (raw && Array.isArray(raw.events)) return raw.events;
+function extractDCSAEvents(raw: unknown): DcsaEvent[] {
+  if (Array.isArray(raw)) return raw as DcsaEvent[];
+  if (raw && typeof raw === 'object') {
+    var r = raw as Record<string, unknown>;
+    if (Array.isArray(r.data)) return r.data as DcsaEvent[];
+    if (Array.isArray(r.events)) return r.events as DcsaEvent[];
+  }
   return [];
 }
 
@@ -190,14 +229,18 @@ function extractDCSAEvents(raw: any): any[] {
  *   (= decharge a destination). Si pas trouve, prend le dernier "Discharged" tout court.
  * - Pour chaque TC du dossier : si event Discharged Import -> st = PORT.
  */
-function mapDCSAEvents(events: any[], dosTcs: any[], dos: any): CMAPatches {
-  var dosPatches: Record<string, any> = {};
+// Conteneur minimal lu : id (match), n (numero), st (status), dsp/dr (dates posees si manquantes)
+type DosTcLike = { id?: string; n?: string; st?: string; dsp?: string; dr?: string };
+// Dossier minimal lu : id + champs eventuellement deja poses (da, daSrc) qu'on ne veut pas ecraser
+type DosLike = { id?: string; da?: string; daSrc?: string };
+function mapDCSAEvents(events: DcsaEvent[], dosTcs: DosTcLike[], dos: DosLike): CMAPatches {
+  var dosPatches: DosPatch = {};
   var tcUpdates: TcUpdate[] = [];
   var changes: string[] = [];
 
   // Index par n° TC (equipmentReference)
-  var byTc: Record<string, any[]> = {};
-  events.forEach(function (e: any) {
+  var byTc: Record<string, DcsaEvent[]> = {};
+  events.forEach(function (e) {
     var ref = String(e.equipmentReference || '').toUpperCase();
     if (ref) {
       if (!byTc[ref]) byTc[ref] = [];
@@ -210,7 +253,7 @@ function mapDCSAEvents(events: any[], dosTcs: any[], dos: any): CMAPatches {
   // les labels/codes internes CMA. Sur le portail CMA, "ARRIVEE DU NAVIRE" est
   // un TRANSPORT.ARRI et non un EQUIPMENT.DISC : si on filtre uniquement sur
   // "Discharged" on rate la date affichee comme ETA officielle.
-  function isDischarged(e: any): boolean {
+  function isDischarged(e: DcsaEvent): boolean {
     var lbl = String(e.carrierSpecificData?.internalEventLabel || '').toLowerCase();
     var code = String(e.carrierSpecificData?.internalEventCode || '').toUpperCase();
     var transportCode = String(e.transportEventTypeCode || '').toUpperCase();
@@ -224,13 +267,13 @@ function mapDCSAEvents(events: any[], dosTcs: any[], dos: any): CMAPatches {
     return false;
   }
 
-  function isImportPhase(e: any): boolean {
+  function isImportPhase(e: DcsaEvent): boolean {
     var phase = String(e.transportCall?.transportationPhase || '').toLowerCase();
     return phase === 'import';
   }
 
   // Filtre port destination Dakar (DKR) : evite les BL multi-imports rares
-  function isDakar(e: any): boolean {
+  function isDakar(e: DcsaEvent): boolean {
     var loc = e.transportCall?.location;
     if (!loc) return false;
     var unCode = String(loc.UNLocationCode || '').toUpperCase();
@@ -239,12 +282,12 @@ function mapDCSAEvents(events: any[], dosTcs: any[], dos: any): CMAPatches {
     return name.indexOf('dakar') >= 0;
   }
 
-  function isEmptyReturn(e: any): boolean {
+  function isEmptyReturn(e: DcsaEvent): boolean {
     var lbl = String(e.carrierSpecificData?.internalEventLabel || '').toLowerCase();
     return lbl.indexOf('empty') >= 0 && (lbl.indexOf('return') >= 0 || lbl.indexOf('back') >= 0);
   }
 
-  function isGateOut(e: any): boolean {
+  function isGateOut(e: DcsaEvent): boolean {
     var lbl = String(e.carrierSpecificData?.internalEventLabel || '').toLowerCase();
     var code = String(e.carrierSpecificData?.internalEventCode || '').toUpperCase();
     return lbl.indexOf('gate out') >= 0 || lbl.indexOf('pick') >= 0 || code === 'OUT' || code === 'GTOUT';
@@ -255,14 +298,14 @@ function mapDCSAEvents(events: any[], dosTcs: any[], dos: any): CMAPatches {
   // Priorite ACT Dakar > EST Dakar > ACT Import > EST Import > tout Import > tout Discharged.
   // L'ETA (estime) est conserve pour anticiper meme si le TC n'est pas encore arrive.
   {
-    function classifier(e: any): string {
+    function classifier(e: DcsaEvent): string {
       return String(e.eventClassifierCode || '').toUpperCase();
     }
-    var actDakar = events.filter(function (e: any) { return isDischarged(e) && isImportPhase(e) && isDakar(e) && classifier(e) === 'ACT'; });
-    var estDakar = events.filter(function (e: any) { return isDischarged(e) && isImportPhase(e) && isDakar(e) && (classifier(e) === 'EST' || classifier(e) === 'PLN'); });
-    var actImport = events.filter(function (e: any) { return isDischarged(e) && isImportPhase(e) && classifier(e) === 'ACT'; });
-    var estImport = events.filter(function (e: any) { return isDischarged(e) && isImportPhase(e) && (classifier(e) === 'EST' || classifier(e) === 'PLN'); });
-    var anyImport = events.filter(function (e: any) { return isDischarged(e) && isImportPhase(e); });
+    var actDakar = events.filter(function (e) { return isDischarged(e) && isImportPhase(e) && isDakar(e) && classifier(e) === 'ACT'; });
+    var estDakar = events.filter(function (e) { return isDischarged(e) && isImportPhase(e) && isDakar(e) && (classifier(e) === 'EST' || classifier(e) === 'PLN'); });
+    var actImport = events.filter(function (e) { return isDischarged(e) && isImportPhase(e) && classifier(e) === 'ACT'; });
+    var estImport = events.filter(function (e) { return isDischarged(e) && isImportPhase(e) && (classifier(e) === 'EST' || classifier(e) === 'PLN'); });
+    var anyImport = events.filter(function (e) { return isDischarged(e) && isImportPhase(e); });
     var anyDisch = events.filter(isDischarged);
     var pool = actDakar.length > 0 ? actDakar
       : estDakar.length > 0 ? estDakar
@@ -271,7 +314,7 @@ function mapDCSAEvents(events: any[], dosTcs: any[], dos: any): CMAPatches {
       : anyImport.length > 0 ? anyImport
       : anyDisch;
     if (pool.length > 0) {
-      pool.sort(function (a: any, b: any) {
+      pool.sort(function (a: DcsaEvent, b: DcsaEvent) {
         return (a.eventDateTime || '') < (b.eventDateTime || '') ? 1 : -1;
       });
       var dt = String(pool[0].eventDateTime || '').split('T')[0];
@@ -295,18 +338,18 @@ function mapDCSAEvents(events: any[], dosTcs: any[], dos: any): CMAPatches {
   // 2. TCs : matcher avec ceux du dossier + ajouter ceux qu'on ne connait pas
   Object.keys(byTc).forEach(function (tcRef) {
     var tcEvents = byTc[tcRef];
-    var match = dosTcs.find(function (tc: any) {
+    var match = dosTcs.find(function (tc) {
       return String(tc.n || '').toUpperCase().replace(/[\s\-]/g, '') === tcRef.replace(/[\s\-]/g, '');
     });
     if (!match) return;  // TC absent du dossier : on signale via newTcs cote service
 
     // Determiner le statut le plus avance + dates
-    var sortedEvts = tcEvents.slice().sort(function (a: any, b: any) {
+    var sortedEvts = tcEvents.slice().sort(function (a, b) {
       return (a.eventDateTime || '') < (b.eventDateTime || '') ? -1 : 1;
     });
 
     var update: TcUpdate = { id: match.id };
-    sortedEvts.forEach(function (e: any) {
+    sortedEvts.forEach(function (e) {
       var dt = String(e.eventDateTime || '').split('T')[0];
       if (isDischarged(e) && isImportPhase(e) && match.st === 'ATTENDU') {
         update.st = 'PORT';
@@ -334,8 +377,8 @@ function mapDCSAEvents(events: any[], dosTcs: any[], dos: any): CMAPatches {
   return { dosPatches: dosPatches, tcUpdates: tcUpdates, summary: summary, changes: changes };
 }
 
-export function mapCMAToPatches(cmaRaw: any, dosTcs: any[], dos: any): CMAPatches {
-  var dosPatches: Record<string, any> = {};
+export function mapCMAToPatches(cmaRaw: unknown, dosTcs: DosTcLike[], dos: DosLike): CMAPatches {
+  var dosPatches: DosPatch = {};
   var tcUpdates: TcUpdate[] = [];
   var changes: string[] = [];
 
@@ -352,7 +395,7 @@ export function mapCMAToPatches(cmaRaw: any, dosTcs: any[], dos: any): CMAPatche
   // 1. Date arrivee (da) : prendre le premier evenement DISCHARGE le plus tot
   if (!dos.da) {
     var earliestDischarge: string | null = null;
-    cmaContainers.forEach(function (c: any) {
+    cmaContainers.forEach(function (c) {
       var oldEvents = normalizeEvents(c);
       oldEvents.forEach(function (e) {
         if (e.type && (e.type.indexOf('DISCHARGE') >= 0 || e.type.indexOf('DEBARQ') >= 0) && e.date) {
@@ -368,7 +411,7 @@ export function mapCMAToPatches(cmaRaw: any, dosTcs: any[], dos: any): CMAPatche
   }
 
   // 2. TCs : matcher par numero conteneur
-  cmaContainers.forEach(function (cmaTc: any) {
+  cmaContainers.forEach(function (cmaTc) {
     var cmaNum = normalizeContainerNumber(cmaTc);
     if (!cmaNum) return;
     var match = dosTcs.find(function (tc) { return norm(tc.n) === cmaNum; });

@@ -3,17 +3,20 @@ import { collection, getDocs, getDoc, doc, setDoc, deleteDoc } from 'firebase/fi
 import { db } from '../firebase.js';
 import type { BillingStatus, PlanType, PaymentMethod } from '../types.js';
 
-interface SuperAdminProps { user: any; logout: () => void; }
+// Firebase User minimal pour SuperAdmin (lu : uid, email)
+interface FirebaseUserLike { uid: string; email: string | null }
+interface SuperAdminProps { user: FirebaseUserLike; logout: () => void; }
 
 interface CompanyRow {
   id: string;
   name?: string;
   cfg?: { name?: string };
-  dos?: any[];
-  tcs?: any[];
-  chs?: any[];
-  dep?: any[];
+  dos?: unknown[];
+  tcs?: unknown[];
+  chs?: unknown[];
+  dep?: unknown[];
   logs?: Array<{ d?: string; a?: string; }>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- doc Firestore avec champs heterogenes, large par design
   [key: string]: any;
 }
 
@@ -88,8 +91,8 @@ export default function SuperAdmin({ user, logout }: SuperAdminProps) {
       });
       await setDoc(doc(db, 'companies', companyId, 'billing', 'profile'), merged, { merge: true });
       setBilling(function (prev) { return Object.assign({}, prev, { [companyId]: merged as BillingInfo }); });
-    } catch (e: any) {
-      setErr('Erreur mise a jour billing : ' + (e && e.message ? e.message : 'inconnue'));
+    } catch (e: unknown) {
+      setErr('Erreur mise a jour billing : ' + (e instanceof Error ? e.message : 'inconnue'));
     }
     setSaving(function (prev) { return Object.assign({}, prev, { [companyId]: false }); });
   }
@@ -129,8 +132,8 @@ export default function SuperAdmin({ user, logout }: SuperAdminProps) {
       snap.forEach(function (d) { list.push(Object.assign({ uid: d.id }, d.data())); });
       list.sort(function (a, b) { return (a.email || a.uid).localeCompare(b.email || b.uid); });
       setSuperAdmins(list);
-    } catch (e: any) {
-      setErr('Erreur chargement super-admins : ' + (e && e.message ? e.message : 'inconnue'));
+    } catch (e: unknown) {
+      setErr('Erreur chargement super-admins : ' + (e instanceof Error ? e.message : 'inconnue'));
     }
   }
 
@@ -166,8 +169,8 @@ export default function SuperAdmin({ user, logout }: SuperAdminProps) {
       setNewUid('');
       setNewEmail('');
       setNewRole('admin');
-    } catch (e: any) {
-      setErr('Erreur ajout super-admin : ' + (e && e.message ? e.message : 'inconnue'));
+    } catch (e: unknown) {
+      setErr('Erreur ajout super-admin : ' + (e instanceof Error ? e.message : 'inconnue'));
     }
     setSavingAdmin(false);
   }
@@ -190,8 +193,8 @@ export default function SuperAdmin({ user, logout }: SuperAdminProps) {
     try {
       await deleteDoc(doc(db, 'superAdmins', uid));
       setSuperAdmins(function (prev) { return prev.filter(function (sa) { return sa.uid !== uid; }); });
-    } catch (e: any) {
-      setErr('Erreur retrait : ' + (e && e.message ? e.message : 'inconnue'));
+    } catch (e: unknown) {
+      setErr('Erreur retrait : ' + (e instanceof Error ? e.message : 'inconnue'));
     }
   }
 

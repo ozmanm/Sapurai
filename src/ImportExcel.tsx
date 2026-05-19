@@ -1,19 +1,33 @@
 import { useState } from 'react';
 import type { ChangeEvent, CSSProperties } from 'react';
+import type { Row, Worksheet, Workbook, CellRichTextValue } from 'exceljs';
 import {
   detectSheetType, findCol, parseDate, parseNum,
   normBL, normType, splitContainers,
   isContainerNumber, isBLNumber, isAmount, isDate, isClientName, isTCType
 } from './utils/importHelpers.js';
 
-type SheetData = { name: string; headers: string[]; rows: any[][]; type: string; rowCount: number };
-type ImportResult = { dossiers: any[]; deps: any[]; chauffeurs: any[]; depsByBl: Record<string, number> };
+// Valeur de cellule normalisee (extraite des objets exceljs : formule/richText/hyperlink decompacted)
+type ImportCell = string | number | boolean | Date | null | undefined;
+type ImportRow = ImportCell[];
+
+type SheetData = { name: string; headers: string[]; rows: ImportRow[]; type: string; rowCount: number };
+// dossiers/deps/chauffeurs : drafts a transformer en Dossier/Depense/Chauffeur via bulkImport.
+// Type volontairement `any` pour preserver les champs heterogenes detectes pendant le scan
+// (cf. caveat Phase 2a : large type pour ne pas perdre de champs silencieusement). Les drafts
+// sont consommes par bulkImport qui normalise les champs.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- voir note ci-dessus
+type ImportDraft = Record<string, any>;
+type ImportResult = { dossiers: ImportDraft[]; deps: ImportDraft[]; chauffeurs: ImportDraft[]; depsByBl: Record<string, number> };
+
+// Module exceljs lazy-loaded (cf. utils/export.ts pour la meme logique d'interop)
+type ExcelJSModule = { default?: { Workbook: new () => Workbook }; Workbook?: new () => Workbook };
 
 // Sprint 42 F42.5 - exceljs remplace xlsx (vulnerabilites prototype pollution + ReDoS sans fix).
 // Lazy-load pour ne pas gonfler le main bundle.
-var exceljsCache: Promise<any> | null = null;
-function getExcelJS() {
-  if (!exceljsCache) exceljsCache = import('exceljs');
+var exceljsCache: Promise<ExcelJSModule> | null = null;
+function getExcelJS(): Promise<ExcelJSModule> {
+  if (!exceljsCache) exceljsCache = import('exceljs') as Promise<ExcelJSModule>;
   return exceljsCache;
 }
 
@@ -21,29 +35,33 @@ function getExcelJS() {
  * Adapter : prend un ArrayBuffer Excel et retourne le meme format que sheet_to_json
  * avec header:1 (rows as arrays). Compatible avec parseWorkbook() existant.
  */
-async function readWorkbook(buf: ArrayBuffer): Promise<{ SheetNames: string[]; Sheets: Record<string, any[][]> }> {
-  var mod: any = await getExcelJS();
-  var ExcelJS = mod.default || mod;
-  var workbook = new ExcelJS.Workbook();
+async function readWorkbook(buf: ArrayBuffer): Promise<{ SheetNames: string[]; Sheets: Record<string, ImportRow[]> }> {
+  var mod = await getExcelJS();
+  var WorkbookCtor = (mod.default && mod.default.Workbook) || mod.Workbook;
+  if (!WorkbookCtor) throw new Error('[ImportExcel] ExcelJS Workbook ctor introuvable');
+  var workbook = new WorkbookCtor();
   await workbook.xlsx.load(buf);
-  var result: { SheetNames: string[]; Sheets: Record<string, any[][]> } = { SheetNames: [], Sheets: {} };
-  workbook.eachSheet(function (ws: any) {
+  var result: { SheetNames: string[]; Sheets: Record<string, ImportRow[]> } = { SheetNames: [], Sheets: {} };
+  workbook.eachSheet(function (ws: Worksheet) {
     result.SheetNames.push(ws.name);
-    var rows: any[][] = [];
-    ws.eachRow({ includeEmpty: true }, function (row: any) {
+    var rows: ImportRow[] = [];
+    ws.eachRow({ includeEmpty: true }, function (row: Row) {
       // row.values est 1-indexed dans exceljs : [undefined, cell1, cell2, ...]
-      var values = (row.values || []).slice(1).map(function (v: any) {
+      // Type CellValue exceljs = string | number | Date | { formula, result } | { richText } | { hyperlink, text } | ...
+      var rawValues = Array.isArray(row.values) ? row.values : [];
+      var values: ImportRow = rawValues.slice(1).map(function (v: unknown): ImportCell {
         if (v === null || v === undefined) return '';
-        if (typeof v === 'object' && v !== null) {
-          // Cellule avec formule, hyperlink, richText -> extraire la valeur affichee
-          if ('result' in v) return v.result;
-          if ('text' in v) return v.text;
-          if ('hyperlink' in v) return v.text || v.hyperlink;
+        if (typeof v === 'object') {
+          var obj = v as Record<string, unknown>;
+          if ('result' in obj) return obj.result as ImportCell;
+          if ('text' in obj) return obj.text as ImportCell;
+          if ('hyperlink' in obj) return (obj.text as ImportCell) || (obj.hyperlink as ImportCell);
           if (v instanceof Date) return v;
-          if (Array.isArray(v.richText)) return v.richText.map(function (rt: any) { return rt.text; }).join('');
+          var rt = (v as CellRichTextValue).richText;
+          if (Array.isArray(rt)) return rt.map(function (r) { return r.text; }).join('');
           return String(v);
         }
-        return v;
+        return v as ImportCell;
       });
       rows.push(values);
     });
@@ -52,11 +70,16 @@ async function readWorkbook(buf: ArrayBuffer): Promise<{ SheetNames: string[]; S
   return result;
 }
 
-// Scan all sheets cell by cell, classify, assemble
+// Scan all sheets cell by cell, classify, assemble.
+// Note typage Phase 2a : les structures internes (tcSet/blSet/classifiedRow) restent
+// volontairement Record<string,any> car le code accumule des champs dynamiquement au fil
+// du scan (`.tcs`, `.amounts`, `.cl`, etc.) puis lit ces champs ailleurs. Toute restriction
+// stricte casse les acces. La typage propre est en sortie : `ImportDraft` pour le retour.
+/* eslint-disable @typescript-eslint/no-explicit-any -- scan dynamique, types stricts casseraient les acces .tcs/.amounts/.cl etc. La sortie publique est typee via ImportDraft. */
 function patternScan(allSheets: SheetData[]): ImportResult {
-  var tcSet: Record<string, any> = {};        // container# → { bl, type, weight }
-  var blSet: Record<string, any> = {};        // bl# → { client, date, company, tcs[] }
-  var allRows: any[] = [];      // flat list of classified rows
+  var tcSet: Record<string, any> = {};
+  var blSet: Record<string, any> = {};
+  var allRows: any[] = [];
 
   // Pass 1: scan every cell, classify per row
   allSheets.forEach(function (sheet) {
@@ -159,7 +182,7 @@ function patternScan(allSheets: SheetData[]): ImportResult {
   var dossiers = Object.values(blSet).filter(function (d) { return d.tcs.length > 0 || d.cl; });
   var deps: any[] = [];
   dossiers.forEach(function (d) {
-    d.amounts.forEach(function (a) {
+    d.amounts.forEach(function (a: any) {
       deps.push({ bl: d.bl, nf: "", tp: "AUTRE", ht: a.mt, mt: a.mt, s: "ATT", dt: "", ds: a.ds });
     });
   });
@@ -180,6 +203,7 @@ function patternScan(allSheets: SheetData[]): ImportResult {
 
   return { dossiers: Object.values(dosMap), deps: deps, chauffeurs: [], depsByBl: depsByBl };
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // Extract Google Sheets ID from various URL formats
 function extractGSheetId(url: string) {
@@ -190,9 +214,9 @@ function extractGSheetId(url: string) {
 var IS2: CSSProperties = { width: "100%", padding: "10px 12px", border: "2px solid var(--border)", borderRadius: 8, fontSize: 14, outline: "none", boxSizing: "border-box", minHeight: 44, background: "var(--bg-secondary)", color: "var(--text-input)" };
 
 interface ImportExcelProps {
-  bulkImport: (dossiers: any[], deps?: any[], chauffeurs?: any[]) => void;
-  dos?: any[];
-  tcs?: any[];
+  bulkImport: (dossiers: ImportDraft[], deps?: ImportDraft[], chauffeurs?: ImportDraft[]) => void;
+  dos?: Array<{ bl?: string }>;
+  tcs?: Array<{ n?: string }>;
   onClose: () => void;
 }
 
@@ -211,10 +235,11 @@ export default function ImportExcel(p: ImportExcelProps) {
   // BL existants en base pour detection doublons
   var existingBls = new Set((p.dos || []).map(function (d) { return (d.bl || "").toUpperCase(); }).filter(Boolean));
 
-  function parseWorkbook(wb: any) {
-    var sheetData = wb.SheetNames.map(function (name: string) {
+  type RawWorkbook = { SheetNames: string[]; Sheets: Record<string, ImportRow[]> };
+  function parseWorkbook(wb: RawWorkbook) {
+    var sheetData = wb.SheetNames.map(function (name: string): SheetData | null {
       // Sprint 42 F42.5 - wb.Sheets[name] est deja un array de rows (exceljs adapter)
-      var data: any[][] = wb.Sheets[name] || [];
+      var data: ImportRow[] = wb.Sheets[name] || [];
       if (data.length < 2) return null;
       // Find first non-empty row as header (skip empty rows at top)
       var headerIdx = 0;
@@ -242,8 +267,8 @@ export default function ImportExcel(p: ImportExcelProps) {
     var reader = new FileReader();
     reader.onload = function (ev) {
       var buf = ev.target!.result as ArrayBuffer;
-      readWorkbook(buf).then(parseWorkbook).catch(function (ex: any) {
-        setErr("Erreur lecture: " + (ex && ex.message ? ex.message : 'inconnue'));
+      readWorkbook(buf).then(parseWorkbook).catch(function (ex: unknown) {
+        setErr("Erreur lecture: " + (ex instanceof Error ? ex.message : 'inconnue'));
       });
     };
     reader.readAsArrayBuffer(file);
@@ -332,7 +357,7 @@ export default function ImportExcel(p: ImportExcelProps) {
           bs: (bad === "OK" || bad === "OUI" || bad === "OBTENU") ? "OBTENU" : "NON_DEMANDE",
           bv: "", as2: (bae === "OK" || bae === "OUI" || bae === "OBTENU") ? "OBTENU" : "NON_DEMANDE",
           nd: iNd >= 0 ? String(row[iNd] != null ? row[iNd] : "").trim().toUpperCase() : "",
-          pn: "", nbTc: iNb >= 0 ? (parseInt(row[iNb]) || 0) : 0,
+          pn: "", nbTc: iNb >= 0 ? (parseInt(String(row[iNb] || "")) || 0) : 0,
           defType: iTy >= 0 ? normType(row[iTy]) : "20GP", tcs: tcs
         };
       });

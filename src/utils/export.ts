@@ -3,7 +3,17 @@
 // exceljs est plus moderne, sans prototype pollution ni ReDoS connus.
 // Lazy-load pour ne pas gonfler le main bundle.
 
+import type { Workbook, Worksheet } from 'exceljs';
+import type { Dossier, Conteneur, Depense } from '../types.js';
 import { isDepensePayee } from './depenseStatus';
+
+// Cellule d'export : valeurs primitives Excel acceptees par addRows()
+type ExcelCell = string | number | boolean | Date | null | undefined;
+type ExcelRow = ExcelCell[];
+
+// Module exceljs (lazy-loaded). On garde le type 'unknown' au niveau du module
+// car le default-export bundling differe selon le build (CJS/ESM).
+type ExcelJSModule = { default?: { Workbook: new () => Workbook }; Workbook?: new () => Workbook };
 
 var DL_FR: Record<string, string> = { INITIALISE: "Initialise", SECURISE: "Securise", EN_TRANSIT: "En Transit", CLOTURE: "Cloture", ARCHIVE: "Archive" };
 var SL_FR: Record<string, string> = { PORT: "Au Port", DISPATCHE: "Dispatche", TRANSIT: "En Transit", KATI: "Kati", BAMAKO: "Bamako", RETURNED: "Retourne" };
@@ -15,17 +25,24 @@ function fd(iso: string | null): string {
 }
 
 // Lazy-load exceljs
-var exceljsCache: Promise<any> | null = null;
-function getExcelJS(): Promise<any> {
-  if (!exceljsCache) exceljsCache = import('exceljs');
+var exceljsCache: Promise<ExcelJSModule> | null = null;
+function getExcelJS(): Promise<ExcelJSModule> {
+  if (!exceljsCache) exceljsCache = import('exceljs') as Promise<ExcelJSModule>;
   return exceljsCache;
+}
+
+function getWorkbookCtor(mod: ExcelJSModule): new () => Workbook {
+  // ESM/CJS interop : selon le bundler, ExcelJS est en `mod.default.Workbook` ou `mod.Workbook`
+  var Ctor = (mod.default && mod.default.Workbook) || mod.Workbook;
+  if (!Ctor) throw new Error('[export] ExcelJS Workbook ctor introuvable');
+  return Ctor;
 }
 
 /**
  * Helper : ajoute des rows + applique les largeurs de colonnes.
  * `widths` est dans la meme unite que les `wch` xlsx (~caracteres).
  */
-function setupSheet(ws: any, rows: any[][], widths?: number[]): void {
+function setupSheet(ws: Worksheet, rows: ExcelRow[], widths?: number[]): void {
   ws.addRows(rows);
   if (widths) {
     ws.columns = widths.map(function (w) { return { width: w }; });
@@ -35,8 +52,8 @@ function setupSheet(ws: any, rows: any[][], widths?: number[]): void {
 /**
  * Telecharge un workbook exceljs cote navigateur.
  */
-async function downloadWorkbook(wb: any, filename: string): Promise<void> {
-  var buffer: ArrayBuffer = await wb.xlsx.writeBuffer();
+async function downloadWorkbook(wb: Workbook, filename: string): Promise<void> {
+  var buffer = await wb.xlsx.writeBuffer();
   var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
@@ -48,13 +65,13 @@ async function downloadWorkbook(wb: any, filename: string): Promise<void> {
   setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
 }
 
-export async function exportDossiers(dos: any[], tcs: any[], dep: any[], companyName?: string): Promise<void> {
-  var mod: any = await getExcelJS();
-  var ExcelJS = mod.default || mod;
-  var wb = new ExcelJS.Workbook();
+export async function exportDossiers(dos: Dossier[], tcs: Conteneur[], dep: Depense[], companyName?: string): Promise<void> {
+  var mod = await getExcelJS();
+  var WorkbookCtor = getWorkbookCtor(mod);
+  var wb = new WorkbookCtor();
 
   // --- Feuille 1 : Dossiers ---
-  var dosRows: any[][] = [["Client", "N° BL", "Compagnie", "Destination", "Date decharg.", "Statut", "Nb TC", "Total depenses", "Paye", "Impaye", "% Paye", "Recette", "Marge", "Tel client"]];
+  var dosRows: ExcelRow[] = [["Client", "N° BL", "Compagnie", "Destination", "Date decharg.", "Statut", "Nb TC", "Total depenses", "Paye", "Impaye", "% Paye", "Recette", "Marge", "Tel client"]];
   (dos || []).forEach(function (d) {
     var ddep = (dep || []).filter(function (f) { return f.did === d.id; });
     var dtcs = (tcs || []).filter(function (t) { return t.did === d.id; });
@@ -74,7 +91,7 @@ export async function exportDossiers(dos: any[], tcs: any[], dep: any[], company
   setupSheet(wsD, dosRows, [22, 16, 14, 12, 14, 12, 7, 16, 14, 14, 8, 14, 14, 14]);
 
   // --- Feuille 2 : Conteneurs ---
-  var tcsRows: any[][] = [["N° TC", "Type", "Dossier (BL)", "Client", "Statut", "Chauffeur", "Camion", "Date dispatch", "Date retour"]];
+  var tcsRows: ExcelRow[] = [["N° TC", "Type", "Dossier (BL)", "Client", "Statut", "Chauffeur", "Camion", "Date dispatch", "Date retour"]];
   (tcs || []).forEach(function (tc) {
     var d = (dos || []).find(function (x) { return x.id === tc.did; });
     tcsRows.push([
@@ -89,7 +106,7 @@ export async function exportDossiers(dos: any[], tcs: any[], dep: any[], company
   setupSheet(wsT, tcsRows, [18, 8, 16, 20, 12, 20, 14, 14, 12]);
 
   // --- Feuille 3 : Depenses ---
-  var depRows: any[][] = [["Type", "Description", "N° Facture", "Client", "BL", "Montant HT", "Montant TTC", "Statut", "Date"]];
+  var depRows: ExcelRow[] = [["Type", "Description", "N° Facture", "Client", "BL", "Montant HT", "Montant TTC", "Statut", "Date"]];
   (dep || []).forEach(function (f) {
     var d = (dos || []).find(function (x) { return x.id === f.did; });
     depRows.push([
@@ -108,12 +125,12 @@ export async function exportDossiers(dos: any[], tcs: any[], dep: any[], company
   await downloadWorkbook(wb, name + "_export_" + date + ".xlsx");
 }
 
-export async function exportDepenses(dep: any[], dos: any[], companyName?: string): Promise<void> {
-  var mod: any = await getExcelJS();
-  var ExcelJS = mod.default || mod;
-  var wb = new ExcelJS.Workbook();
+export async function exportDepenses(dep: Depense[], dos: Dossier[], companyName?: string): Promise<void> {
+  var mod = await getExcelJS();
+  var WorkbookCtor = getWorkbookCtor(mod);
+  var wb = new WorkbookCtor();
 
-  var rows: any[][] = [["Type", "Description", "N° Facture", "Client", "BL", "Montant HT", "Montant TTC", "Statut", "Date"]];
+  var rows: ExcelRow[] = [["Type", "Description", "N° Facture", "Client", "BL", "Montant HT", "Montant TTC", "Statut", "Date"]];
   (dep || []).forEach(function (f) {
     var d = (dos || []).find(function (x) { return x.id === f.did; });
     rows.push([
@@ -133,13 +150,22 @@ export async function exportDepenses(dep: any[], dos: any[], companyName?: strin
   await downloadWorkbook(wb, name + "_depenses_" + date + ".xlsx");
 }
 
-export async function exportFinancierClient(dos: any[], dep: any[], companyName?: string): Promise<void> {
-  var mod: any = await getExcelJS();
-  var ExcelJS = mod.default || mod;
-  var wb = new ExcelJS.Workbook();
+interface ClientAggregate {
+  cl: string;
+  nDos: number;
+  tot: number;
+  pay: number;
+  rv: number;
+  bls: string[];
+}
+
+export async function exportFinancierClient(dos: Dossier[], dep: Depense[], companyName?: string): Promise<void> {
+  var mod = await getExcelJS();
+  var WorkbookCtor = getWorkbookCtor(mod);
+  var wb = new WorkbookCtor();
 
   // Build per-client aggregation (same logic as Dash.jsx)
-  var byClient: Record<string, any> = {};
+  var byClient: Record<string, ClientAggregate> = {};
   (dos || []).forEach(function (d) {
     if (d.st === "ARCHIVE") return;
     var cl = d.cl || "Sans client";
@@ -160,7 +186,7 @@ export async function exportFinancierClient(dos: any[], dep: any[], companyName?
   rows.sort(function (a, b) { return (b.tot - b.pay) - (a.tot - a.pay); });
 
   // --- Feuille 1 : Resume par client ---
-  var sumRows: any[][] = [["Client", "Nb Dossiers", "Total (FCFA)", "Paye (FCFA)", "Impaye (FCFA)", "% Paye", "Recette (FCFA)", "Marge (FCFA)"]];
+  var sumRows: ExcelRow[] = [["Client", "Nb Dossiers", "Total (FCFA)", "Paye (FCFA)", "Impaye (FCFA)", "% Paye", "Recette (FCFA)", "Marge (FCFA)"]];
   var gTot = 0, gPay = 0, gRv = 0;
   rows.forEach(function (r) {
     var imp = r.tot - r.pay;
@@ -173,7 +199,7 @@ export async function exportFinancierClient(dos: any[], dep: any[], companyName?
   setupSheet(ws1, sumRows, [24, 12, 16, 16, 16, 10, 16, 16]);
 
   // --- Feuille 2 : Detail factures ---
-  var detRows: any[][] = [["Client", "N° BL", "Type", "Description", "N° Facture", "Montant (FCFA)", "Statut", "Date"]];
+  var detRows: ExcelRow[] = [["Client", "N° BL", "Type", "Description", "N° Facture", "Montant (FCFA)", "Statut", "Date"]];
   rows.forEach(function (r) {
     var clientDos = (dos || []).filter(function (d) { return (d.cl || "Sans client") === r.cl && d.st !== "ARCHIVE"; });
     clientDos.forEach(function (d) {

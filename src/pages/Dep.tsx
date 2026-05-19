@@ -7,8 +7,26 @@ import { pdfDepenses, pdfClient } from '../utils/pdf.js';
 import usePagination from '../hooks/usePagination.js';
 import Pagination from '../components/ui/Pagination.tsx';
 import EmptyState from '../components/ui/EmptyState.tsx';
+import type { Dossier, Depense } from '../types.js';
 
-interface DepProps { [key: string]: any; }
+// Type minimal Dep page : large pour preserver les props (cf. caveat Phase 2a).
+// Les champs lus directement sont enumeres ; index signature any pour preserver
+// le reste (handlers passes depuis App).
+interface DepProps {
+  dep: Depense[];
+  dos: Dossier[];
+  tcs?: unknown[];
+  setMl: (m: unknown) => void;
+  qr?: string;
+  setQr?: (s: string) => void;
+  toggleDepSt?: (id: string) => void;
+  deleteDep?: (id: string) => void;
+  ignoreDep?: (id: string) => void;
+  canEdit?: boolean;
+  companyName?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- index signature large pour les handlers App
+  [key: string]: any;
+}
 
 function Dep(p: DepProps) {
   var dep = p.dep;
@@ -48,7 +66,7 @@ function Dep(p: DepProps) {
   var ftot = tabFiltered.reduce(function (a, f) { return a + (f.mt || 0); }, 0);
   var fht = tabFiltered.reduce(function (a, f) { return a + (f.ht || f.mt || 0); }, 0);
   var ftax = ftot - fht;
-  var pg = usePagination<any>(tabFiltered, 20);
+  var pg = usePagination<Depense>(tabFiltered, 20);
 
   return (
     <div>
@@ -78,7 +96,7 @@ function Dep(p: DepProps) {
           { key: "A_PAYER", label: "A payer", count: fimp, color: "var(--warning)" },
           { key: "PAYEES", label: "Payees", count: fpaye, color: "var(--success)" },
           { key: "BY_CLIENT", label: "Par client", count: 0, color: "var(--text-primary)", noCount: true },
-        ].map(function (t: any) {
+        ].map(function (t: { key: string; label: string; count: number; color: string; noCount?: boolean }) {
           var active = tab === t.key;
           return <button key={t.key} onClick={function () { setTab(t.key); }} style={{
             background: active ? "var(--btn-primary-bg)" : "var(--bg-primary)",
@@ -100,18 +118,19 @@ function Dep(p: DepProps) {
       </div>
       {/* Onglet "Par client" : suivi financier groupe (ex-Dash) */}
       {tab === "BY_CLIENT" ? (function () {
-        var tcs = p.tcs || [];
-        var byClient: Record<string, any> = {};
-        dos.forEach(function (d: any) {
+        var tcs = (p.tcs as Array<{ did?: string }>) || [];
+        interface ClientRow { cl: string; nDos: number; tot: number; pay: number; rv: number; ids: string[] }
+        var byClient: Record<string, ClientRow> = {};
+        dos.forEach(function (d) {
           if (d.st === "ARCHIVE") return;
           var cl = d.cl || "Sans client";
           if (!byClient[cl]) byClient[cl] = { cl: cl, nDos: 0, tot: 0, pay: 0, rv: 0, ids: [] };
           byClient[cl].nDos++;
           byClient[cl].rv += (d.rv || 0);
-          byClient[cl].ids.push(d.id);
+          byClient[cl].ids.push(d.id || "");
         });
-        dep.forEach(function (f: any) {
-          var d = dos.find(function (x: any) { return x.id === f.did; });
+        dep.forEach(function (f) {
+          var d = dos.find(function (x) { return x.id === f.did; });
           if (!d || d.st === "ARCHIVE") return;
           var cl = d.cl || "Sans client";
           if (!byClient[cl]) return;
@@ -119,7 +138,7 @@ function Dep(p: DepProps) {
           if (f.s === "PAYE") byClient[cl].pay += (f.mt || 0);
         });
         var rows = Object.keys(byClient).map(function (k) { return byClient[k]; });
-        rows.sort(function (a: any, b: any) { return (b.tot - b.pay) - (a.tot - a.pay); });
+        rows.sort(function (a, b) { return (b.tot - b.pay) - (a.tot - a.pay); });
         return (
           <div style={{ background: "var(--bg-primary)", borderRadius: 12, border: "1px solid var(--border)", padding: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -128,7 +147,7 @@ function Dep(p: DepProps) {
             </div>
             {rows.length === 0 ? <EmptyState variant="compact" icon="📊" title="Aucune donnée" description="Le suivi financier apparaîtra ici dès que vous aurez des dépenses." /> : (
               <div>
-                {rows.map(function (r: any) {
+                {rows.map(function (r) {
                   var imp = r.tot - r.pay;
                   var pct = r.tot > 0 ? Math.round(r.pay / r.tot * 100) : 0;
                   var col = pct === 100 ? "var(--success)" : pct >= 50 ? "var(--warning)" : "var(--danger)";
@@ -144,14 +163,14 @@ function Dep(p: DepProps) {
                           <span onClick={function (e) { e.stopPropagation(); pdfClient(r.cl, dos, tcs, dep, companyName); }} style={{ fontSize: 11, cursor: "pointer", color: "var(--text-secondary)", padding: "2px 6px", borderRadius: 6, border: "1px solid var(--border)" }} title={"PDF " + r.cl}>{"📄"}</span>
                           {(function () {
                             if (imp <= 0) return null;
-                            var clientDos = dos.filter(function (dd: any) { return (dd.cl || "Sans client") === r.cl && dd.st !== "ARCHIVE"; });
+                            var clientDos = dos.filter(function (dd) { return (dd.cl || "Sans client") === r.cl && dd.st !== "ARCHIVE"; });
                             var tel = "";
-                            clientDos.forEach(function (dd: any) { if (dd.ct && !tel) tel = dd.ct; });
+                            clientDos.forEach(function (dd) { if (dd.ct && !tel) tel = dd.ct; });
                             if (!tel) return null;
                             var details: string[] = [];
-                            clientDos.forEach(function (dd: any) {
-                              var ddep = dep.filter(function (f: any) { return f.did === dd.id; });
-                              var dImp = ddep.reduce(function (s: number, f: any) { return s + (f.s !== "PAYE" ? (f.mt || 0) : 0); }, 0);
+                            clientDos.forEach(function (dd) {
+                              var ddep = dep.filter(function (f) { return f.did === dd.id; });
+                              var dImp = ddep.reduce(function (s: number, f) { return s + (f.s !== "PAYE" ? (f.mt || 0) : 0); }, 0);
                               if (dImp > 0) details.push("- " + (dd.bl || "?") + " : " + fm(dImp));
                             });
                             var shown = details.slice(0, 10);

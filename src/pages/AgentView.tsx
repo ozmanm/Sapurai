@@ -4,13 +4,18 @@ import { textColorFor } from '../utils/contrast.js';
 import { DTL } from '../constants/depenses.js';
 import { mid } from '../utils/id.js';
 import { fileStore } from '../fileStore.js';
+import type { ChangeEvent } from 'react';
+import type { Dossier, Conteneur, Depense, Intervenant } from '../types.js';
+
+// Notification type-minimal (utilise par notifs liste, contenu opaque cote AgentView)
+type Notif = Record<string, unknown>;
 
 // Utilise les tokens --sc-* / --sb-* de theme.css (theme-aware light/dark)
 var ST_BG: Record<string, string> = { PORT: "var(--sc-port)", DISPATCHE: "var(--sc-dispatche)", TRANSIT: "var(--sc-transit)", KATI: "var(--sc-kati)", BAMAKO: "var(--sc-bamako)", RETURNED: "var(--sc-returned)" };
 var TK_LBL: Record<string, string> = { BAD: "BAD", BAE: "BAE/Douane", PREGATE: "Pregate", TRANSIT: "Transit", LIVRAISON: "Livraison", MANUT: "Manutention", FACT: "Facturation" };
 
 // Status d'une tache sur le dossier (lit le champ correspondant)
-function getTacheStatus(d: any, tacheKey: string): { label: string; tone: 'success' | 'warning' | 'danger' | 'neutral' } {
+function getTacheStatus(d: Dossier, tacheKey: string): { label: string; tone: 'success' | 'warning' | 'danger' | 'neutral' } {
   if (tacheKey === 'BAD') {
     if (d.bs === 'OBTENU') return { label: 'Obtenu', tone: 'success' };
     if (d.bs === 'EN_COURS') return { label: 'En cours', tone: 'warning' };
@@ -35,19 +40,25 @@ function toneVars(tone: 'success' | 'warning' | 'danger' | 'neutral') {
   return { bg: 'var(--bg-secondary)', col: 'var(--text-tertiary)', bd: 'var(--border)' };
 }
 
+// Donnees DB minimales requises par AgentView (handleUpload mutate db.dos)
+interface AgentDb {
+  dos?: Dossier[];
+  [k: string]: unknown;
+}
+
 interface AgentViewProps {
-  dos: any[];
-  tcs: any[];
-  dep?: any[];
+  dos: Dossier[];
+  tcs: Conteneur[];
+  dep?: Depense[];
   agentName: string;
-  notifs: any[];
+  notifs: Notif[];
   markNotifsRead: () => void;
   logout: () => void;
   markTaskDone: (dosId: string, itvId: string, taskKey: string, done: boolean) => void;
   advance?: (tid: string, ns: string, dt?: string) => void;
-  patchDos?: (dosId: string, fields: Record<string, any>) => void;
-  sv?: (data: any) => void;
-  db?: any;
+  patchDos?: (dosId: string, fields: Record<string, unknown>) => void;
+  sv?: (data: AgentDb) => void;
+  db?: AgentDb;
   companyId?: string;
   notifyAdmins?: (msg: string) => void;
   companyName?: string;
@@ -64,8 +75,8 @@ function AgentView(p: AgentViewProps) {
 
   // Tâches habituelles globales : derivees de l'union de toutes les taches sur ses dossiers
   var globalTaches: string[] = [];
-  dos.forEach(function (d: any) {
-    (d.itv || []).forEach(function (i: any) {
+  dos.forEach(function (d) {
+    (d.itv || []).forEach(function (i: Intervenant) {
       if ((i.nm || '').toUpperCase() !== agentName.toUpperCase()) return;
       (i.taches || []).forEach(function (t: string) {
         if (globalTaches.indexOf(t) < 0) globalTaches.push(t);
@@ -78,7 +89,7 @@ function AgentView(p: AgentViewProps) {
     if (p.notifyAdmins) p.notifyAdmins(msg);
   }
 
-  function cycleDocStatus(d: any, field: 'bs' | 'as2') {
+  function cycleDocStatus(d: Dossier, field: 'bs' | 'as2') {
     if (!p.patchDos) return;
     var cur = d[field] || "NON_DEMANDE";
     var next = cur === "NON_DEMANDE" ? "EN_COURS" : cur === "EN_COURS" ? "OBTENU" : "NON_DEMANDE";
@@ -87,33 +98,36 @@ function AgentView(p: AgentViewProps) {
     notify(agentName + " a mis a jour " + lbl + " -> " + next + " sur " + (d.cl || "?") + " " + (d.bl || ""));
   }
 
-  function setPregate(d: any, val: string) {
+  function setPregate(d: Dossier, val: string) {
     if (!p.patchDos) return;
     p.patchDos(d.id, { pn: val });
     notify(agentName + " a saisi le pregate " + val + " sur " + (d.cl || "?") + " " + (d.bl || ""));
   }
 
-  function advanceTc(d: any, tc: any, ns: string) {
+  function advanceTc(d: Dossier, tc: Conteneur, ns: string) {
     if (!p.advance) return;
     p.advance(tc.id, ns);
     notify(agentName + " a fait avancer " + (tc.n || "?") + " -> " + (SL[ns] || ns) + " (" + (d.cl || "?") + ")");
   }
 
-  function handleUpload(d: any, file: File) {
+  function handleUpload(d: Dossier, file: File) {
     if (!p.sv || !p.db || !file) return;
     var ext = (file.name.split(".").pop() || "").toLowerCase();
     if (ext !== "pdf" && ext !== "jpg" && ext !== "jpeg" && ext !== "png") return;
     if (file.size > 4 * 1024 * 1024) return;
     var reader = new FileReader();
-    reader.onload = function (ev: any) {
+    reader.onload = function (ev: ProgressEvent<FileReader>) {
       var fid = (p.companyId ? p.companyId + "-" : "") + mid();
-      fileStore.set("lt-file-" + fid, ev.target.result).then(function () {
+      var fileData = ev.target?.result;
+      // readAsDataURL renvoie toujours string (sinon le file n'est pas readable)
+      if (!fileData || typeof fileData !== 'string') return;
+      fileStore.set("lt-file-" + fid, fileData).then(function () {
         var newDoc = { id: mid(), tp: "AUTRE", fn: file.name, ft: file.type, sz: file.size, dt: new Date().toISOString(), fid: fid };
         var existingDocs = d.docs || [];
-        var newDos = (p.db.dos || []).map(function (x: any) {
+        var newDos = (p.db!.dos || []).map(function (x) {
           return x.id === d.id ? Object.assign({}, x, { docs: existingDocs.concat([newDoc]) }) : x;
         });
-        p.sv(Object.assign({}, p.db, { dos: newDos }));
+        p.sv!(Object.assign({}, p.db, { dos: newDos }));
         notify(agentName + " a uploade un document (" + file.name + ") sur " + (d.cl || "?") + " " + (d.bl || ""));
       });
     };
@@ -142,7 +156,7 @@ function AgentView(p: AgentViewProps) {
         <div style={{ background: "var(--warning-bg)", borderBottom: "1px solid var(--warning-border)", padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <span style={{ fontSize: 13, fontWeight: 700, color: "var(--warning-text)" }}>{"\uD83D\uDD14 " + String(notifs.length) + " nouvelle(s) notification(s)"}</span>
-            <div style={{ fontSize: 12, color: "var(--warning-text)", marginTop: 2 }}>{notifs[0].msg}</div>
+            <div style={{ fontSize: 12, color: "var(--warning-text)", marginTop: 2 }}>{String((notifs[0] as { msg?: string }).msg || "")}</div>
           </div>
           <button onClick={function () { if (markNotifsRead) markNotifsRead(); }} style={{ background: "var(--warning)", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", minHeight: 44, flexShrink: 0 }}>{"OK"}</button>
         </div>
@@ -162,17 +176,17 @@ function AgentView(p: AgentViewProps) {
           </div>
         ) : null}
 
-        {dos.map(function (d: any) {
-          var dosTcs = tcs.filter(function (t: any) { return t.did === d.id; });
-          var myItv = (d.itv || []).filter(function (i: any) { return (i.nm || "").toUpperCase() === agentName.toUpperCase(); });
-          var totalTaches = myItv.reduce(function (s: number, iv: any) { return s + (iv.taches || []).length; }, 0);
-          var doneTaches = myItv.reduce(function (s: number, iv: any) { return s + (iv.tachesDone || []).filter(function (k: string) { return (iv.taches || []).indexOf(k) >= 0; }).length; }, 0);
+        {dos.map(function (d) {
+          var dosTcs = tcs.filter(function (t) { return t.did === d.id; });
+          var myItv: Intervenant[] = (d.itv || []).filter(function (i: Intervenant) { return (i.nm || "").toUpperCase() === agentName.toUpperCase(); });
+          var totalTaches = myItv.reduce(function (s: number, iv: Intervenant) { return s + (iv.taches || []).length; }, 0);
+          var doneTaches = myItv.reduce(function (s: number, iv: Intervenant) { return s + (iv.tachesDone || []).filter(function (k: string) { return (iv.taches || []).indexOf(k) >= 0; }).length; }, 0);
           var allDone = totalTaches > 0 && doneTaches === totalTaches;
           // Permission : agent voit les depenses de ce dossier ?
-          var canSeeDep = myItv.some(function (i: any) { return !!i.voirDepenses; });
-          var dosDep = canSeeDep ? dep.filter(function (f: any) { return f.did === d.id && !f.ignored; }) : [];
-          var totalTtc = dosDep.reduce(function (s: number, f: any) { return s + (f.mt || 0); }, 0);
-          var totalPaye = dosDep.reduce(function (s: number, f: any) { return s + (f.s === 'PAYE' ? (f.mt || 0) : 0); }, 0);
+          var canSeeDep = myItv.some(function (i: Intervenant) { return !!i.voirDepenses; });
+          var dosDep: Depense[] = canSeeDep ? dep.filter(function (f) { return f.did === d.id && !(f as Depense & { ignored?: boolean }).ignored; }) : [];
+          var totalTtc = dosDep.reduce(function (s: number, f) { return s + (f.mt || 0); }, 0);
+          var totalPaye = dosDep.reduce(function (s: number, f) { return s + (f.s === 'PAYE' ? (f.mt || 0) : 0); }, 0);
 
           return (
             <div key={d.id} style={{ background: "var(--bg-primary)", borderRadius: 12, padding: 16, marginBottom: 12, border: "1px solid " + (allDone ? "var(--success-border)" : "var(--border)"), boxShadow: "0 1px 4px var(--shadow)" }}>
@@ -195,7 +209,7 @@ function AgentView(p: AgentViewProps) {
               {/* TC statuses */}
               {dosTcs.length > 0 ? (
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
-                  {dosTcs.map(function (tc: any) {
+                  {dosTcs.map(function (tc) {
                     return (
                       <div key={tc.id} style={{ background: "var(--bg-secondary)", borderRadius: 8, padding: "6px 10px", fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
                         <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--text-primary)" }}>{tc.n || "?"}</span>
@@ -211,7 +225,7 @@ function AgentView(p: AgentViewProps) {
               ) : null}
 
               {/* My tasks per intervenant entry — chaque tache montre son statut reel sur le dossier */}
-              {myItv.map(function (iv: any) {
+              {myItv.map(function (iv: Intervenant) {
                 return (
                   <div key={iv.id} style={{ borderTop: "1px solid var(--border-light)", paddingTop: 10 }}>
                     {(iv.taches || []).length === 0 ? (
@@ -264,7 +278,7 @@ function AgentView(p: AgentViewProps) {
                   {/* Advance TC : un bouton par TC actif */}
                   {p.advance ? (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                      {dosTcs.filter(function (tc: any) { return tc.st !== "ATTENDU" && tc.st !== "RETURNED"; }).map(function (tc: any) {
+                      {dosTcs.filter(function (tc) { return tc.st !== "ATTENDU" && tc.st !== "RETURNED"; }).map(function (tc) {
                         var nextSt = tc.st === "PORT" ? null : tc.st === "DISPATCHE" ? "TRANSIT" : tc.st === "TRANSIT" ? "KATI" : tc.st === "KATI" ? "BAMAKO" : tc.st === "BAMAKO" ? "RETURNED" : null;
                         if (!nextSt) return null;
                         return (
@@ -279,7 +293,7 @@ function AgentView(p: AgentViewProps) {
                   {p.sv ? (
                     <label style={{ display: "inline-block", background: "var(--bg-secondary)", border: "1px dashed var(--border)", borderRadius: 6, padding: "6px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", color: "var(--text-tertiary)" }}>
                       {"📎 Joindre document"}
-                      <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={function (e: any) { var f = e.target.files && e.target.files[0]; if (f) handleUpload(d, f); e.target.value = ""; }} style={{ display: "none" }} />
+                      <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={function (e: ChangeEvent<HTMLInputElement>) { var f = e.target.files && e.target.files[0]; if (f) handleUpload(d, f); e.target.value = ""; }} style={{ display: "none" }} />
                     </label>
                   ) : null}
                 </div>
@@ -296,7 +310,7 @@ function AgentView(p: AgentViewProps) {
                     <div style={{ fontSize: 11, color: "var(--text-muted)", fontStyle: "italic" }}>{"Aucune depense saisie"}</div>
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                      {dosDep.slice(0, 5).map(function (f: any) {
+                      {dosDep.slice(0, 5).map(function (f) {
                         return (
                           <div key={f.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, padding: "4px 0" }}>
                             <span style={{ color: "var(--text-tertiary)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{(DTL[f.tp] || f.tp || "?") + (f.ds ? " \u00B7 " + f.ds : "")}</span>

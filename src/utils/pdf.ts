@@ -5,6 +5,10 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { SL, DL } from '../constants/statuts.js';
 import { DTL } from '../constants/depenses.js';
+import type { Dossier, Conteneur, Depense, Config } from '../types.js';
+
+// jspdf-autotable etend jsPDF avec lastAutoTable (non type dans @types officiel)
+type JsPDFWithAutoTable = jsPDF & { lastAutoTable: { finalY: number } };
 
 // --- Helpers ---
 
@@ -21,7 +25,7 @@ function fmPdf(n: number | null): string {
 var HEAD_FILL: [number, number, number] = [28, 25, 23];
 var ALT_ROW: [number, number, number] = [250, 250, 249];
 
-function pdfHeader(doc: any, companyName: string, title: string): number {
+function pdfHeader(doc: jsPDF, companyName: string, title: string): number {
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
   doc.text(companyName || "SAPURAI", 14, 18);
@@ -45,8 +49,9 @@ function pdfHeader(doc: any, companyName: string, title: string): number {
   return 34;
 }
 
-function pdfFooter(doc: any, companyName: string): void {
-  var pages = doc.internal.getNumberOfPages();
+function pdfFooter(doc: jsPDF, companyName: string): void {
+  // jsPDF.internal n'expose pas getNumberOfPages dans le typage @types officiel, mais l'API runtime l'expose
+  var pages = (doc.internal as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
   for (var i = 1; i <= pages; i++) {
     doc.setPage(i);
     var ph = doc.internal.pageSize.getHeight();
@@ -72,7 +77,7 @@ function safeName(s: string | null): string {
  * @param {Array}  dep - toutes les depenses
  * @param {Object} cfg - { name: "SOCIETE", ... }
  */
-export function pdfDossier(d: any, tcs: any[], dep: any[], cfg: any): void {
+export function pdfDossier(d: Dossier, tcs: Conteneur[], dep: Depense[], cfg: Config): void {
   var companyName = (cfg && cfg.name) || "SAPURAI";
   var doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   var y = pdfHeader(doc, companyName, "FICHE DOSSIER");
@@ -134,7 +139,7 @@ export function pdfDossier(d: any, tcs: any[], dep: any[], cfg: any): void {
       alternateRowStyles: { fillColor: ALT_ROW },
       margin: { left: 14, right: 14 }
     });
-    y = (doc as any).lastAutoTable.finalY + 8;
+    y = (doc as JsPDFWithAutoTable).lastAutoTable.finalY + 8;
   }
 
   // Depenses
@@ -157,7 +162,7 @@ export function pdfDossier(d: any, tcs: any[], dep: any[], cfg: any): void {
       columnStyles: { 2: { halign: "right" }, 3: { halign: "right" }, 4: { halign: "center" } },
       margin: { left: 14, right: 14 }
     });
-    y = (doc as any).lastAutoTable.finalY + 8;
+    y = (doc as JsPDFWithAutoTable).lastAutoTable.finalY + 8;
   }
 
   // Totaux
@@ -221,7 +226,7 @@ export function pdfDossier(d: any, tcs: any[], dep: any[], cfg: any): void {
  * @param {Array}  dos  - dossiers (pour lookup client/BL)
  * @param {string} companyName
  */
-export function pdfDepenses(deps: any[], dos: any[], companyName?: string): void {
+export function pdfDepenses(deps: Depense[], dos: Dossier[], companyName?: string): void {
   companyName = companyName || "SAPURAI";
   var doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   var y = pdfHeader(doc, companyName, "LISTE DES DEPENSES");
@@ -260,11 +265,35 @@ export function pdfDepenses(deps: any[], dos: any[], companyName?: string): void
   doc.save(safeName(companyName) + "_depenses_" + new Date().toISOString().slice(0, 10) + ".pdf");
 }
 
+interface BilanUrgence {
+  level?: 'critical' | 'warning' | string;
+  cat?: string;
+  msg?: string;
+  sub?: string;
+}
+
+interface BilanAlerte {
+  tn?: string;
+  cl?: string;
+  dn?: string;
+  tp?: string;
+  j?: number;
+  r?: number;
+}
+
+interface BilanData {
+  dos: Dossier[];
+  tcs: Conteneur[];
+  dep: Depense[];
+  urgences?: BilanUrgence[];
+  alertes?: BilanAlerte[];
+  companyName?: string;
+}
+
 /**
  * PDF bilan journalier.
- * @param {Object} data - { dos, tcs, dep, urgences, alertes, companyName }
  */
-export function pdfBilan(data: any): void {
+export function pdfBilan(data: BilanData): void {
   var companyName = data.companyName || "SAPURAI";
   var doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   var y = pdfHeader(doc, companyName, "BILAN JOURNALIER");
@@ -299,7 +328,7 @@ export function pdfBilan(data: any): void {
     columnStyles: { 0: { fontStyle: "bold", cellWidth: 40 } },
     margin: { left: 14, right: 14 }
   });
-  y = (doc as any).lastAutoTable.finalY + 8;
+  y = (doc as JsPDFWithAutoTable).lastAutoTable.finalY + 8;
 
   // Urgences
   if (data.urgences && data.urgences.length > 0) {
@@ -329,7 +358,7 @@ export function pdfBilan(data: any): void {
       },
       margin: { left: 14, right: 14 }
     });
-    y = (doc as any).lastAutoTable.finalY + 8;
+    y = (doc as JsPDFWithAutoTable).lastAutoTable.finalY + 8;
   }
 
   // Alertes franchise
@@ -364,7 +393,7 @@ export function pdfBilan(data: any): void {
  * @param {Array}  dep - toutes les depenses
  * @param {string} companyName
  */
-export function pdfClient(clientName: string, dos: any[], tcs: any[], dep: any[], companyName?: string): void {
+export function pdfClient(clientName: string, dos: Dossier[], tcs: Conteneur[], dep: Depense[], companyName?: string): void {
   companyName = companyName || "SAPURAI";
   var doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   var y = pdfHeader(doc, companyName, "BILAN CLIENT");
@@ -419,7 +448,7 @@ export function pdfClient(clientName: string, dos: any[], tcs: any[], dep: any[]
     },
     margin: { left: 14, right: 14 }
   });
-  y = (doc as any).lastAutoTable.finalY + 10;
+  y = (doc as JsPDFWithAutoTable).lastAutoTable.finalY + 10;
 
   // --- Liste recapitulative des dossiers ---
   if (clientDos.length > 0) {
@@ -445,7 +474,7 @@ export function pdfClient(clientName: string, dos: any[], tcs: any[], dep: any[]
       columnStyles: { 6: { halign: "right" }, 7: { halign: "right" }, 8: { halign: "right" } },
       margin: { left: 14, right: 14 }
     });
-    y = (doc as any).lastAutoTable.finalY + 10;
+    y = (doc as JsPDFWithAutoTable).lastAutoTable.finalY + 10;
   }
 
   // --- Detail par dossier ---
@@ -478,7 +507,7 @@ export function pdfClient(clientName: string, dos: any[], tcs: any[], dep: any[]
         alternateRowStyles: { fillColor: ALT_ROW },
         margin: { left: 14, right: 14 }
       });
-      y = (doc as any).lastAutoTable.finalY + 3;
+      y = (doc as JsPDFWithAutoTable).lastAutoTable.finalY + 3;
     }
 
     if (dosDep.length > 0) {
@@ -494,7 +523,7 @@ export function pdfClient(clientName: string, dos: any[], tcs: any[], dep: any[]
         columnStyles: { 2: { halign: "right" }, 3: { halign: "center" } },
         margin: { left: 14, right: 14 }
       });
-      y = (doc as any).lastAutoTable.finalY + 3;
+      y = (doc as JsPDFWithAutoTable).lastAutoTable.finalY + 3;
     }
 
     // Sous-total dossier

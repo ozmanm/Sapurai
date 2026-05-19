@@ -104,7 +104,9 @@ function AuthRoot() {
   return <AuthGate user={user} />;
 }
 
-function AuthGate({ user }: { user: any }) {
+// Firebase User minimal (uid + email + displayName lus dans AuthGate/AuthenticatedApp)
+type FirebaseUserLike = { uid: string; email: string | null; displayName: string | null };
+function AuthGate({ user }: { user: FirebaseUserLike }) {
   var [checking, setChecking] = useState(true);
   var [superAdmin, setSuperAdmin] = useState(false);
 
@@ -127,7 +129,7 @@ function AuthGate({ user }: { user: any }) {
   return <AuthenticatedApp user={user} />;
 }
 
-interface AuthAppProps { user: any }
+interface AuthAppProps { user: FirebaseUserLike }
 
 function AuthenticatedApp(props: AuthAppProps) {
   var user = props.user;

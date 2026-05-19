@@ -3,21 +3,30 @@ import { IS, LS } from '../../constants/styles.js';
 import { fm } from '../../utils/format.js';
 import { today } from '../../utils/date.js';
 import { validateAll } from '../../utils/validate.js';
+import type { Conteneur, Chauffeur } from '../../types.js';
 
 var TYPES_20 = ["20GP", "20RF"];
 
+// Donnees creation chauffeur inline (cf. signature onDisp/onAssign)
+interface NewChauffeurDraft {
+  nm: string;
+  tl?: string;
+  // Champs additionnels possibles (cni, adresse, etc.) preserves a l'ecriture
+  [k: string]: unknown;
+}
+
 interface DispFormProps {
-  tc: any;
-  tcs: any[];
-  chs: any[];
+  tc: Conteneur;
+  tcs: Conteneur[];
+  chs: Chauffeur[];
   onClose: () => void;
   // goAddCh : ancienne API (deprecated) — la creation chauffeur se fait
   // maintenant inline dans le formulaire. Conserve optionnel pour retro-compat.
   goAddCh?: () => void;
   // Nouvelle signature : 7e parametre optionnel pour creation chauffeur inline.
   // Quand newChData est defini, ch peut etre null (pas encore en DB).
-  onDisp: (tid: string, ch: any, avance: number, budget: number, dspDate?: string, prixConvenu?: number, newChData?: any) => void;
-  onAssign?: (tid: string, ch: any, avance: number, budget: number, dassign?: string, prixConvenu?: number, newChData?: any) => void;
+  onDisp: (tid: string, ch: Chauffeur | null, avance: number, budget: number, dspDate?: string, prixConvenu?: number, newChData?: NewChauffeurDraft) => void;
+  onAssign?: (tid: string, ch: Chauffeur | null, avance: number, budget: number, dassign?: string, prixConvenu?: number, newChData?: NewChauffeurDraft) => void;
   nf: (m: string, t?: string) => void;
 }
 
@@ -41,11 +50,11 @@ function DispForm(p: DispFormProps) {
   var [vErr, setVErr] = useState<Record<string, string>>({});
   if (!tc) return <div>{"?"}</div>;
 
-  var po = parseInt(tc.po) || 0;
-  var tyIs20 = TYPES_20.indexOf(tc.ty) >= 0;
+  var po = parseInt(String(tc.po || 0)) || 0;
+  var tyIs20 = TYPES_20.indexOf(String(tc.ty || "")) >= 0;
   var now = new Date();
 
-  function getActiveTcs(c: any) {
+  function getActiveTcs(c: Chauffeur) {
     return tcs.filter(function (t) {
       if (t.ch !== c.nm) return false;
       if (t.st === "PORT" || t.st === "ATTENDU" || t.st === "RETURNED") return false;
@@ -61,7 +70,7 @@ function DispForm(p: DispFormProps) {
   // NOTE : le poids max du camion n'est PLUS un blocker (le recap rouge en bas
   // affiche la surcharge potentielle, mais n'empeche pas le dispatch — parfois
   // le transitaire n'a pas l'info exacte du poids max).
-  function isAvailable(c: any) {
+  function isAvailable(c: Chauffeur) {
     if (c.tty && c.tty.length > 0 && c.tty.indexOf(tc.ty) < 0) return false;
     var actifs = getActiveTcs(c);
     if (tyIs20) {
@@ -89,24 +98,27 @@ function DispForm(p: DispFormProps) {
     });
   }
 
-  var ch: any = null;
+  var ch: Chauffeur | null = null;
   availChs.forEach(function (c) { if (c.id === ci) ch = c; });
 
   // Recap surcharge : calcule des qu'un chauffeur (existant OU nouveau) est defini.
   // En mode 'new', on synthetise un ch a partir des champs saisis pour reutiliser
   // la meme logique d'affichage.
-  var recapCh: any = null;
+  // Type minimal pour le recap : tient les 3 champs lus en aval.
+  type RecapCh = { nm?: string; cm?: string; pm?: number } & Partial<Chauffeur>;
+  var recapCh: RecapCh | null = null;
   if (mode === "select" && ch) recapCh = ch;
   else if (mode === "new" && newNm.trim()) {
     recapCh = { nm: newNm.trim(), cm: newCm.trim(), pm: parseInt(newPm) || 0 };
   }
 
-  var recap: any = null;
+  type Recap = { tcs: Conteneur[]; totalActif: number; totalFinal: number; overPm: boolean; pm: number };
+  var recap: Recap | null = null;
   if (recapCh) {
-    var actifsCh = mode === "select" ? getActiveTcs(recapCh) : [];
-    var totalPoidsActif = actifsCh.reduce(function (s: number, t: any) { return s + (parseInt(t.po) || 0); }, 0);
+    var actifsCh: Conteneur[] = mode === "select" ? getActiveTcs(recapCh as Chauffeur) : [];
+    var totalPoidsActif = actifsCh.reduce(function (s: number, t) { return s + (parseInt(String(t.po || 0)) || 0); }, 0);
     var totalFinal = totalPoidsActif + po;
-    var pmCh = parseInt(recapCh.pm) || 0;
+    var pmCh = parseInt(String(recapCh.pm || 0)) || 0;
     recap = {
       tcs: actifsCh,
       totalActif: totalPoidsActif,
@@ -125,7 +137,7 @@ function DispForm(p: DispFormProps) {
    * Sprint 46 : valide les inputs et retourne les params communs.
    * Si validation echoue, retourne null (notif deja envoyee).
    */
-  function validateAndCollect(): { actualCh: any; newChData: any | null } | null {
+  function validateAndCollect(): { actualCh: Chauffeur | null; newChData: NewChauffeurDraft | null } | null {
     if (showNewForm) {
       var v = validateAll({
         nm: [newNm, { required: true, maxLen: 50 }],
@@ -243,9 +255,9 @@ function DispForm(p: DispFormProps) {
           <label style={LS}>{"Chauffeur *"}</label>
           <select value={ci} onChange={function (e) { sCi(e.target.value); }} style={IS}>
             <option value="">{"---"}</option>
-            {availChs.map(function (c: any) {
+            {availChs.map(function (c: Chauffeur) {
               var actifs = getActiveTcs(c);
-              var has20 = tyIs20 && actifs.filter(function (t: any) { return TYPES_20.indexOf(t.ty) >= 0; }).length === 1;
+              var has20 = tyIs20 && actifs.filter(function (t) { return TYPES_20.indexOf(String(t.ty || "")) >= 0; }).length === 1;
               var info = has20 ? " ★ 2e slot 20ft" : actifs.length > 0 ? " · " + String(actifs.length) + " TC en cours" : " · Disponible";
               return <option key={c.id} value={c.id}>{c.nm + " - " + c.cm + " " + String(c.pm || 0) + "kg" + info}</option>;
             })}
@@ -259,7 +271,7 @@ function DispForm(p: DispFormProps) {
       {recap ? (
         <div style={{ background: recap.overPm ? "var(--danger-bg)" : "var(--success-bg)", border: "1px solid " + (recap.overPm ? "var(--danger-border)" : "var(--success-border)"), borderRadius: 8, padding: "10px 12px", marginBottom: 12, fontSize: 12 }}>
           <div style={{ fontWeight: 700, color: recap.overPm ? "var(--danger-text)" : "var(--success-text)", marginBottom: 4 }}>{"Charge totale apres dispatch"}</div>
-          {recap.tcs.map(function (t: any) { return <div key={t.id} style={{ color: "var(--text-tertiary)" }}>{(t.n || "?") + " (" + (t.ty || "") + ") — " + String(parseInt(t.po) || 0) + " kg"}</div>; })}
+          {recap.tcs.map(function (t) { return <div key={t.id} style={{ color: "var(--text-tertiary)" }}>{(t.n || "?") + " (" + (t.ty || "") + ") — " + String(parseInt(String(t.po || 0)) || 0) + " kg"}</div>; })}
           <div style={{ borderTop: "1px solid " + (recap.overPm ? "var(--danger-border)" : "var(--success-border)"), marginTop: 6, paddingTop: 6, fontWeight: 700, color: recap.overPm ? "var(--danger)" : "var(--success)" }}>{"+ " + (tc.n || "?") + " (" + tc.ty + ") — " + String(po) + " kg"}</div>
           <div style={{ fontWeight: 800, fontSize: 13, marginTop: 4, color: recap.overPm ? "var(--danger)" : "var(--success)" }}>{"= " + String(recap.totalFinal) + " kg" + (recap.pm > 0 ? " / " + String(recap.pm) + " kg max" : " (poids max non renseigne)") + (recap.overPm ? " ⚠ SURCHARGE (dispatch possible mais a vos risques)" : recap.pm > 0 ? " ✓ OK" : "")}</div>
         </div>

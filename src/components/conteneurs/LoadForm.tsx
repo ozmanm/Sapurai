@@ -6,6 +6,7 @@
 // et permet optionnellement un complement de paiement si necessaire.
 
 import { useState } from 'react';
+import type { CSSProperties } from 'react';
 import { today } from '../../utils/date';
 import { fm } from '../../utils/format';
 import type { Conteneur } from '../../types';
@@ -17,8 +18,8 @@ interface LoadFormProps {
   nf: (msg: string, type?: string) => void;
 }
 
-var LS: any = { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-tertiary)", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.4 };
-var IS: any = { width: "100%", padding: "10px 12px", border: "1px solid var(--border)", borderRadius: 8, fontSize: 14, background: "var(--bg-primary)", color: "var(--text-primary)", boxSizing: "border-box", minHeight: 44 };
+var LS: CSSProperties = { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-tertiary)", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.4 };
+var IS: CSSProperties = { width: "100%", padding: "10px 12px", border: "1px solid var(--border)", borderRadius: 8, fontSize: 14, background: "var(--bg-primary)", color: "var(--text-primary)", boxSizing: "border-box", minHeight: 44 };
 
 export default function LoadForm(p: LoadFormProps) {
   var tc = p.tc;

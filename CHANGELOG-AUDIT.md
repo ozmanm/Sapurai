@@ -1,7 +1,15 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-05-19 (200 taches)
+> Derniere mise a jour : 2026-05-24 (201 taches)
+
+---
+
+## FAIT — Sprint 46 hotfix : EmptyState Dos icon raw `📋` -> emoji rendu
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 201 | **Hotfix Dos EmptyState icon raw** | `src/pages/Dos.tsx` (1 ligne) | Au 2026-05-24, l'EmptyState "Aucun dossier" affichait `📋` raw au lieu de l'emoji 📋 (capture user post-deletion de tous les dossiers test). Cause : `icon="📋"` etait un attribut JSX string (ligne 417) — dans un attribut JSX, les escapes `\u` ne sont PAS interpretees (regle JSX, pas JS). Fix : `icon={"📋"}` (expression JS entre accolades) — homogene avec les 4 autres occurrences `{"\\uXXXX..."}` dans le meme fichier (lignes 87, 94, 326...). Build + lint inchanges (500 warnings, 0 erreur). Hotfix isole — ne pas confondre avec l'incident dual-write delete reporte separement (cf. tache #202 a venir). |
 
 ---
 

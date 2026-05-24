@@ -414,7 +414,7 @@ function Dos(p: DosProps) {
           {filt.length === 0 ? (
             <div style={{ marginTop: 10 }}>
               <EmptyState
-                icon="\uD83D\uDCCB"
+                icon={"\uD83D\uDCCB"}
                 title={qr || filtCl || filtCp ? "Aucun r\u00E9sultat" : (dosFilter === "cloture" ? "Aucun dossier cl\u00F4tur\u00E9" : dosFilter === "archive" ? "Aucun dossier archiv\u00E9" : "Aucun dossier")}
                 description={qr || filtCl || filtCp ? "Modifiez vos filtres pour voir plus de r\u00E9sultats." : (dosFilter === "actif" ? "Tous vos dossiers actifs appara\u00EEtront ici." : "Cr\u00E9ez votre premier dossier pour d\u00E9marrer le suivi.")}
                 action={canEdit && !qr && !filtCl && !filtCp && dosFilter !== "cloture" && dosFilter !== "archive" ? (

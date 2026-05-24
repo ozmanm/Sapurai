@@ -7,6 +7,13 @@
 //
 // Ces tests mockent firebase/firestore pour valider la logique de detection des
 // suppressions, sans dependance a l'emulateur ou a un network reel.
+//
+// NOTE : ces tests protegent le MIRROR (Step 2 logic), pas le sourcing de prev dans
+// save(). Si quelqu'un re-met `prevSnapshot = data` dans useData.ts:save(), tous ces
+// tests restent verts. La barriere CI pour beta est tracee en backlog G (extract
+// resolvePrevSnapshot helper testable). Cf. CHANGELOG-AUDIT.md.
+
+/* eslint-disable @typescript-eslint/no-explicit-any -- mocks vi.mock callbacks Firebase, types stricts inutiles ici */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 

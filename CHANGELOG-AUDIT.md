@@ -1,7 +1,15 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-05-24 (201 taches)
+> Derniere mise a jour : 2026-05-24 (202 taches)
+
+---
+
+## FAIT — Sprint 46 hotfix beta : incident dual-write delete pas propage (prevSnapshot fiable)
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 202 | **Fix beta : prevSnapshot lu depuis Firestore + test regression dualwrite** | `src/useData.ts` (save() async + getDoc avec timeout), `src/services/__tests__/dualwrite.test.ts` (CREE, 6 tests), `CLAUDE.md` (28 -> 387 tests) | **Incident 2026-05-24** : diff mono-vs-sub revele 370 orphelins (37 dos, 98 tcs, 235 dep) dans sous-collections de `c_mocpodna9egt`, `dual_write_errors=0`. Cause : `var prevSnapshot = data` dans `save()` capture le React state, qui peut etre EMPTY/stale en pre-hydratation ou closure figee. Quand l'user a vide ses dossiers entre 2026-05-19 et 2026-05-24, le mirror Step 2 a vu `prevArr.length===0` -> skip silencieux des deletes. Sub a conserve les items historiques sans erreur loguee (les 370 orphelins constates). Repro confirme : create + delete isole d'un dossier test propage correctement quand `data` est bien hydrate, donc l'incident etait bien sur un chemin border non-couvert. **Fix beta** : `save()` devient async, lit prev depuis Firestore via `getDoc` AVANT `setDoc` (verite Firestore, immune closure/hydratation). Floor = `data` React si getDoc fail (jamais pire que pre-fix, strictement meilleur que `{}` qui re-introduirait le skip silencieux). Timeout 2s sur le getDoc via `Promise.race` pour ne pas prendre l'ecriture autoritative en otage sur connexion mobile pourrie Dakar/Bamako. Echec read -> log via `persistMirrorErrors` (dedup 60s evite spam si reseau dure mauvais). **Test regression** : `dualwrite.test.ts` (6 tests, mocks firebase/firestore complets, 1.75s) couvre : (a) chemin nominal prev=[A,B,C] new=[A,B] -> 1 delete, (b) cas border incident prev={} new={} -> 0 op 0 erreur, (c) suppression totale prev=[A,B] new=[] -> 2 deletes, (d) sans prev (1er save) -> 0 delete, (e) **scenario incident documente** prev.dos=[] new.dos=[] -> 0 delete (comportement correct cote mirror, le fix est cote save()), (f) propagation deletes multi-entites (dos+tcs+chs+dep). **CLAUDE.md** : compteur tests obsolete (28 -> 387). **Verifications** : build 21.08s, typecheck 0 erreur, **393 tests passants** (387 + 6 nouveaux) + 21 rules skipped, lint 517 (500 + 17 dus aux `any` mocks du test, acceptable). **P1 latent loggue (non corrige ici)** : `deleteDos`/`bulkDeleteDos` dans useDossierActions construisent newData a partir du `dos` stale de la closure -> peut ressusciter un item via Step 1 sur deletes rapproches. Pas la cause de cet incident (sub intact, pas gonfle). A traiter cote action layer (state fonctionnel ou ref), pas mirror. **Restant** : apres validation mini-fenetre + prune des 370 orphelins historiques + 1 dernier diff -> fin de l'incident -> reouverture debat Phase C. |
 
 ---
 
@@ -598,6 +606,8 @@ npm run deploy       # Build + deploy Firebase
 | ~~B~~ | ~~**Isolation fichiers par entreprise**~~ | **FAIT** — Tache #35 | ~~1 jour~~ |
 | C | **Proxy Gemini via Cloud Function** | Necessite plan Blaze (Cloud Functions). Cle API reste cote client. | 0.5 jour |
 | D | **Firebase Custom Claims pour super-admin** | Necessite plan Blaze (Cloud Functions). Actuellement env var. | 0.5 jour |
+| E | **P1 latent : closure stale dans deleteDos/bulkDeleteDos** | Identifie par sandbox lors de l'incident 2026-05-24 (tache #202). `deleteDos`/`bulkDeleteDos` construisent newData a partir du `dos` stale de la closure -> peut ressusciter un item via mirror Step 1 sur deletes rapproches. Pas la cause de l'incident traite (sub intact, pas gonfle), mais bug reel. Fix cote action layer : passer `setData(prev => ...)` fonctionnel ou utiliser `dataRef.current`. A traiter dans son propre commit avec test E2E. | 0.5 jour |
+| F | **Prune des 370 orphelins historiques c_mocpodna9egt** | Apres validation mini-fenetre post-fix beta (tache #202), executer `scripts/prune-sub-orphans.mjs --cid=c_mocpodna9egt --apply` pour nettoyer les sub-doc orphelins (37 dossiers, 98 tcs, 235 dep + 1 log) qui ne disparaitront pas via mirror normal (Step 2 n'agit que sur prevArr). Re-lancer diff apres pour confirmer `OK (zero drift)` global. | 5 min |
 
 ### Priorite moyenne
 

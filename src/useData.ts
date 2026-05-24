@@ -445,7 +445,7 @@ export default function useData(uid: string, email: string) {
     return v;
   }
 
-  function save(newData) {
+  async function save(newData) {
     if (!userInfo || !userInfo.companyId) return;
     setData(newData);
     setSaveError(null);
@@ -465,10 +465,30 @@ export default function useData(uid: string, email: string) {
         );
       }
     } catch (_e) { /* ignore : sanitize() doit garantir la serialisabilite */ }
-    // Sprint 43 Phase A - Snapshot precedent (depuis le state React) pour permettre
-    // au miroir de detecter les suppressions. Fire-and-forget : un echec n'impacte
-    // pas le save authoritative.
-    var prevSnapshot = data;
+    // Sprint 46 hotfix incident 2026-05-24 (beta) : prevSnapshot lu depuis Firestore (verite),
+    // pas depuis le React state qui peut etre EMPTY/stale (pre-hydratation, closure figee).
+    // Sans ca, mirror Step 2 voit prevArr=[] et skip les deletes silencieusement (orphelins
+    // sub, dual_write_errors=0). Floor = data React (jamais pire que pre-fix). Timeout 2s pour
+    // ne pas prendre setDoc en otage (mobile pourrie Dakar/Bamako). Echec read -> log via
+    // persistMirrorErrors (dedup 60s evite spam si reseau dure mauvais).
+    var prevSnapshot: Record<string, unknown> = (data as unknown as Record<string, unknown>) || {};
+    try {
+      var prevDocSnap = await Promise.race([
+        getDoc(doc(db, 'companies', userInfo.companyId)),
+        new Promise<never>(function (_, reject) {
+          setTimeout(function () { reject(new Error('getDoc-prev timeout')); }, 2000);
+        }),
+      ]);
+      if (prevDocSnap.exists()) {
+        prevSnapshot = prevDocSnap.data() as Record<string, unknown>;
+      }
+    } catch (e) {
+      var msg = e instanceof Error ? e.message : 'fail';
+      persistMirrorErrors(db, userInfo.companyId, {
+        ok: false, written: 0, deleted: 0,
+        errors: ['prevRead/getDoc : ' + msg], durationMs: 0,
+      });
+    }
     setDoc(doc(db, 'companies', userInfo.companyId), clean).then(function () {
       setSaveOk(true);
       setTimeout(function () { setSaveOk(false); }, 2000);

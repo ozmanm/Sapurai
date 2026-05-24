@@ -33,6 +33,6 @@
 npm run dev          # Serveur de dev
 npm run build        # Build production
 npm run lint         # ESLint (0 erreurs attendues)
-npm test             # Vitest (28 tests)
+npm test             # Vitest (387 tests + 21 rules skipped sans emulateur)
 npm run deploy       # Build + deploy Firebase
 ```

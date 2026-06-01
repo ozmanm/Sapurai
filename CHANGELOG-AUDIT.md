@@ -1,7 +1,15 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-05-24 (202 taches)
+> Derniere mise a jour : 2026-06-01 (203 taches)
+
+---
+
+## FAIT — Sprint 46 hotfix beta : fix time-rot test invariants + assert dualwrite + deploy prod
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 203 | **Fix test rot reconcileDossierState + renforcement test dualwrite + deploy prod** | `src/domain/__tests__/invariants.test.ts` (ligne 143 : date figee -> `daysFromToday(15)`), `src/services/__tests__/dualwrite.test.ts` (ajout `expect(batchCommitCalls).toBe(1)`) | **Test rot detecte au run pre-deploy** : `reconcileDossierState > cas reel da future + TC dispatche` echouait (Expected INITIALISE, Received EN_TRANSIT). Cause : ligne 143 hardcodait `da: '2026-05-30'` (commente `// futur (>15/05)`) ecrite quand le clock etait < 15/05 ; au 2026-06-01 cette date est PASSEE -> `isDaFuture` retourne false -> pas de retrogradation -> dossier reste EN_TRANSIT. **Code `domain/invariants.ts` strictement correct, zero regression** (le fix beta n'a pas touche `domain/`). Fix : string fige -> `daysFromToday(15)` (dynamique, immune au time-rot, comme les lignes voisines 126/135). **En passant** : ajout `expect(batchCommitCalls).toBe(1)` dans le cas nominal dualwrite (var assignee jamais assertee -> warning `no-unused-vars`, ESLint a fire empiriquement). Verifie : cas nominal `next.dos=[A,B]` autres collections vides -> 1 seul `batch.commit()`. **Verifications** : lint 500/0 erreur (501 -> 500), **393 tests passants** 0 echec, typecheck OK, build 16.07s. **Deploy prod 2026-06-01** (`npm run deploy`, plan Spark, --except storage) : hosting release complete + firestore.rules deja a jour. Live https://sapurai-84984.web.app. **Decouverte au passage (backlog M)** : 3 directives ESLint mortes (`useData.ts:223` no-floating-promises NON type-aware = vacuum-true ; `SuperAdmin.tsx:116/191` no-alert) -> parkees en passe lint separee (1 commit = 1 sujet). |
 
 ---
 
@@ -627,6 +635,7 @@ npm run deploy       # Build + deploy Firebase
 | ~~J~~ | ~~Tri configurable sur les listes~~ | **FAIT** — Tache #34 |
 | ~~K~~ | ~~Rapports PDF~~ | **FAIT** — Tache #36 |
 | L | Notifications push | Necessite Firebase Cloud Messaging + Cloud Functions |
+| M | **Nettoyer 3 directives ESLint mortes** | `useData.ts:223` (no-floating-promises non type-aware -> ne fire jamais, vacuum-true) + `SuperAdmin.tsx:116/191` (no-alert sans `alert()`). Retrait = lint 500 -> 497. Decouvert au deploy tache #203. Passe lint dediee, ne pas bundler avec un hotfix (1 commit = 1 sujet). Note : `H` deja pris en priorite moyenne (Rate limiting), d'ou `M`. |
 
 ---
 

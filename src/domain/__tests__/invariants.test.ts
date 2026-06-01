@@ -140,7 +140,7 @@ describe('reconcileDossierState', () => {
   });
 
   it('cas reel : da future + TC dispatche => apres reconcile, dossier INITIALISE + TC ATTENDU', () => {
-    var dos = [mkDos({ id: 'd1', st: 'EN_TRANSIT', da: '2026-05-30' })];  // futur (>15/05)
+    var dos = [mkDos({ id: 'd1', st: 'EN_TRANSIT', da: daysFromToday(15) })];  // futur (dynamique, immune au time-rot)
     var tcs = [
       mkTc({ id: 't1', did: 'd1', st: 'DISPATCHE', dsp: '2026-05-10' }),
       mkTc({ id: 't2', did: 'd1', st: 'DISPATCHE', dsp: '2026-05-10' }),

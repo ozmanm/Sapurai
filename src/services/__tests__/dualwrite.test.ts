@@ -84,6 +84,7 @@ describe('mirrorToSubcollections - propagation deletes (Step 2)', function () {
     expect(deleteDocCalls.length).toBe(1);
     expect(deleteDocCalls[0].ref._path).toContain('companies/cid1/dossiers/C');
     expect(stats.errors).toEqual([]);
+    expect(batchCommitCalls).toBe(1);  // 1 seul batch commit (seule dos a des items)
   });
 
   it('cas border incident : prev={} new={} -> 0 delete, 0 write, 0 error', async function () {

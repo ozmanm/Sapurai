@@ -105,6 +105,27 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys()
         .hasAny(['cfg', 'name']);
     }
+
+    // ── Backlog O (Sprint 47) : champs financiers reserves, par tier ──
+    // Field-level sur les sous-collections. Toutes ces fonctions s'appuient sur
+    // diff(resource.data).affectedKeys() = BASE VALEUR : une reecriture a l'identique
+    // (cas du mirror batch.set full-doc en Phase A) ne declenche PAS la rule. C'est ce
+    // qui rend O compatible avec le write-model actuel, sans attendre updateDoc cible.
+    // N'EST UTILISABLE QUE SUR update (resource.data existe). create reste permissif.
+    function changesDossierFinanceFields() {   // Tier 1 : admin-only (recette/profit/garantie)
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['rv', 'pf', 'gar_frais', 'gar_caution', 'gar_frais_unit',
+                 'gar_caution_unit', 'gar_statut', 'gar_contact', 'gar_tel']);
+    }
+    function changesDepStatusField() {         // Tier 2 : admin-only (statut paiement)
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(['s', 'status']);
+    }
+    function changesDepAmountFields() {        // Tier 3 : admin+editor, pas agent (montants)
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(['mt', 'ht']);
+    }
+    function changesTcPriceField() {           // Tier 3 : admin+editor, pas agent (prix chauffeur)
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(['pc']);
+    }
     match /companies/{companyId} {
       allow create: if isAuth() && isFirstCompanyCreator(companyId);
       allow read: if isAuth() && (isSuperAdmin() || isMember(companyId));
@@ -173,8 +194,16 @@ service cloud.firestore {
 
     match /companies/{companyId}/dossiers/{dosId} {
       allow read: if isSuperAdmin() || isMember(companyId);
-      allow create, update: if isSuperAdmin() ||
+      // Sprint 47 (backlog O) : update verrouille field-level. Create reste permissif —
+      // l'UI masque les financiers a la creation (NDosForm: inputs gates par mode edition)
+      // et le payload create est neutre (rv/pf/gar_*=0). Le vecteur de fraude (mutation des
+      // financiers) est sur update, traite ci-dessous.
+      allow create: if isSuperAdmin() ||
         (memberHasRole(companyId, ['admin', 'editor', 'agent']) && isCompanyActive(companyId));
+      allow update: if isSuperAdmin() || (isCompanyActive(companyId) && (
+        memberHasRole(companyId, ['admin']) ||
+        (memberHasRole(companyId, ['editor', 'agent']) && !changesDossierFinanceFields())
+      ));
       // Delete : admin uniquement (les editor/agent ne peuvent pas effacer un dossier)
       allow delete: if isSuperAdmin() ||
         (memberHasRole(companyId, ['admin']) && isCompanyActive(companyId));
@@ -182,8 +211,13 @@ service cloud.firestore {
 
     match /companies/{companyId}/tcs/{tcId} {
       allow read: if isSuperAdmin() || isMember(companyId);
-      allow create, update: if isSuperAdmin() ||
+      allow create: if isSuperAdmin() ||
         (memberHasRole(companyId, ['admin', 'editor', 'agent']) && isCompanyActive(companyId));
+      // Sprint 47 (backlog O) : pc (prix chauffeur) = Tier 3, admin+editor ; agent exclu.
+      allow update: if isSuperAdmin() || (isCompanyActive(companyId) && (
+        memberHasRole(companyId, ['admin', 'editor']) ||
+        (memberHasRole(companyId, ['agent']) && !changesTcPriceField())
+      ));
       allow delete: if isSuperAdmin() ||
         (memberHasRole(companyId, ['admin', 'editor']) && isCompanyActive(companyId));
     }
@@ -197,8 +231,15 @@ service cloud.firestore {
 
     match /companies/{companyId}/dep/{depId} {
       allow read: if isSuperAdmin() || isMember(companyId);
-      allow create, update: if isSuperAdmin() ||
+      allow create: if isSuperAdmin() ||
         (memberHasRole(companyId, ['admin', 'editor', 'agent']) && isCompanyActive(companyId));
+      // Sprint 47 (backlog O) : Tier 2 statut paiement (s/status) = admin-only ;
+      // Tier 3 montants (mt/ht) = admin+editor, agent exclu.
+      allow update: if isSuperAdmin() || (isCompanyActive(companyId) && (
+        memberHasRole(companyId, ['admin']) ||
+        (memberHasRole(companyId, ['editor']) && !changesDepStatusField()) ||
+        (memberHasRole(companyId, ['agent']) && !changesDepStatusField() && !changesDepAmountFields())
+      ));
       // Delete : admin/editor uniquement (un agent ne supprime pas une depense)
       allow delete: if isSuperAdmin() ||
         (memberHasRole(companyId, ['admin', 'editor']) && isCompanyActive(companyId));

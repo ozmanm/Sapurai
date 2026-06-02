@@ -15,6 +15,7 @@ import { useState, useEffect } from 'react';
 import { doc, getDoc, getDocs, setDoc, onSnapshot, collection, deleteDoc, addDoc, updateDoc, query, where } from 'firebase/firestore';
 import { db } from './firebase.js';
 import { mirrorToSubcollections, logMirrorResult, persistMirrorErrors } from './services/dualwrite';
+import { resolvePrevSnapshot } from './services/prevSnapshot';
 
 var EMPTY = { dos: [], tcs: [], chs: [], dep: [], logs: [], cfg: { fp: 10, ft: 23, fm: 20 } };
 
@@ -466,29 +467,11 @@ export default function useData(uid: string, email: string) {
       }
     } catch (_e) { /* ignore : sanitize() doit garantir la serialisabilite */ }
     // Sprint 46 hotfix incident 2026-05-24 (beta) : prevSnapshot lu depuis Firestore (verite),
-    // pas depuis le React state qui peut etre EMPTY/stale (pre-hydratation, closure figee).
-    // Sans ca, mirror Step 2 voit prevArr=[] et skip les deletes silencieusement (orphelins
-    // sub, dual_write_errors=0). Floor = data React (jamais pire que pre-fix). Timeout 2s pour
-    // ne pas prendre setDoc en otage (mobile pourrie Dakar/Bamako). Echec read -> log via
-    // persistMirrorErrors (dedup 60s evite spam si reseau dure mauvais).
-    var prevSnapshot: Record<string, unknown> = (data as unknown as Record<string, unknown>) || {};
-    try {
-      var prevDocSnap = await Promise.race([
-        getDoc(doc(db, 'companies', userInfo.companyId)),
-        new Promise<never>(function (_, reject) {
-          setTimeout(function () { reject(new Error('getDoc-prev timeout')); }, 2000);
-        }),
-      ]);
-      if (prevDocSnap.exists()) {
-        prevSnapshot = prevDocSnap.data() as Record<string, unknown>;
-      }
-    } catch (e) {
-      var msg = e instanceof Error ? e.message : 'fail';
-      persistMirrorErrors(db, userInfo.companyId, {
-        ok: false, written: 0, deleted: 0,
-        errors: ['prevRead/getDoc : ' + msg], durationMs: 0,
-      });
-    }
+    // pas depuis le React state qui peut etre EMPTY/stale. Logique extraite + testee dans
+    // services/prevSnapshot.ts (backlog G : barriere CI). Floor = data React (jamais `{}`).
+    var prevSnapshot = await resolvePrevSnapshot(
+      db, userInfo.companyId, (data as unknown as Record<string, unknown>) || {},
+    );
     setDoc(doc(db, 'companies', userInfo.companyId), clean).then(function () {
       setSaveOk(true);
       setTimeout(function () { setSaveOk(false); }, 2000);

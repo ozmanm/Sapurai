@@ -95,10 +95,11 @@ service cloud.firestore {
     //                  MAIS pas les champs sensibles cfg/name (tarifs et identite societe).
     // DELETE : super-admin uniquement.
     // Sprint 44 F44.5 : durcissement granulaire via affectedKeys + admin-only fields.
-    // Note transitoire (Phase A) : save() reecrit le doc complet a chaque toggle, donc
-    // affectedKeys() retourne souvent toutes les clefs. Cette rule deviendra
-    // pleinement effective Phase D (Sprint 45+) apres migration vers sous-collections
-    // + passage en updateDoc cible.
+    // Note (corrige Sprint 47) : affectedKeys() est BASE VALEUR — c'est diff(resource.data),
+    // soit added union changed union removed. Un setDoc full-doc qui reecrit cfg/name a
+    // l'identique ne les met PAS dans le diff. Cette rule est donc deja effective des la
+    // Phase A, sans attendre updateDoc cible (l'ancienne note "effective Phase D" etait
+    // une meprise sur la semantique d'affectedKeys).
     function changesAdminOnlyFields() {
       // Returns true si l'update touche un champ reserve admin
       return request.resource.data.diff(resource.data).affectedKeys()

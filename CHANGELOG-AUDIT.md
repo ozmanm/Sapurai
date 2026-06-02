@@ -1,7 +1,15 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-06-01 (203 taches)
+> Derniere mise a jour : 2026-06-02 (204 taches)
+
+---
+
+## FAIT — Sprint 46 hotfix beta : prune 370 orphelins + cloture incident dual-write
+
+| # | Tache | Fichiers modifies | Details |
+|---|-------|-------------------|---------|
+| 204 | **Prune des 370 orphelins historiques + cloture formelle incident 2026-05-24** | (operation data, aucun fichier code ; `scripts/prune-sub-orphans.mjs` execute) | **Fenetre d'observation J0->J1 propre** : diff post-deploy identique au pre-deploy (37/98/235 figes, zero nouveau drift), `dual_write_errors=0`, **zero canari `prevRead/getDoc : timeout`**. β valide (chemin delete prouve par repro incident + canari muet). **Prune execute 2026-06-02** : dry-run -> `TOTAL : 370 orphans` (37 dossiers + 98 tcs + 235 dep, chs=0 deja sain), puis `--apply` -> 370 supprimes. **Diff final** : dos OK (0/0), tcs OK (0/0), chs OK (51/51), dep OK (0/0). **Incident dual-write delete formellement CLOS.** Reste `logs onlyMono=1` (mono 312 / sub 311) : append-only, mono en avance d'1 log non mirore (comportement Sprint 45, le prune ne touche pas logs volontairement). Benin en Phase A (mono = source de verite), sera resorbe par backfill Phase B / traite a Phase C. Le diff global affichera donc `DRIFT` tant que ce +1 logs persiste — attendu, ce n'est PAS un orphelin dos/tc/dep. **NO-GO Phase C maintenu** : prerequis backlog G (barriere CI `resolvePrevSnapshot`) avant de remuer la zone. |
 
 ---
 
@@ -615,7 +623,7 @@ npm run deploy       # Build + deploy Firebase
 | C | **Proxy Gemini via Cloud Function** | Necessite plan Blaze (Cloud Functions). Cle API reste cote client. | 0.5 jour |
 | D | **Firebase Custom Claims pour super-admin** | Necessite plan Blaze (Cloud Functions). Actuellement env var. | 0.5 jour |
 | E | **P1 latent : closure stale dans deleteDos/bulkDeleteDos** | Identifie par sandbox lors de l'incident 2026-05-24 (tache #202). `deleteDos`/`bulkDeleteDos` construisent newData a partir du `dos` stale de la closure -> peut ressusciter un item via mirror Step 1 sur deletes rapproches. Pas la cause de l'incident traite (sub intact, pas gonfle), mais bug reel. Fix cote action layer : passer `setData(prev => ...)` fonctionnel ou utiliser `dataRef.current`. A traiter dans son propre commit avec test E2E. | 0.5 jour |
-| F | **Prune des 370 orphelins historiques c_mocpodna9egt** | Apres validation mini-fenetre post-fix beta (tache #202), executer `scripts/prune-sub-orphans.mjs --cid=c_mocpodna9egt --apply` pour nettoyer les sub-doc orphelins (37 dossiers, 98 tcs, 235 dep + 1 log) qui ne disparaitront pas via mirror normal (Step 2 n'agit que sur prevArr). Re-lancer diff apres pour confirmer `OK (zero drift)` global. | 5 min |
+| ~~F~~ | ~~**Prune des 370 orphelins historiques c_mocpodna9egt**~~ | **FAIT** — Tache #204 (2026-06-02). Dry-run -> 370 confirmes (37 dos + 98 tcs + 235 dep, chs=0), `--apply` -> 370 supprimes, diff final OK sur dos/tcs/chs/dep. Reste logs onlyMono=1 (append-only benin, hors scope prune). | ~~5 min~~ |
 | G | **Barriere CI manquante sur beta : extraire resolvePrevSnapshot helper testable** | Identifie par sandbox post-commit beta. Les 6 tests `dualwrite.test.ts` protegent le MIRROR (Step 2 logic), pas le sourcing de `prev` dans `save()`. Si quelqu'un re-met `prevSnapshot = data` dans `useData.ts:save()` demain, les 6 verts restent verts et l'incident revient — le commentaire dans le test case 5 le reconnait honnetement mais ne casse pas la CI. Fix : extraire `resolvePrevSnapshot(db, cid, fallback): Promise<Record<string, unknown>>` dans un module dedie (ex: `services/prevSnapshot.ts`), tester les 3 chemins (getDoc OK -> data Firestore ; timeout -> fallback + log ; throw -> fallback + log). `save()` l'appelle, tests independants du hook React. **Priorite haute** : avant de rouvrir le debat Phase C (Phase C va remuer cette zone). Couvre aussi en passant les 2 zones nice-to-have non testees : branche logs append-only (dualwrite.ts:88-97) et chemin erreur Step 2 (`deleteDoc` qui throw -> `stats.errors`). | 0.5 jour |
 
 ### Priorite moyenne

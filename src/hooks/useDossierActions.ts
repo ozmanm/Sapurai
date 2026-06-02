@@ -27,23 +27,32 @@ export default function useDossierActions(p: DossierActionsDeps) {
   var dos = p.dos, tcs = p.tcs, dep = p.dep, ml = p.ml;
 
   function deleteDos(id: string): void {
-    var d = dos.find(function (x) { return x.id === id; });
-    sv(wLog(Object.assign({}, db, {
-      dos: dos.filter(function (x) { return x.id !== id; }),
-      tcs: tcs.filter(function (c) { return c.did !== id; }),
-      dep: dep.filter(function (f) { return f.did !== id; })
-    }), id, "SUPPR_DOSSIER", (d ? d.cl + " - " + d.bl : "")));
+    // E fix : updater fonctionnel -> save() resout contre la verite synchrone (prev),
+    // pas le dos/tcs/dep figes de la closure. Evite la resurrection sur deletes rapproches.
+    sv(function (prev) {
+      var pdos = prev.dos || [], ptcs = prev.tcs || [], pdep = prev.dep || [];
+      var d = pdos.find(function (x) { return x.id === id; });
+      return wLog(Object.assign({}, prev, {
+        dos: pdos.filter(function (x) { return x.id !== id; }),
+        tcs: ptcs.filter(function (c) { return c.did !== id; }),
+        dep: pdep.filter(function (f) { return f.did !== id; })
+      }), id, "SUPPR_DOSSIER", (d ? d.cl + " - " + d.bl : ""));
+    });
     nf("Dossier + TC + depenses supprimes", "error");
     if (ml && ml.t === "det" && ml.did === id) setMl(null);
   }
 
   function bulkDeleteDos(ids: string[]): void {
     var idsSet = new Set(ids);
-    sv(wLog(Object.assign({}, db, {
-      dos: dos.filter(function (x) { return !idsSet.has(x.id); }),
-      tcs: tcs.filter(function (c) { return !idsSet.has(c.did); }),
-      dep: dep.filter(function (f) { return !idsSet.has(f.did); })
-    }), ids.join(","), "SUPPR_BULK", ids.length + " dossiers"));
+    // E fix : updater fonctionnel (cf. deleteDos).
+    sv(function (prev) {
+      var pdos = prev.dos || [], ptcs = prev.tcs || [], pdep = prev.dep || [];
+      return wLog(Object.assign({}, prev, {
+        dos: pdos.filter(function (x) { return !idsSet.has(x.id); }),
+        tcs: ptcs.filter(function (c) { return !idsSet.has(c.did); }),
+        dep: pdep.filter(function (f) { return !idsSet.has(f.did); })
+      }), ids.join(","), "SUPPR_BULK", ids.length + " dossiers");
+    });
     nf(ids.length + " dossier" + (ids.length > 1 ? "s" : "") + " supprimes", "error");
     if (ml && ml.t === "det" && idsSet.has(ml.did)) setMl(null);
   }

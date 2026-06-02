@@ -11,7 +11,7 @@
 // ajoute par erreur, le retirer (pas le justifier).
 /* eslint-disable no-console */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { doc, getDoc, getDocs, setDoc, onSnapshot, collection, deleteDoc, addDoc, updateDoc, query, where } from 'firebase/firestore';
 import { db } from './firebase.js';
 import { mirrorToSubcollections, logMirrorResult, persistMirrorErrors } from './services/dualwrite';
@@ -29,6 +29,12 @@ export default function useData(uid: string, email: string) {
   var [ratings, setRatings] = useState<Record<string, any>>({}); // tokId -> { rating, ratingComment, ratingReasons, ratingAt }
   var [saveError, setSaveError] = useState<string | null>(null);
   var [saveOk, setSaveOk] = useState(false);
+
+  // E fix (closure stale) : ref synchrone vers la derniere data connue. Permet a save()
+  // de resoudre un updater fonctionnel contre la verite courante (pas le React state fige),
+  // evitant la resurrection d'items sur deletes rapproches (cf. backlog E).
+  var dataRef = useRef<any>(null);
+  useEffect(function () { dataRef.current = data; }, [data]);
 
   // 1. Check if user belongs to a company
   useEffect(function () {
@@ -445,8 +451,14 @@ export default function useData(uid: string, email: string) {
     return v;
   }
 
-  async function save(newData) {
+  async function save(arg) {
     if (!userInfo || !userInfo.companyId) return;
+    // E fix : si arg est un updater, le resoudre contre dataRef.current (verite synchrone)
+    // et non le React state fige. Maj synchrone du ref pour que 2 saves rapproches (ex: 2
+    // deletes avant re-render) chainent sans resurrection. Retro-compatible (valeur OU fn).
+    var base = (dataRef.current != null ? dataRef.current : data);
+    var newData = (typeof arg === 'function') ? arg(base) : arg;
+    dataRef.current = newData;
     setData(newData);
     setSaveError(null);
     setSaveOk(false);

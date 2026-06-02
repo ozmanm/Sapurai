@@ -113,7 +113,6 @@ export default function SuperAdmin({ user, logout }: SuperAdminProps) {
     if (!currentlySuspended) {
       // Suspendre : confirmation
       var name = (companies.find(function (c) { return c.id === companyId; }) || {}).name || companyId;
-      // eslint-disable-next-line no-alert
       if (!window.confirm("Suspendre l'acces de \"" + name + "\" ? L'utilisateur ne pourra plus ecrire dans Firestore.")) return;
       updateBilling(companyId, { billingStatus: 'suspended' });
     } else {
@@ -188,7 +187,6 @@ export default function SuperAdmin({ user, logout }: SuperAdminProps) {
       setErr('Impossible de retirer le dernier super-admin.');
       return;
     }
-    // eslint-disable-next-line no-alert
     if (!window.confirm('Retirer ' + (email || uid) + ' des super-admins ?')) return;
     try {
       await deleteDoc(doc(db, 'superAdmins', uid));

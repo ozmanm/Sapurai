@@ -221,7 +221,6 @@ export default function useData(uid: string, email: string) {
       }
       if (fcmTokens.length === 0) return;
       // Appel Worker (POST JSON, fire-and-forget — pas de bloquage si Worker down)
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       fetch('https://fcm-proxy.ozmanm10.workers.dev', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

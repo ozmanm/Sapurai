@@ -34,8 +34,16 @@ describeOrSkip('Firestore rules — securite multi-tenant (Sprint 42 F42.1)', ()
 
   beforeAll(async () => {
     var rulesPath = path.resolve(__dirname, '../../../firestore.rules');
+    // projectId DISTINCT de storage-security.test.ts ('sapurai-test') : vitest lance les
+    // fichiers en parallele et clearFirestore() est scope par projectId. storage-security
+    // seed AUSSI companies/companyA/members dans Firestore et DOIT garder 'sapurai-test'
+    // (son firestore.get() cross-service ne resout que contre le --project de l'emulateur).
+    // L'isolation est donc portee ici : sans elle, le beforeEach de storage efface les seeds
+    // de ce fichier -> companyA vide -> l'attaquant passe pour premier membre -> l'auto-join
+    // "sans invitation" reussit a tort (echec intermittent). Ce fichier est firestore-pur,
+    // son projectId est libre.
     testEnv = await initializeTestEnvironment({
-      projectId: 'sapurai-test',
+      projectId: 'sapurai-test-fsec',
       firestore: {
         rules: fs.readFileSync(rulesPath, 'utf8'),
         host: 'localhost',

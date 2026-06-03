@@ -38,6 +38,13 @@ describeOrSkip('Storage rules — isolation par membership (Sprint 42 F42.3)', (
   beforeAll(async () => {
     var firestoreRulesPath = path.resolve(__dirname, '../../../firestore.rules');
     var storageRulesPath = path.resolve(__dirname, '../../../storage.rules');
+    // projectId = 'sapurai-test' = le --project de l'emulateur (cf. script "emulators").
+    // OBLIGATOIRE ici : les storage.rules font un firestore.get() de membership cross-service,
+    // que l'emulateur Storage resout contre le PROJET PAR DEFAUT de l'emulateur, PAS contre
+    // le projectId du testEnv. Un projectId distinct ferait pointer ce get() sur une base
+    // Firestore vide -> membership KO -> upload refuse a tort. L'isolation anti-course
+    // clearFirestore est donc portee par les AUTRES fichiers (firestore-security/-finance ont
+    // des projectId distincts), pas par celui-ci.
     testEnv = await initializeTestEnvironment({
       projectId: 'sapurai-test',
       firestore: {

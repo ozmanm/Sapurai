@@ -112,13 +112,15 @@ service cloud.firestore {
     // (cas du mirror batch.set full-doc en Phase A) ne declenche PAS la rule. C'est ce
     // qui rend O compatible avec le write-model actuel, sans attendre updateDoc cible.
     // N'EST UTILISABLE QUE SUR update (resource.data existe). create reste permissif.
-    function changesDossierFinanceFields() {   // Tier 1 : admin-only (recette/profit/garantie)
+    // Tier 1 : admin-only. UNIQUEMENT les MONTANTS strategiques (recette, profit, montants
+    // de garantie). gar_statut/gar_contact/gar_tel sont des ETATS OPERATIONNELS (constatation
+    // d'un fait : caution versee/recuperee, coordonnees), pas des engagements chiffres : ils
+    // restent libres (editor/agent), traces par wLog. Cf. reclassification Sprint 47 (4-eyes
+    // ecarte sur les statuts : la separation des pouvoirs porte sur les CHIFFRES, pas les
+    // ETIQUETTES). Tier 2 (ex-statut paiement dep) dissous pour la meme raison.
+    function changesDossierFinanceFields() {   // Tier 1 : admin-only (montants strategiques)
       return request.resource.data.diff(resource.data).affectedKeys()
-        .hasAny(['rv', 'pf', 'gar_frais', 'gar_caution', 'gar_frais_unit',
-                 'gar_caution_unit', 'gar_statut', 'gar_contact', 'gar_tel']);
-    }
-    function changesDepStatusField() {         // Tier 2 : admin-only (statut paiement)
-      return request.resource.data.diff(resource.data).affectedKeys().hasAny(['s', 'status']);
+        .hasAny(['rv', 'pf', 'gar_frais', 'gar_caution', 'gar_frais_unit', 'gar_caution_unit']);
     }
     function changesDepAmountFields() {        // Tier 3 : admin+editor, pas agent (montants)
       return request.resource.data.diff(resource.data).affectedKeys().hasAny(['mt', 'ht']);
@@ -233,12 +235,13 @@ service cloud.firestore {
       allow read: if isSuperAdmin() || isMember(companyId);
       allow create: if isSuperAdmin() ||
         (memberHasRole(companyId, ['admin', 'editor', 'agent']) && isCompanyActive(companyId));
-      // Sprint 47 (backlog O) : Tier 2 statut paiement (s/status) = admin-only ;
-      // Tier 3 montants (mt/ht) = admin+editor, agent exclu.
+      // Sprint 47 (backlog O) : seuls les montants (mt/ht) = Tier 3, admin+editor, agent
+      // exclu. Le statut paiement (s/status) est un etat operationnel libre (ex-Tier 2
+      // dissous a la reclassification) : un toggle IMPAYE->PAYE est une constatation tracee
+      // par wLog, pas une signature financiere.
       allow update: if isSuperAdmin() || (isCompanyActive(companyId) && (
-        memberHasRole(companyId, ['admin']) ||
-        (memberHasRole(companyId, ['editor']) && !changesDepStatusField()) ||
-        (memberHasRole(companyId, ['agent']) && !changesDepStatusField() && !changesDepAmountFields())
+        memberHasRole(companyId, ['admin', 'editor']) ||
+        (memberHasRole(companyId, ['agent']) && !changesDepAmountFields())
       ));
       // Delete : admin/editor uniquement (un agent ne supprime pas une depense)
       allow delete: if isSuperAdmin() ||

@@ -1,11 +1,14 @@
 /**
  * Backlog O (Sprint 47) - Tests rules field-level financier via emulateur.
  *
- * Verifie le durcissement par tier des sous-collections :
- *  - Tier 1 (dossiers, admin-only) : rv, pf, gar_* -> editor/agent ne peuvent PAS changer
- *  - Tier 2 (dep, admin-only)      : s/status      -> editor/agent ne peuvent PAS changer
+ * Verifie le durcissement par tier des sous-collections (reclassification Sprint 47) :
+ *  - Tier 1 (dossiers, admin-only) : rv, pf, gar_frais, gar_caution, gar_*_unit (MONTANTS
+ *                                    strategiques) -> editor/agent ne peuvent PAS changer
  *  - Tier 3 (dep, admin+editor)    : mt, ht        -> agent ne peut PAS changer (editor oui)
  *  - Tier 3 (tcs, admin+editor)    : pc            -> agent ne peut PAS changer (editor oui)
+ *  - Operationnel (libre)          : gar_statut/gar_contact/gar_tel, dep.s/status -> tous
+ *                                    (constatations tracees par wLog, pas des engagements
+ *                                    chiffres ; 4-eyes ecarte sur les statuts). Tier 2 dissous.
  *
  * Decision de cadrage (cf. echange Sprint 47) : enforcement sur UPDATE uniquement, CREATE
  * reste permissif (l'UI masque les financiers a la creation, payload create neutre). Le
@@ -112,8 +115,28 @@ describeOrSkip('Firestore rules — financier field-level par tier (backlog O)',
     await assertFails(setDoc(dosRef('agentUid'), Object.assign({}, DOS_BASE, { rv: 9000 })));
   });
 
-  it('dossiers : editor change gar_frais -> DENY', async () => {
+  it('dossiers : editor change gar_frais (montant) -> DENY', async () => {
     await assertFails(setDoc(dosRef('editorUid'), Object.assign({}, DOS_BASE, { gar_frais: 5000 })));
+  });
+
+  it('dossiers : agent change gar_caution (montant) -> DENY', async () => {
+    await assertFails(setDoc(dosRef('agentUid'), Object.assign({}, DOS_BASE, { gar_caution: 5000 })));
+  });
+
+  // Reclassification Sprint 47 : gar_statut/gar_contact/gar_tel = etats operationnels (ex hors
+  // Tier 1). Un toggle de statut garantie / une coordonnee n'est pas un engagement chiffre :
+  // editor ET agent peuvent les changer (updateGarantie en prod tourne sous session editor/agent).
+  it('dossiers : editor change gar_statut (operationnel) -> ALLOW', async () => {
+    await assertSucceeds(setDoc(dosRef('editorUid'), Object.assign({}, DOS_BASE, { gar_statut: 'VERSEE' })));
+  });
+
+  it('dossiers : agent change gar_statut (operationnel) -> ALLOW', async () => {
+    await assertSucceeds(setDoc(dosRef('agentUid'), Object.assign({}, DOS_BASE, { gar_statut: 'VERSEE' })));
+  });
+
+  it('dossiers : agent change gar_contact+gar_tel (operationnel) -> ALLOW', async () => {
+    await assertSucceeds(setDoc(dosRef('agentUid'),
+      Object.assign({}, DOS_BASE, { gar_contact: 'Armateur X', gar_tel: '770000000' })));
   });
 
   it('dossiers : editor change st (champ neutre operationnel) -> ALLOW', async () => {
@@ -132,18 +155,21 @@ describeOrSkip('Firestore rules — financier field-level par tier (backlog O)',
     await assertSucceeds(setDoc(dosRef('editorUid'), Object.assign({}, DOS_BASE)));
   });
 
-  // ── DEP — Tier 2 (s/status) admin-only + Tier 3 (mt/ht) admin+editor ──
+  // ── DEP — Tier 3 (mt/ht) admin+editor ; s/status operationnel libre (Tier 2 dissous) ──
 
   it('dep : admin change s (statut) -> ALLOW', async () => {
     await assertSucceeds(setDoc(depRef('adminUid'), Object.assign({}, DEP_BASE, { s: 'PAYE' })));
   });
 
-  it('dep : editor change s (Tier 2) -> DENY', async () => {
-    await assertFails(setDoc(depRef('editorUid'), Object.assign({}, DEP_BASE, { s: 'PAYE' })));
+  // Reclassification Sprint 47 : dep.s (statut paiement) = etat operationnel. Un toggle
+  // IMPAYE->PAYE est une constatation (la facture EST payee), tracee par wLog, pas une
+  // signature financiere -> editor ET agent peuvent le changer (toggleDepSt en prod).
+  it('dep : editor change s (operationnel, ex-Tier 2) -> ALLOW', async () => {
+    await assertSucceeds(setDoc(depRef('editorUid'), Object.assign({}, DEP_BASE, { s: 'PAYE' })));
   });
 
-  it('dep : agent change s (Tier 2) -> DENY', async () => {
-    await assertFails(setDoc(depRef('agentUid'), Object.assign({}, DEP_BASE, { s: 'PAYE' })));
+  it('dep : agent change s (operationnel, ex-Tier 2) -> ALLOW', async () => {
+    await assertSucceeds(setDoc(depRef('agentUid'), Object.assign({}, DEP_BASE, { s: 'PAYE' })));
   });
 
   it('dep : editor change mt (Tier 3) -> ALLOW', async () => {

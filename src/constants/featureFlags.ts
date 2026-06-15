@@ -13,6 +13,7 @@
 // Pour ouvrir a tous : remplacer par ['*'] ou rendre isBetaCompany toujours true.
 export var BETA_COMPANIES: string[] = [
   'c_mocpodna9egt',  // General Transit Dakar (Ousmane / fondateur)
+  'c_mni2tj7llujy',  // Integrated Services (compagnie de test / QA)
 ];
 
 /**

@@ -14,7 +14,7 @@
 import { useState, useEffect } from 'react';
 import { doc, getDoc, getDocs, setDoc, onSnapshot, collection, deleteDoc, addDoc, updateDoc, query, where } from 'firebase/firestore';
 import { db } from './firebase.js';
-import { mirrorToSubcollections, logMirrorResult, persistMirrorErrors } from './services/dualwrite';
+import { mirrorToSubcollections, mirrorPatch, logMirrorResult, persistMirrorErrors } from './services/dualwrite';
 import { resolvePrevSnapshot } from './services/prevSnapshot';
 import { useSyncedRef } from './hooks/useSyncedRef';
 import { resolveUpdater } from './services/resolveUpdater';
@@ -298,6 +298,8 @@ export default function useData(uid: string, email: string) {
       // Merge setDoc direct sur le doc company (contourne save() fire-and-forget)
       await setDoc(doc(db, 'companies', userInfo.companyId), { dos: newDos }, { merge: true });
       setData(Object.assign({}, cur, { dos: newDos }));
+      // Phase C C0.5 : mirror cible du dossier patche (tokId) vers sub (ecriture hors save()).
+      await mirrorPatch(db, userInfo.companyId, 'dos', newDos.filter(function (x) { return x.id === dosId; }));
     }
     var tcList = (cur.tcs || []).filter(function (t) { return t.did === dosId; });
     var chsList = cur.chs || [];
@@ -535,6 +537,16 @@ export default function useData(uid: string, email: string) {
 
     // 3. Create company doc
     await setDoc(doc(db, 'companies', companyId), Object.assign({}, existingData, { name: companyName }));
+    // Phase C C0.5 : si migration depuis legacy users/{uid} (existingData non vide), mirror les
+    // arrays vers sub. Sinon createCompany ecrit dos/tcs/... en mono sans miroir -> apres la
+    // bascule Phase C, le nouvel admin lirait un sub vide (ecran vide jusqu'au 1er save).
+    var migrKeys = ['dos', 'tcs', 'chs', 'dep', 'logs'];
+    for (var mki = 0; mki < migrKeys.length; mki++) {
+      var migrArr = (existingData as any)[migrKeys[mki]];
+      if (Array.isArray(migrArr) && migrArr.length > 0) {
+        await mirrorPatch(db, companyId, migrKeys[mki] as any, migrArr);
+      }
+    }
     
     // 4. Link user to company
     await setDoc(doc(db, 'users', uid), {
@@ -628,6 +640,9 @@ export default function useData(uid: string, email: string) {
           });
           if (modified) {
             await setDoc(compRef, { dos: dosList }, { merge: true });
+            // Phase C C0.5 : mirror les dossiers (itv agent applique) vers sub. dosList vient
+            // d'un getDoc autoritatif du mono -> re-sync opportuniste de la collection dos.
+            await mirrorPatch(db, inv.companyId, 'dos', dosList);
           }
         }
       } catch (e) {
@@ -791,6 +806,8 @@ export default function useData(uid: string, email: string) {
     });
 
     await setDoc(compRef, { dos: newDosList }, { merge: true });
+    // Phase C C0.5 : mirror les dossiers (reassignation intervenants) vers sub (hors save()).
+    await mirrorPatch(db, userInfo.companyId, 'dos', newDosList);
   }
 
   // Remove member (admin only)

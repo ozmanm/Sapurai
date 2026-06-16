@@ -142,6 +142,65 @@ export async function mirrorToSubcollections(
 }
 
 /**
+ * Phase C (backlog C0.5) — mirror cible d'un sous-ensemble d'items vers UNE sous-collection,
+ * pour les sites qui ecrivent un array mono EN DEHORS de save() (shareTracking tokId,
+ * createCompany migration legacy, joinWithCode itv, reassignation intervenants). Sans ce
+ * mirror, ces ecritures resteraient invisibles cote sub apres la bascule des lectures (Phase C).
+ *
+ * LIMITATION ASSUMEE : aucune delete-detection (Step 1 only — batch.set). Ce helper ECRIT /
+ * MET A JOUR les items fournis, il ne SUPPRIME jamais de sous-doc. Les 4 sites appelants ne
+ * retirent aucun element d'array (create/update uniquement). Pour un flux qui RETIRE des items,
+ * NE PAS utiliser mirrorPatch -> passer par save() (mirrorToSubcollections avec prev, qui detecte
+ * les deletes en Step 2). Cf. test sentinelle dans dualwrite.test.ts.
+ *
+ * Ne throw jamais (fire-and-forget, mono reste autoritatif). persistMirrorErrors est appele
+ * INLINE (contrairement a mirrorToSubcollections ou save() s'en charge) : ces sites sont des
+ * chemins froids (bootstrap/admin) ou un echec silencieux serait couteux a diagnostiquer.
+ */
+export async function mirrorPatch(
+  db: Firestore,
+  companyId: string,
+  key: SubcollectionSpec['key'],
+  items: Array<Record<string, unknown>>,
+): Promise<MirrorStats> {
+  var start = Date.now();
+  var stats: MirrorStats = { ok: true, written: 0, deleted: 0, errors: [], durationMs: 0 };
+  var spec = SUBCOLLECTIONS.find(function (s) { return s.key === key; });
+
+  if (!companyId || !spec || !Array.isArray(items)) {
+    stats.ok = false;
+    stats.errors.push('mirrorPatch: argument invalide (key=' + key + ')');
+    stats.durationMs = Date.now() - start;
+    if (companyId) await persistMirrorErrors(db, companyId, stats);
+    return stats;
+  }
+
+  try {
+    var collRef = collection(db, 'companies', companyId, spec.path);
+    var idField = spec.idField;
+    for (var off = 0; off < items.length; off += BATCH_CHUNK) {
+      var slice = items.slice(off, off + BATCH_CHUNK);
+      var batch = writeBatch(db);
+      slice.forEach(function (item: Record<string, unknown>) {
+        var id = item && item[idField];
+        if (!id) return;
+        batch.set(doc(collRef, String(id)), item);
+      });
+      await batch.commit();
+      stats.written += slice.length;
+    }
+  } catch (e) {
+    stats.ok = false;
+    var emsg = e instanceof Error ? e.message : 'unknown';
+    stats.errors.push(spec.path + ' (patch) : ' + emsg);
+  }
+
+  stats.durationMs = Date.now() - start;
+  if (stats.errors.length) await persistMirrorErrors(db, companyId, stats);
+  return stats;
+}
+
+/**
  * Helper pour logguer le resultat de facon discrete (Phase A).
  * Phase C+, on consommera ces stats pour des metriques plus serieuses.
  */

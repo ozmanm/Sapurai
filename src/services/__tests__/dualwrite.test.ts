@@ -22,6 +22,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 var batchSetCalls: Array<{ ref: any; data: any }> = [];
 var deleteDocCalls: Array<{ ref: any }> = [];
 var batchCommitCalls = 0;
+var failCommit = false;        // mirrorPatch never-throw test : force batch.commit a rejeter
+var addDocCalls: any[] = [];   // capture persistMirrorErrors inline (mirrorPatch)
 
 vi.mock('firebase/firestore', function () {
   return {
@@ -35,14 +37,17 @@ vi.mock('firebase/firestore', function () {
     writeBatch: function (_db: any) {
       return {
         set: function (ref: any, data: any) { batchSetCalls.push({ ref: ref, data: data }); },
-        commit: function () { batchCommitCalls++; return Promise.resolve(); },
+        commit: function () {
+          batchCommitCalls++;
+          return failCommit ? Promise.reject(new Error('commit boom')) : Promise.resolve();
+        },
       };
     },
     deleteDoc: function (ref: any) {
       deleteDocCalls.push({ ref: ref });
       return Promise.resolve();
     },
-    addDoc: function () { return Promise.resolve({ id: 'mock' }); },
+    addDoc: function (_ref: any, data: any) { addDocCalls.push(data); return Promise.resolve({ id: 'mock' }); },
     serverTimestamp: function () { return 'mock-ts'; },
   };
 });
@@ -54,7 +59,7 @@ vi.mock('firebase/auth', function () {
 });
 
 // Import APRES les mocks
-import { mirrorToSubcollections } from '../dualwrite';
+import { mirrorToSubcollections, mirrorPatch } from '../dualwrite';
 
 // --- Helpers --------------------------------------------------------------
 
@@ -66,6 +71,8 @@ function reset() {
   batchSetCalls = [];
   deleteDocCalls = [];
   batchCommitCalls = 0;
+  failCommit = false;
+  addDocCalls = [];
 }
 
 describe('mirrorToSubcollections - propagation deletes (Step 2)', function () {
@@ -164,6 +171,72 @@ describe('mirrorToSubcollections - propagation deletes (Step 2)', function () {
     expect(paths).toContain('companies/cid1/chs/C2');
     expect(paths).toContain('companies/cid1/dep/D1');
     expect(paths).toContain('companies/cid1/tcs/T1');
+  });
+
+});
+
+describe('mirrorPatch - mirror cible Step 1 only (Phase C C0.5)', function () {
+
+  beforeEach(function () { reset(); });
+
+  it('1 item -> 1 batch.set sur le bon chemin, written=1, 0 delete', async function () {
+    var stats = await mirrorPatch({} as any, 'cid1', 'dos', [mkDos('A')]);
+    expect(stats.ok).toBe(true);
+    expect(stats.written).toBe(1);
+    expect(stats.deleted).toBe(0);
+    expect(deleteDocCalls.length).toBe(0);              // jamais de delete
+    expect(batchSetCalls.length).toBe(1);
+    expect(batchSetCalls[0].ref._path).toBe('companies/cid1/dossiers/A');
+    expect(batchCommitCalls).toBe(1);
+    expect(stats.errors).toEqual([]);
+  });
+
+  it('array > 400 -> chunke en plusieurs commits (BATCH_CHUNK=400)', async function () {
+    var items: any[] = [];
+    for (var i = 0; i < 950; i++) items.push(mkDos('D' + i));
+    var stats = await mirrorPatch({} as any, 'cid1', 'tcs', items);
+    expect(stats.ok).toBe(true);
+    expect(stats.written).toBe(950);
+    expect(batchCommitCalls).toBe(3);                   // 400 + 400 + 150
+    expect(batchSetCalls.length).toBe(950);
+    expect(batchSetCalls[0].ref._path).toBe('companies/cid1/tcs/D0');
+  });
+
+  it('item sans id -> ignore (pas de set), pas d erreur', async function () {
+    var stats = await mirrorPatch({} as any, 'cid1', 'dep', [mkDos('A'), { foo: 'bar' } as any]);
+    expect(batchSetCalls.length).toBe(1);               // seul A est ecrit
+    expect(batchSetCalls[0].ref._path).toBe('companies/cid1/dep/A');
+    expect(stats.errors).toEqual([]);
+  });
+
+  it('NEVER-THROW : commit qui rejette -> resolve avec ok=false + persistMirrorErrors INLINE', async function () {
+    failCommit = true;
+    var stats = await mirrorPatch({} as any, 'cid1', 'dos', [mkDos('A')]);
+    expect(stats.ok).toBe(false);                       // pas de throw, erreur capturee
+    expect(stats.errors.length).toBeGreaterThan(0);
+    expect(stats.errors[0]).toContain('dossiers (patch)');
+    expect(addDocCalls.length).toBeGreaterThan(0);      // persistMirrorErrors appele depuis le helper
+    expect(String(addDocCalls[0].entity)).toContain('dossiers');
+  });
+
+  it('argument invalide (items non-array) -> ok=false, ne throw pas, 0 set', async function () {
+    var stats = await mirrorPatch({} as any, 'cid1', 'dos', null as any);
+    expect(stats.ok).toBe(false);
+    expect(stats.errors.length).toBeGreaterThan(0);
+    expect(batchSetCalls.length).toBe(0);
+  });
+
+  // --- SENTINELLE (raffinement a) : documente que la delete-detection N'EST PAS couverte ---
+  it('SENTINELLE : mirrorPatch ne fait PAS de delete-detection (Step 2 absent) — par design', async function () {
+    // mirrorPatch ECRIT les items fournis et ne SUPPRIME jamais : aucun referentiel prev.
+    // Meme si sub contenait "B" avant, passer seulement [A] ne supprime PAS B. Pour un flux
+    // qui RETIRE des items -> save() (mirrorToSubcollections avec prev, Step 2). Ce test n'est
+    // pas un assert fonctionnel mais une sentinelle de discipline : s'il disparait, ou si on
+    // ajoute un Step 2 a mirrorPatch sans repenser les 4 callers, relire le commentaire en tete
+    // de mirrorPatch dans dualwrite.ts.
+    var stats = await mirrorPatch({} as any, 'cid1', 'dos', [mkDos('A')]);
+    expect(stats.deleted).toBe(0);
+    expect(deleteDocCalls.length).toBe(0);
   });
 
 });

@@ -11,13 +11,15 @@
 // ajoute par erreur, le retirer (pas le justifier).
 /* eslint-disable no-console */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { doc, getDoc, getDocs, setDoc, onSnapshot, collection, deleteDoc, addDoc, updateDoc, query, where } from 'firebase/firestore';
 import { db } from './firebase.js';
-import { mirrorToSubcollections, mirrorPatch, logMirrorResult, persistMirrorErrors } from './services/dualwrite';
+import { mirrorToSubcollections, mirrorPatch, logMirrorResult, persistMirrorErrors, SUB_KEYS, pathOf } from './services/dualwrite';
 import { resolvePrevSnapshot } from './services/prevSnapshot';
 import { useSyncedRef } from './hooks/useSyncedRef';
 import { resolveUpdater } from './services/resolveUpdater';
+import { assembleData, extractArrays } from './services/assembleData';
+import { shouldReadFromSub } from './constants/featureFlags';
 
 var EMPTY = { dos: [], tcs: [], chs: [], dep: [], logs: [], cfg: { fp: 10, ft: 23, fm: 20 } };
 
@@ -36,6 +38,9 @@ export default function useData(uid: string, email: string) {
   // pushes externes (onSnapshot). Permet a save() de resoudre un updater contre la verite
   // courante (pas le React state fige). Primitive extraite + testee (backlog N).
   var dataRef = useSyncedRef<any>(data);
+  // Phase C C1 : arrays issus des sous-collections (flag-on uniquement). Possesseur exclusif
+  // des 5 arrays ; ne survit PAS au switch de company (reset dans l'effect sub-listeners).
+  var subArraysRef = useRef<any>({});
 
   // 1. Check if user belongs to a company
   useEffect(function () {
@@ -111,11 +116,42 @@ export default function useData(uid: string, email: string) {
           }
         } catch (_e) {}
       }
-      setData(compData);
+      // Phase C C1 : si la company lit depuis sub, le listener mono ne porte que l'ENVELOPPE
+      // (cfg/name/...). Les 5 arrays sont possedes par les sub-listeners : on conserve ceux
+      // de prev pour ne pas clobberer un update optimiste avant l'echo sub. Flag-off (defaut)
+      // -> setData(compData) STRICTEMENT inchange.
+      if (shouldReadFromSub(userInfo.companyId)) {
+        setData(function (prev: any) { return assembleData(compData, prev ? extractArrays(prev) : subArraysRef.current); });
+      } else {
+        setData(compData);
+      }
       setLoading(false);
     }, function (err) { console.error('Listener company:', err); });
 
     return function () { unsub(); };
+  }, [userInfo]);
+
+  // 2bis. Phase C C1 : listeners sous-collections (LECTURE depuis sub). Actifs UNIQUEMENT si
+  // shouldReadFromSub(cid) (flag SUB_READ_COMPANIES). Flag vide (defaut) -> early return ->
+  // aucun listener sub, comportement Phase A strictement inchange.
+  useEffect(function () {
+    if (!userInfo || !userInfo.companyId || !shouldReadFromSub(userInfo.companyId)) return;
+    var cid = userInfo.companyId;
+    // Reset au (re)mount : subArraysRef ne survit PAS au switch de company (sinon melange
+    // tenant A/B pendant la re-hydratation, + risque de save dans la mauvaise company). On
+    // force un ecran de chargement propre (loader visible >> data melangee 200ms).
+    subArraysRef.current = {};
+    setData(null);
+    setLoading(true);
+    var unsubs = SUB_KEYS.map(function (key) {
+      return onSnapshot(collection(db, 'companies', cid, pathOf(key)), function (snap) {
+        var list: any[] = [];
+        snap.forEach(function (d) { list.push(d.data()); });
+        subArraysRef.current[key] = list;
+        setData(function (prev: any) { return prev == null ? null : assembleData(prev, subArraysRef.current); });
+      }, function (err) { console.error('Listener sub ' + key + ':', err); });
+    });
+    return function () { unsubs.forEach(function (u) { u(); }); };
   }, [userInfo]);
 
   // 3. Load members (for admin)

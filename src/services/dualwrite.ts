@@ -28,19 +28,29 @@ export interface MirrorStats {
   durationMs: number;
 }
 
-interface SubcollectionSpec {
+export interface SubcollectionSpec {
   key: 'dos' | 'tcs' | 'chs' | 'dep' | 'logs';
   path: string;     // chemin sous /companies/{cid}/
   idField: string;  // champ qui sert d'ID dans la sous-collection
 }
 
-var SUBCOLLECTIONS: SubcollectionSpec[] = [
+// Source de verite UNIQUE du mapping cle->sous-collection. Importee par le dual-write (ecriture)
+// ET par l'assemblage read-assembly de Phase C (lecture, cf. services/assembleData.ts + useData).
+export var SUBCOLLECTIONS: SubcollectionSpec[] = [
   { key: 'dos', path: 'dossiers', idField: 'id' },
   { key: 'tcs', path: 'tcs', idField: 'id' },
   { key: 'chs', path: 'chs', idField: 'id' },
   { key: 'dep', path: 'dep', idField: 'id' },
   { key: 'logs', path: 'logs', idField: 'id' },
 ];
+
+// Derives exportes (Phase C) — pas de duplication du tableau de cles ailleurs.
+export var SUB_KEYS: Array<SubcollectionSpec['key']> = SUBCOLLECTIONS.map(function (s) { return s.key; });
+
+export function pathOf(key: SubcollectionSpec['key']): string {
+  var s = SUBCOLLECTIONS.find(function (x) { return x.key === key; });
+  return s ? s.path : key;
+}
 
 var BATCH_CHUNK = 400;  // marge sur la limite Firestore 500
 

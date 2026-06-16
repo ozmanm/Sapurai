@@ -24,3 +24,21 @@ export function isBetaCompany(companyId: string | undefined | null): boolean {
   if (!companyId) return false;
   return BETA_COMPANIES.indexOf(companyId) >= 0;
 }
+
+// ── Phase C (bascule des LECTURES vers les sous-collections) ──────────────────
+// Compagnies dont les listeners LISENT depuis /companies/{cid}/{dossiers,tcs,...} au lieu
+// du doc mono. Vide = personne (comportement Phase A strictement inchange). Pour basculer
+// une compagnie : ajouter son cid + redeployer le front. Generalisation finale (C5) : ['*'].
+// readonly : ce flag se change en EDITANT la constante (= deploiement), jamais en mutate runtime.
+export var SUB_READ_COMPANIES: readonly string[] = [];
+
+// Predicat PUR (liste injectee) pour pouvoir tester les cas positifs sans muter la constante.
+export function matchesSubRead(list: readonly string[], companyId: string | undefined | null): boolean {
+  if (!companyId) return false;
+  if (list.indexOf('*') >= 0) return true;          // C5 : generalisation a toutes les compagnies
+  return list.indexOf(companyId) >= 0;
+}
+
+export function shouldReadFromSub(companyId: string | undefined | null): boolean {
+  return matchesSubRead(SUB_READ_COMPANIES, companyId);
+}

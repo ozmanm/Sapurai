@@ -15,7 +15,7 @@ import { useState, useEffect, useRef } from 'react';
 import { doc, getDoc, getDocs, setDoc, onSnapshot, collection, deleteDoc, addDoc, updateDoc, query, where } from 'firebase/firestore';
 import { db } from './firebase.js';
 import { mirrorToSubcollections, mirrorPatch, logMirrorResult, persistMirrorErrors, SUB_KEYS, pathOf } from './services/dualwrite';
-import { resolvePrevSnapshot } from './services/prevSnapshot';
+import { resolvePrevSnapshot, resolvePrevFromSub } from './services/prevSnapshot';
 import { useSyncedRef } from './hooks/useSyncedRef';
 import { resolveUpdater } from './services/resolveUpdater';
 import { assembleData, extractArrays } from './services/assembleData';
@@ -517,9 +517,11 @@ export default function useData(uid: string, email: string) {
     // Sprint 46 hotfix incident 2026-05-24 (beta) : prevSnapshot lu depuis Firestore (verite),
     // pas depuis le React state qui peut etre EMPTY/stale. Logique extraite + testee dans
     // services/prevSnapshot.ts (backlog G : barriere CI). Floor = data React (jamais `{}`).
-    var prevSnapshot = await resolvePrevSnapshot(
-      db, userInfo.companyId, (data as unknown as Record<string, unknown>) || {},
-    );
+    // Phase C C2 (backlog Q) : en flag-on, le prev du mirror vient de SUB (getDocs), pas du
+    // mono -> l'integrite sub ne depend plus du mono. Flag-off (defaut) -> resolvePrevSnapshot inchange.
+    var prevSnapshot = shouldReadFromSub(userInfo.companyId)
+      ? await resolvePrevFromSub(db, userInfo.companyId, (data as unknown as Record<string, unknown>) || {})
+      : await resolvePrevSnapshot(db, userInfo.companyId, (data as unknown as Record<string, unknown>) || {});
     setDoc(doc(db, 'companies', userInfo.companyId), clean).then(function () {
       setSaveOk(true);
       setTimeout(function () { setSaveOk(false); }, 2000);

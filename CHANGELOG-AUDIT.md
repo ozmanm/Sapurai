@@ -645,6 +645,20 @@ npm run deploy       # Build + deploy Firebase
 | **O** — rules SUB granulaires (per-role + per-champ) | ✅ | Tache #210 (+ reclassif Sprint 47). 3 helpers field-level + split create/update (dossiers/tcs/dep), 25 tests emulateur (dont 3 CRITIQUE no-diff). UPDATE-locked / CREATE permissif. **Commit+push, deploy BUNDLE au cutover Phase C** (avec P + gating UI, jamais standalone — cf. Lecons-apprises). |
 | **Fenetre 7j zero-drift post-deploy E** | ✅ PASSED (faible activite) — J0 = 2026-06-02 | Prod = **478767d** (G+M+E+N live, Hosting `https://sapurai-84984.web.app`). E modifie `save()` au runtime (resolution updater + write-back via `resolveUpdater`) -> fenetre fresh demarree au deploy. **Critere feu vert** : 7j consecutifs zero drift dos/tcs/dep ET zero canari `prevRead/getDoc : timeout` (diff quotidien + check-dual-write-errors cote terminal user, creds Admin). **J7 ~2026-06-09 depasse ; verifie 2026-06-16** : diff `dos/tcs/dep/chs` = `onlyMono:0 onlySub:0 fieldDiffs:0` ; `logs onlyMono:1` (id `xmpdxwhzbljh4`, residu append-only tolere, stable, `fieldDiffs:0`) ; `dual_write_errors` = **0** sur toute la fenetre (collection append-only -> capture cumulative des jours actifs ; zero `prevRead/getDoc : timeout`). **Caveat honnete** : `c_mocpodna9egt` dormante en fin de periode (0 dossier/tc/dep actif au diff final) -> le canari 0-erreur vaut pour les jours actifs, mais le delete-path (fix E) n'a PAS ete stresse a fort volume ; aucune autre compagnie prod active a observer. **Corollaire** : le plan Phase C doit inclure un test delete-path solide. |
 
+### Phase C — chantier en cours
+
+J0 chantier : 2026-06-16 (fenetre 7j J7~2026-06-09 confirmee verte le 2026-06-16, cf. checklist ci-dessus). La checklist prerequis reste figee (artefact d'ouverture) ; ce tracker est l'organe vivant.
+
+| Etape | Statut | Commit | Notes |
+|---|---|---|---|
+| C0 — backfill check | ✅ | (data action, pas de commit) | c_mocpodna9egt clean |
+| C0.5 — mirrorPatch + migration 4 sites mono direct | ✅ | `9bd0cf0` | fermeture trous ecriture hors save() avant bascule reads |
+| C1 — read-assembly + flag SUB_READ_COMPANIES vide | ⏳ | — | en cours |
+| C2 — prev-sourcing mono->sub (backlog Q) | 🔒 | — | post-C1 |
+| C3 — activation 1 company + deploy front + rules O | 🔒 | — | **premier vrai cutover prod** |
+| C4 — test delete-path (corollaire caveat fenetre) | 🔒 | — | |
+| C5 — generalisation `['*']` | 🔒 | — | Phase C terminee, Phase D ouvre |
+
 ### Priorite haute
 
 | # | Tache | Raison du report | Effort estime |

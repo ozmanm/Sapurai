@@ -1,7 +1,7 @@
 # Sapurai — Suivi de l'audit et des ameliorations
 
 > Fichier de suivi pour faciliter la reprise apres une pause.
-> Derniere mise a jour : 2026-06-03 (210 taches)
+> Derniere mise a jour : 2026-06-16 (210 taches ; fenetre 7j Phase C cloturee PASSED)
 
 ---
 
@@ -631,9 +631,10 @@ npm run deploy       # Build + deploy Firebase
 
 ## PAS FAIT — A traiter plus tard
 
-### Phase C (bascule des LECTURES vers sous-collections) — NO-GO : checklist prerequis
+### Phase C (bascule des LECTURES vers sous-collections) — 4/4 LEVES (Phase C ouvrable) : checklist prerequis
 
 > **Verrou : ne PAS rouvrir le debat Phase C tant que les 4 cases ne sont pas cochees.**
+> **Etat 2026-06-16 : les 4 cases sont cochees (G/N/O + fenetre 7j PASSED sous faible activite) -> Phase C est OUVRABLE.** Reouvrir le debat != lancer le chantier : scope = backlog Q (bascule listeners + bascule prev-sourcing mono->sub) + cutover bundle (O + P-par-disparition-mono en Phase D) ; le plan doit inclure un test delete-path solide (cf. caveat fenetre : prod non stressee a fort volume).
 > Rappel des phases — **Phase C** = bascule des LECTURES vers sub (mono continue d'etre ecrit via dual-write). **Phase D** = arret des ecritures mono.
 > Historique de l'overclaim (2026-06-02) : « Phase C debloque » apres G seul etait FAUX. G leve UN des verrous. Cette checklist existe pour qu'aucun futur passage ne re-signe sur une seule case.
 
@@ -642,7 +643,7 @@ npm run deploy       # Build + deploy Firebase
 | **G** — barriere CI sourcing prev (`resolvePrevSnapshot` teste) | ✅ | Tache #205 (95a15cf). **Deploye 2026-06-02 (478767d).** |
 | **N** — barriere CI call-site save()/dataRef/updater | ✅ | Tache #208. `useSyncedRef` (L37) + `resolveUpdater` (L461), 8 tests. **Deploye 2026-06-02 (478767d).** |
 | **O** — rules SUB granulaires (per-role + per-champ) | ✅ | Tache #210 (+ reclassif Sprint 47). 3 helpers field-level + split create/update (dossiers/tcs/dep), 25 tests emulateur (dont 3 CRITIQUE no-diff). UPDATE-locked / CREATE permissif. **Commit+push, deploy BUNDLE au cutover Phase C** (avec P + gating UI, jamais standalone — cf. Lecons-apprises). |
-| **Fenetre 7j zero-drift post-deploy E** | 🟡 EN COURS — J0 = 2026-06-02 | Prod = **478767d** (G+M+E+N live, Hosting `https://sapurai-84984.web.app`). E modifie `save()` au runtime (resolution updater + write-back via `resolveUpdater`) -> fenetre fresh demarree au deploy. **Critere feu vert** : 7j consecutifs zero drift dos/tcs/dep ET zero canari `prevRead/getDoc : timeout` (diff quotidien + check-dual-write-errors cote terminal user, creds Admin). J7 cible ~2026-06-09. |
+| **Fenetre 7j zero-drift post-deploy E** | ✅ PASSED (faible activite) — J0 = 2026-06-02 | Prod = **478767d** (G+M+E+N live, Hosting `https://sapurai-84984.web.app`). E modifie `save()` au runtime (resolution updater + write-back via `resolveUpdater`) -> fenetre fresh demarree au deploy. **Critere feu vert** : 7j consecutifs zero drift dos/tcs/dep ET zero canari `prevRead/getDoc : timeout` (diff quotidien + check-dual-write-errors cote terminal user, creds Admin). **J7 ~2026-06-09 depasse ; verifie 2026-06-16** : diff `dos/tcs/dep/chs` = `onlyMono:0 onlySub:0 fieldDiffs:0` ; `logs onlyMono:1` (id `xmpdxwhzbljh4`, residu append-only tolere, stable, `fieldDiffs:0`) ; `dual_write_errors` = **0** sur toute la fenetre (collection append-only -> capture cumulative des jours actifs ; zero `prevRead/getDoc : timeout`). **Caveat honnete** : `c_mocpodna9egt` dormante en fin de periode (0 dossier/tc/dep actif au diff final) -> le canari 0-erreur vaut pour les jours actifs, mais le delete-path (fix E) n'a PAS ete stresse a fort volume ; aucune autre compagnie prod active a observer. **Corollaire** : le plan Phase C doit inclure un test delete-path solide. |
 
 ### Priorite haute
 

@@ -654,7 +654,7 @@ J0 chantier : 2026-06-16 (fenetre 7j J7~2026-06-09 confirmee verte le 2026-06-16
 | C0 — backfill check | ✅ | (data action, pas de commit) | c_mocpodna9egt clean |
 | C0.5 — mirrorPatch + migration 4 sites mono direct | ✅ | `9bd0cf0` | fermeture trous ecriture hors save() avant bascule reads |
 | C1 — read-assembly + flag SUB_READ_COMPANIES vide | ✅ | `efe7a98` | dormant (flag vide -> Phase A inchange) ; reducer pur `assembleData` + 5 sub-listeners + reset anti-melange au switch-company. **Backlog** : barriere CI renderHook sur l'assemblage sub, a activer quand le flag-on devient reel (C3). |
-| C2 — prev-sourcing mono->sub (backlog Q) | 🔒 | — | post-C1 |
+| C2 — prev-sourcing mono->sub (backlog Q) | ✅ | `c1eca6f` | dormant ; `resolvePrevFromSub` (getDocs 5 sub, all-or-nothing, canari distinct `prevReadSub/getDocs`). Flag-off -> `resolvePrevSnapshot` mono inchange. |
 | C3 — activation 1 company + deploy front + rules O | 🔒 | — | **premier vrai cutover prod** |
 | C4 — test delete-path (corollaire caveat fenetre) | 🔒 | — | |
 | C5 — generalisation `['*']` | 🔒 | — | Phase C terminee, Phase D ouvre |

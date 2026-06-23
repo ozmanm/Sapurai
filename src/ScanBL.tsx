@@ -48,8 +48,13 @@ export default function ScanBL(p: ScanBLProps) {
     var pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     var page = await pdf.getPage(1);
 
-    // Echelle 3x pour OCR fiable (BL souvent en petits caracteres)
-    var viewport = page.getViewport({ scale: 3 });
+    // Echelle ADAPTATIVE : viser ~2200px de large (suffisant OCR/vision), plafonnee pour ne
+    // PAS depasser la limite canvas du navigateur sur les PDF a grande page (scans haute-def).
+    // `scale:3` aveugle ecrasait : page large -> canvas > limite -> render BLANC -> OCR/vision vide
+    // + Tesseract qui mouline des minutes sur le vide.
+    var base = page.getViewport({ scale: 1 });
+    var scale = Math.min(3, 2200 / base.width);
+    var viewport = page.getViewport({ scale: scale });
     var canvas = document.createElement('canvas');
     canvas.width = viewport.width;
     canvas.height = viewport.height;

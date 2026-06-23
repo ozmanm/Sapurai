@@ -45,7 +45,13 @@ export default function ScanBL(p: ScanBLProps) {
     ).toString();
 
     var arrayBuffer = await file.arrayBuffer();
-    var pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    // CMA CGM BL = souvent XFA forms : pdfjs rend BLANC sans enableXfa. useSystemFonts couvre
+    // les polices PDF absentes (texte invisible -> canvas vide).
+    var pdf = await pdfjsLib.getDocument({
+      data: arrayBuffer,
+      enableXfa: true,
+      useSystemFonts: true,
+    }).promise;
     var page = await pdf.getPage(1);
 
     // Echelle ADAPTATIVE : viser ~2200px de large (suffisant OCR/vision), plafonnee pour ne
@@ -62,6 +68,13 @@ export default function ScanBL(p: ScanBLProps) {
     if (!ctx) throw new Error("canvas 2d context indisponible");
 
     await page.render({ canvasContext: ctx, viewport: viewport, canvas: canvas }).promise;
+    // Debug diag (temporaire) : signale un render blanc (canvas vide) en console.
+    try {
+      var px = ctx.getImageData(canvas.width >> 1, canvas.height >> 1, 1, 1).data;
+      var blank = px[0] > 250 && px[1] > 250 && px[2] > 250;
+      // eslint-disable-next-line no-console
+      console.log('[scan-debug] canvas ' + canvas.width + 'x' + canvas.height + ' centerRGB ' + px[0] + ',' + px[1] + ',' + px[2] + (blank ? ' = BLANC (render foire)' : ' = contenu OK'));
+    } catch (_e) { /* getImageData peut throw, ignore */ }
     return canvas;
   }
 

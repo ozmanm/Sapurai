@@ -166,8 +166,8 @@ function NDosForm(p: NDosFormProps) {
           <label style={LS}>{"Date arrivee"}{daSrcState === "cma" ? <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, background: "var(--info-bg)", color: "var(--info-text)", padding: "1px 6px", borderRadius: 6 }}>{"📡 CMA"}</span> : null}</label>
           <div style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
             <input type="date" value={da} onChange={function (e) { sDa(e.target.value); setDaSrcState("manual"); }} style={Object.assign({}, IS, { flex: 1 })} />
-            {isBetaCompany(p.companyId) && cp.toUpperCase().indexOf("CMA") >= 0 && bl.trim().length >= 4 ? (
-              <button type="button" disabled={!CMA_ENABLED || etaLoading} title={!CMA_ENABLED ? "Sync CMA temporairement desactivee (renouvellement cle API)" : ""} onClick={async function () {
+            {CMA_ENABLED && isBetaCompany(p.companyId) && cp.toUpperCase().indexOf("CMA") >= 0 && bl.trim().length >= 4 ? (
+              <button type="button" disabled={etaLoading} onClick={async function () {
                 setEtaLoading(true);
                 try {
                   var resp = await fetchCarrier(bl.trim(), cp);

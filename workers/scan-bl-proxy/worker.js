@@ -23,7 +23,7 @@
  *   SCAN_MODEL_VISION : modele vision si fallback image (defaut @cf/meta/llama-3.2-11b-vision-instruct)
  */
 
-var DEFAULT_TEXT_MODEL = '@cf/meta/llama-3.1-8b-instruct';
+var DEFAULT_TEXT_MODEL = '@cf/google/gemma-4-26b-a4b-it';
 var DEFAULT_VISION_MODEL = '@cf/meta/llama-3.2-11b-vision-instruct';
 
 var EXTRACTION_PROMPT = [

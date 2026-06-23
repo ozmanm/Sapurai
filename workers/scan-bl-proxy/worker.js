@@ -26,6 +26,21 @@
 var DEFAULT_TEXT_MODEL = '@cf/google/gemma-4-26b-a4b-it';
 var DEFAULT_VISION_MODEL = '@cf/google/gemma-4-26b-a4b-it';
 
+// JSON Mode (response_format) : force gemma-4 a sortir le JSON structure direct, sans
+// thinking-mode qui sinon consomme max_tokens en reasoning et tronque le content (finish=length).
+var SCAN_SCHEMA = {
+  type: 'object',
+  properties: {
+    bl: { type: 'string' },
+    client: { type: 'string' },
+    compagnie: { type: 'string' },
+    date_arrivee: { type: 'string' },
+    contact: { type: 'string' },
+    conteneurs: { type: 'array', items: { type: 'object', properties: { numero: { type: 'string' }, type: { type: 'string' }, poids: { type: 'string' } } } },
+  },
+  required: ['bl', 'client', 'compagnie', 'date_arrivee', 'contact', 'conteneurs'],
+};
+
 var EXTRACTION_PROMPT = [
   "You are a structured information extractor for maritime Bill of Lading (BL) documents.",
   "The user message contains RAW OCR TEXT from a BL document. Some characters may be misread.",
@@ -170,8 +185,9 @@ async function runTextModel(env, ocrText) {
       { role: 'system', content: EXTRACTION_PROMPT },
       { role: 'user', content: 'OCR TEXT FROM BL:\n\n' + ocrText },
     ],
-    max_tokens: 1024,
+    max_tokens: 4096,
     temperature: 0.1,
+    response_format: { type: 'json_schema', json_schema: SCAN_SCHEMA },
   });
   return { model: model, aiResult: aiResult };
 }
@@ -188,8 +204,9 @@ async function runVisionModel(env, dataUrl) {
         ],
       },
     ],
-    max_tokens: 2048,
+    max_tokens: 4096,
     temperature: 0.1,
+    response_format: { type: 'json_schema', json_schema: SCAN_SCHEMA },
   });
   return { model: model, aiResult: aiResult };
 }

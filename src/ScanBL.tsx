@@ -120,11 +120,18 @@ export default function ScanBL(p: ScanBLProps) {
     var cleanLen = ocrText.replace(/[^a-zA-Z0-9]/g, "").length;
 
     setStage("ai");
-    if (cleanLen < 100) {
-      await callWorker({ image: imageDataURL });
-    } else {
-      await callWorker({ text: ocrText });
+    var data: any = null;
+    if (cleanLen >= 100) {
+      // Texte OCR consistant -> chemin text (rapide, econome). Mais si l'extraction revient
+      // vide (junk OCR qui passe le seuil de longueur), on bascule quand meme sur la vision.
+      try { data = await callWorker({ text: ocrText }); } catch (_e) { data = null; }
     }
+    if (!data || !data.bl) {
+      // Scan image / photo basse qualite / text-path vide -> vision gemma directe sur l'image.
+      data = await callWorker({ image: imageDataURL });
+    }
+    setPreview(data);
+    setStage("idle");
   }
 
   async function callWorker(payload: { text?: string; image?: string }) {
@@ -166,12 +173,11 @@ export default function ScanBL(p: ScanBLProps) {
       }
       // Post-processing metier : corrige les confusions OCR connues selon la compagnie
       data = applyCarrierHeuristics(data);
-      setPreview(data);
-      // Sprint 33 stabilise — logs debug retires (Phase 1 lint cleanup Sprint 46)
-      setStage("idle");
+      return data;
     } catch (ex: any) {
-      setErr("Erreur scan : " + (ex && ex.message ? ex.message : "inconnue"));
-      setStage("idle");
+      // Remonte a runPipeline/handleFile (gere err + stage) ; permet aussi le fallback vision
+      // quand le text-path throw (worker erreur sur OCR junk).
+      throw ex;
     }
   }
 

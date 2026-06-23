@@ -9,6 +9,8 @@
  */
 
 // URL Worker — modifiable via setCMAProxy() pour tests ou dev local
+import { CMA_ENABLED } from '../constants/featureFlags';
+
 var PROXY_URL = 'https://cma-proxy.ozmanm10.workers.dev';
 
 export function setCMAProxy(url: string): void {
@@ -62,6 +64,10 @@ export interface CMAResponse {
 export async function fetchCMA(query: { bl?: string; container?: string }): Promise<CMAResponse> {
   if (!query.bl && !query.container) {
     return { ok: false, error: 'bl ou container requis' };
+  }
+  // CMA sync desactive (trial expire -> 429). Gate avant tout fetch cma-proxy.
+  if (!CMA_ENABLED) {
+    return { ok: false, error: 'CMA temporairement indisponible (sync desactivee)' };
   }
   var ctrl = new AbortController();
   var timer = setTimeout(function () { ctrl.abort(); }, 20000);

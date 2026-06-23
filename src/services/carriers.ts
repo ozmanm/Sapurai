@@ -11,6 +11,8 @@
  * pas les statuts TC. Les BAD/BAE/Pregate continuent via Sync DPWorld.
  */
 
+import { CMA_ENABLED } from '../constants/featureFlags';
+
 var CARRIER_PROXY_URL = 'https://carrier-proxy.ozmanm10.workers.dev';
 var CMA_PROXY_URL = 'https://cma-proxy.ozmanm10.workers.dev';
 
@@ -85,6 +87,11 @@ export async function fetchCarrier(bl: string, cp?: string): Promise<CarrierResp
   var carrier = detectCarrier(bl, cp);
   if (!carrier) {
     return { ok: false, error: 'Armateur non detecte (ni depuis BL ni depuis compagnie). Sync DPWorld pour BAD/BAE.' };
+  }
+
+  // CMA sync desactive (trial expire -> 429). Gate avant tout fetch cma-proxy.
+  if (carrier === 'cma' && !CMA_ENABLED) {
+    return { ok: false, error: 'CMA temporairement indisponible (sync desactivee)' };
   }
 
   var ctrl = new AbortController();

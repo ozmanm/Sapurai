@@ -8,7 +8,7 @@ import useAppLogic from './hooks/useAppLogic.js';
 import useAnalytics from './hooks/useAnalytics.js';
 import useTheme from './hooks/useTheme.js';
 import AgentView from './pages/AgentView.tsx';
-import { isBetaCompany } from './constants/featureFlags.js';
+import { isBetaCompany, CMA_ENABLED } from './constants/featureFlags.js';
 
 const Dash  = lazy(() => import('./pages/Dash.tsx'));
 const Dos   = lazy(() => import('./pages/Dos.tsx'));
@@ -108,6 +108,7 @@ export default function App(props: AppProps) {
     if (!L.syncCarrier) return;
     // Feature flag : auto-sync CMA reserve aux compagnies beta-testeuses
     if (!isBetaCompany(props.companyId)) return;
+    if (!CMA_ENABLED) return;   // CMA sync desactive (trial expire) -> pas d'auto-poll
     var todayMs = Date.now();
     var dayMs = 86400000;
     var dosToSync = (L.dos || []).filter(function (d: any) {

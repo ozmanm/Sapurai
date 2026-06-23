@@ -42,3 +42,8 @@ export function matchesSubRead(list: readonly string[], companyId: string | unde
 export function shouldReadFromSub(companyId: string | undefined | null): boolean {
   return matchesSubRead(SUB_READ_COMPANIES, companyId);
 }
+
+// CMA-CGM sync : trial expire -> API retourne 429 sur chaque call. false = AUCUNE call CMA
+// (auto-poll + manuel, via fetchCarrier cma-branch ET fetchCMA). Rallumer = flip true +
+// redeploy front le jour ou une cle API payante est obtenue.
+export var CMA_ENABLED: boolean = false;

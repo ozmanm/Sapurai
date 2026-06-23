@@ -24,7 +24,7 @@
  */
 
 var DEFAULT_TEXT_MODEL = '@cf/google/gemma-4-26b-a4b-it';
-var DEFAULT_VISION_MODEL = '@cf/meta/llama-3.2-11b-vision-instruct';
+var DEFAULT_VISION_MODEL = '@cf/google/gemma-4-26b-a4b-it';
 
 var EXTRACTION_PROMPT = [
   "You are a structured information extractor for maritime Bill of Lading (BL) documents.",

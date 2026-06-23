@@ -109,22 +109,30 @@ export default function ScanBL(p: ScanBLProps) {
       });
     }
 
+    // Image dataURL pour fallback vision (reutilise le canvas PDF, pas de re-render).
+    var imageDataURL = typeof source === "string" ? source : source.toDataURL("image/jpeg", 0.85);
+
     setStage("ocr");
     var ocrText = await runOcr(source);
-    if (!ocrText || ocrText.trim().length < 20) {
-      throw new Error("OCR n'a rien lu sur cette image. Verifie la qualite du scan.");
-    }
+    // T3 (OCR multi-qualite) : si Tesseract sort faible/junk (< 100 chars utiles) -> bascule
+    // vision gemma sur l'image (scans pourris, photos basse qualite) au lieu d'echouer. BL
+    // digital (texte propre) reste sur le chemin text (rapide, econome neurons).
+    var cleanLen = ocrText.replace(/[^a-zA-Z0-9]/g, "").length;
 
     setStage("ai");
-    await callWorker(ocrText);
+    if (cleanLen < 100) {
+      await callWorker({ image: imageDataURL });
+    } else {
+      await callWorker({ text: ocrText });
+    }
   }
 
-  async function callWorker(ocrText: string) {
+  async function callWorker(payload: { text?: string; image?: string }) {
     try {
       var response = await fetch(SCAN_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: ocrText }),
+        body: JSON.stringify(payload),
       });
 
       var json: any = null;

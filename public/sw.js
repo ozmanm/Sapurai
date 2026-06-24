@@ -2,7 +2,7 @@
 // Bump CACHE_VERSION pour forcer cleanup chez les users existants.
 // v3 (mai 2026) : favicon/icons root passes en network-first pour eviter de cacher
 // indefiniment l'ancien camion apres un changement de logo.
-var CACHE_VERSION = 'sapurai-v3';
+var CACHE_VERSION = 'sapurai-v4';
 var CACHE_STATIC = CACHE_VERSION + '-static';   // assets immuables (JS/CSS hashes)
 var CACHE_FONTS = CACHE_VERSION + '-fonts';     // Google Fonts (Inter, JetBrains Mono)
 var CACHE_RUNTIME = CACHE_VERSION + '-runtime'; // pages, navigations

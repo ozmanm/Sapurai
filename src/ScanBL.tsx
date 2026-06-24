@@ -130,23 +130,24 @@ export default function ScanBL(p: ScanBLProps) {
     // Image dataURL pour fallback vision (reutilise le canvas PDF, pas de re-render).
     var imageDataURL = typeof source === "string" ? source : source.toDataURL("image/jpeg", 0.85);
 
-    setStage("ocr");
-    var ocrText = await runOcr(source);
-    // T3 (OCR multi-qualite) : si Tesseract sort faible/junk (< 100 chars utiles) -> bascule
-    // vision gemma sur l'image (scans pourris, photos basse qualite) au lieu d'echouer. BL
-    // digital (texte propre) reste sur le chemin text (rapide, econome neurons).
-    var cleanLen = ocrText.replace(/[^a-zA-Z0-9]/g, "").length;
-
-    setStage("ai");
     var data: any = null;
-    if (cleanLen >= 100) {
-      // Texte OCR consistant -> chemin text (rapide, econome). Mais si l'extraction revient
-      // vide (junk OCR qui passe le seuil de longueur), on bascule quand meme sur la vision.
-      try { data = await callWorker({ text: ocrText }); } catch (_e) { data = null; }
-    }
-    if (!data || !data.bl) {
-      // Scan image / photo basse qualite / text-path vide -> vision gemma directe sur l'image.
+    if (isPdf) {
+      // PDF rendu = image dense : Tesseract lent (60s+) + junk -> DIRECT vision gemma (rapide
+      // ~35s, lit le BL image). Le chemin text-layer rapide pour PDF digital = backlog T1.
+      setStage("ai");
       data = await callWorker({ image: imageDataURL });
+    } else {
+      // Image uploadee (photo telephone) : Tesseract OCR d'abord ; si extraction vide -> vision.
+      setStage("ocr");
+      var ocrText = await runOcr(source);
+      var cleanLen = ocrText.replace(/[^a-zA-Z0-9]/g, "").length;
+      setStage("ai");
+      if (cleanLen >= 100) {
+        try { data = await callWorker({ text: ocrText }); } catch (_e) { data = null; }
+      }
+      if (!data || !data.bl) {
+        data = await callWorker({ image: imageDataURL });
+      }
     }
     setPreview(data);
     setStage("idle");
